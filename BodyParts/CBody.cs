@@ -165,7 +165,7 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 		string sClothingList = "['" + sClothingT + "','" + sClothingB + "']";       // Blender expects all meshes to add to body in a comma seperated string list
 
 		//=== Create the morphing body.  This is used for morphing or also the basis of complex gameplay meshes ===
-		CGame.gBL_SendCmd("Client", "gBL_Body_CreateForMorph('" + sNameSrcBody + "', '" + sNameGameBody + "', '" + sNameGameBody + G.C_NameSuffix_BodyMorph + "')");
+		//CGame.gBL_SendCmd("Client", "gBL_Body_CreateForMorph('" + sNameSrcBody + "', '" + sNameGameBody + "', '" + sNameGameBody + G.C_NameSuffix_BodyMorph + "')");
 
 		string sNameMeshSuffix;
 		if (bForMorphingOnly == false) {
