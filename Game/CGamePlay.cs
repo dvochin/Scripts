@@ -1,17 +1,14 @@
 using UnityEngine;
 using System;
 using System.IO;
-using System.Collections;
-using System.Collections.Generic;
 
-public class CGamePlay : IObject {
 
-	public	CObject			_oObj;
-	public	CObject[]		_aObjBodyDefs = new CObject[2];			// Our collection of GUI/script modifiable body definitions.  Responsible for storing the important body properties that are required for Blender to construct bodies & clothing.
-	public	CBody[]			_aBodies = new CBody[2];				// Our collection of bodies.  Created from the specs in corresponding entry in _aObjBodyDefs.
-	public	float			_nTimeReenableCollisions;				// Time when collisions should be re-enabled (Temporarily disabled during pose load)
+public class CGamePlay : MonoBehaviour, IObject {
+	public 	CObject			_oObj;							// The user-configurable object representing the game
+	public	CBody[]			_aBodies = new CBody[2];		// Our collection of bodies.  Created from the specs in corresponding entry in _aObjBodyDefs.
+	public	float			_nTimeReenableCollisions;		// Time when collisions should be re-enabled (Temporarily disabled during pose load)
 
-	const float				C_TimeToMaxOrgasm = 20;					// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
+	const float				C_TimeToMaxOrgasm_OBSOLETE = 20;			// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
 
 	public  bool			_bPenisInVagina;			//###DESIGN!!: ###MOVE?? Belongs here?? Prevents penis from generating dynamic CBodyCol colliders to repell it.  Set when entering vagina
 
@@ -37,19 +34,16 @@ public class CGamePlay : IObject {
             return;
 
         //=== Create the body publicly-editable body definitions that can construct and reconstruct CBody instances ===
-        CGame.INSTANCE._nNumPenisInScene = 0;
-		CreateBodyDef(1);
-		//CreateBodyDef(2);
+        CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
 
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
-		//CreateBody(2);		//###BUG!!!!!! Creating woman after man results in vagina softbody disconnecting because of init-time collision with penis!
-		CreateBody(1);
+		//CreateBody(1);		//###BUG!!!!!! Creating woman after man results in vagina softbody disconnecting because of init-time collision with penis!
+		CreateBody(0);
+		_aBodies[0].SelectBody();
 
 		TemporarilyDisablePhysicsCollision();
 
 		SetPenisInVagina(false);		// We initialize the penis in vagina state to false so vagina track colliders don't kick in at scene init
-
-		_aBodies[0].SelectBody();
 
 		if (CGame.INSTANCE._GameMode == EGameModes.Play)
 			ScenePose_Load("Standing", false);          // Load the default scene pose
@@ -60,51 +54,11 @@ public class CGamePlay : IObject {
 		//Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 	}
 
-	void CreateBodyDef(int nBodyID) {	// Creates a GUI/scripting enabled CObject that can define a CBody and populate it with reasonable defaults
-
-		string sNameBlenderObjectPrefix = CBody.GetNameGameBodyFromPrefix(nBodyID);		// The name of the Blender-side object that will store our property is the base mesh named like 'BodyA', 'BodyB', etc
-		CObject oObj = new CObject(this, nBodyID, typeof(EBodyDef), "Body", null, sNameBlenderObjectPrefix);	//###NOTE: Note that this is a 'Blender-enabled' CObject with some properties existing in Blender!
-		oObj.PropGroupBegin("", "", true);
-		oObj.PropAdd(EBodyDef.Sex,				"Sex",				typeof(EBodySex), (int)EBodySex.Woman,	"", CProp.Local);
-		oObj.PropAdd(EBodyDef.ClothingTop,		"Top Clothing",		typeof(EBodyClothingTop_HACK), 0, "", CProp.Local);		//###HACK!!!!
-		oObj.PropAdd(EBodyDef.ClothingBottom,	"Bottom Clothing",	typeof(EBodyClothingBottom_HACK), 0, "", CProp.Local + CProp.Hide);	//###BROKEN: Need to switch off vagina soft body!!
-		oObj.PropAdd(EBodyDef.Hair,				"Hair",				typeof(EBodyHair), 0,	"", CProp.Local);
-		oObj.PropAdd(EBodyDef.BtnUpdateBody,	"Update Body",		0,	"", CProp.Local | CProp.AsButton);
-		oObj.PropAdd(EBodyDef.BreastSize,		"Breast Size",		1.0f, 0.5f, 2.5f, "", CProp.Local);
-
-//		oObj.PropAdd(EBodyDef.BlenderProp_HACK, "Blender Prop",		0, 0, 1, "", CProp.Blender);
-		
-		oObj.FinishInitialization();
-
-		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!
-		if (nBodyID == 1) {
-//			oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Man);		####REVB
-//			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
-//			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
-//			oObj.PropFind(EBodyDef.BreastSize)._nPropFlags |= CProp.Hide;
-//			oObj.PropFind(EBodyDef.Hair)._nPropFlags |= CProp.Hide;
-			oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
-			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
-		} else {
-			oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
-			//oObj.PropSet(EBodyDef.ClothingTop, (int)EBodyClothingTop_HACK.TiedTop);
-			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
-			//if (CGame.INSTANCE._bRunningInEditor)		//###TEMP! :)
-			//	oObj.PropSet(EBodyDef.BreastSize, 1.3f);
-		}
-		_aObjBodyDefs[nBodyID - 1] = oObj;			//###DESIGN!!! ###WEAK: 1-based body ID getting a pain...
-
-		if (oObj.PropGet(EBodyDef.Sex) != (int)EBodySex.Woman)
-			CGame.INSTANCE._nNumPenisInScene++;
-	}
-
 	public void OnDestroy() {
 		Debug.Log("--- Leaving Game Play Mode ---");
 		foreach (CBody oBody in _aBodies) {
-			if (oBody != null) {					//####IMPROVE: Destroy instead??
-				GameObject oBodyGO = oBody.gameObject;
-				UnityEngine.Object.DestroyImmediate(oBody);			// First destroy the CBody component...
-				UnityEngine.Object.DestroyImmediate(oBodyGO);		//... then destroy the heavily-used CBody master node... (will delete a bunch of dynamically-created game nodes from the game tree)
+			if (oBody != null) {
+				oBody.Destroy();
 				//####CHECK: Any other node to destroy??
 			}
 		}
@@ -120,7 +74,7 @@ public class CGamePlay : IObject {
 		float nPleasure = _oObj.PropGet(EGamePlay.Pleasure);
 		if (nPleasure != 0) {
 			float nOrgasm = _oObj.PropGet(EGamePlay.Arousal);
-			float nTimeDeltaAsPercentToMaxOrgasm = Time.deltaTime / C_TimeToMaxOrgasm;		// How much we can increase lust at this game frame given max pleasure
+			float nTimeDeltaAsPercentToMaxOrgasm = Time.deltaTime / C_TimeToMaxOrgasm_OBSOLETE;		// How much we can increase lust at this game frame given max pleasure
 			float nOrgasmIncrease = nTimeDeltaAsPercentToMaxOrgasm * nPleasure;
 			nOrgasm += nOrgasmIncrease;
 			_oObj.PropSet(EGamePlay.Arousal, nOrgasm);
@@ -220,7 +174,7 @@ public class CGamePlay : IObject {
 	public void BroadcastMessageToAllBodies(string sFunction, object oArg) {			//###IMPROVE: Redo all broadcasting through this approach!
 		foreach (CBody oBody in _aBodies)
 			if (oBody != null)
-				oBody.gameObject.BroadcastMessage(sFunction, oArg);
+				oBody._oBodySkinnedMesh.BroadcastMessage(sFunction, oArg);
 		CGame.INSTANCE._oPoseRoot.gameObject.BroadcastMessage(sFunction, oArg);		// Also broadcast to the pose root which keeps many helper objects
 	}
 
@@ -233,11 +187,12 @@ public class CGamePlay : IObject {
 		if (_aBodies[1] != null)
 			_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
 
-		//=== Destroy the entire tree of object a body is by simply destroying its root gameObject!  (Needs DestroyImmediate as lazy Destroy causes rebuild problems)		if (_aBodies[nBodyID - 1] != null) { }
-		if (_aBodies[nBodyID - 1] != null)
-			GameObject.DestroyImmediate(_aBodies[nBodyID - 1].gameObject);		
-		_aBodies[nBodyID-1] = null;
-		_aBodies[nBodyID-1] = CBody.Create(_aObjBodyDefs[nBodyID-1], nBodyID, CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);
+		//=== Destroy the entire tree of object a body is by simply destroying its root gameObject!  (Needs DestroyImmediate as lazy Destroy causes rebuild problems)
+		if (_aBodies[nBodyID] != null)
+			_aBodies[nBodyID].Destroy();
+		_aBodies[nBodyID] = null;
+		_aBodies[nBodyID] = new CBody(nBodyID);
+		_aBodies[nBodyID].DoInitialize();
 
         //####HACK!!!!
         if (_aBodies[0] != null)

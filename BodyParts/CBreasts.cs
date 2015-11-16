@@ -44,10 +44,10 @@ public class CBreasts : CBSoft, IHotSpotMgr {
 		_SoftBodyDetailLevel = 15;          //###TUNE
 	}
 
-	public override void OnStart(CBody oBody) {
-		_eColGroup = (EColGroups)(EColGroups.eLayerBodyNoCollisionWithSelfStart + oBody._nBodyID);		// Breast softbody (and their associated rigid body kinematic colliders to repel other breasts) each get their own group for their own body so each breast softbody doesn't collide with its own colliders (designed to repel other breasts)
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 
-		base.OnStart(oBody);
+		_eColGroup = (EColGroups)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._nBodyID);		// Breast softbody (and their associated rigid body kinematic colliders to repel other breasts) each get their own group for their own body so each breast softbody doesn't collide with its own colliders (designed to repel other breasts)
 
 		if (CGame.INSTANCE._GameMode == EGameModes.PlayNoAnim) {			// If we're in cloth setup mode we set the softbody breasts as stiff as possible with no gravity so they look as close to rigid as possible
 			_oObj.PropSet(ESoftBody.VolumeStiffness, 1.0f);

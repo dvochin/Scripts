@@ -92,12 +92,13 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		_SoftBodyDetailLevel = 15;				//###OPT!!!: Reduce if quality can be maintained at base
 	}
 
-    public override void OnStart(CBody oBody) {
-		_oBody = oBody;
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
+
 		_oObjDriver = new CObject(this, _oBody._nBodyID, typeof(EPenis), "Penis", "Penis");		//###IMPROVE: Name of soft body to GUI
 
 		//=== Get the penis collider coordinates from Blender so that we can create the PhysX string of capsule colliders that perform the real movement / collision of the penis (by driving along the slave soft body)
-		string sResult = CGame.gBL_SendCmd("Penis", "gBL_Penis_CalcColliders('" + _sNameBlender + "')");
+		string sResult = CGame.gBL_SendCmd("Penis", "gBL_Penis_CalcColliders('" + _sNameBlenderMesh + "')");
 		string[] aStringParts = sResult.Split(',');     // Format of comma-separated string from Penis_CalcColliders() is: Penis Radius, Penis Length, Base.y (base 'height'), Base.z (base forward/back), ScaleDampCenter.y, ScaleDampCenter.z, ScaleDampSizeStart, ScaleDampSizeEnd
 		_nRadiusStart = Single.Parse(aStringParts[0]);
 		float nLengthStart = Single.Parse(aStringParts[1]);
@@ -107,7 +108,7 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		Vector3 vecPenisScaleDampCenter = new Vector3(0, Single.Parse(aStringParts[4]), Single.Parse(aStringParts[5]));
 		_nScaleDampSizeStart = Single.Parse(aStringParts[6]);
 		_nScaleDampSizeEnd   = Single.Parse(aStringParts[7]);
-		_oNodePenisRootBone = oBody.transform.FindChild(C_PathPenisBoneParent);
+		_oNodePenisRootBone = _oBody._oBodySkinnedMesh.transform.FindChild(C_PathPenisBoneParent);
 		_oNodePenisRootBone.position = _vecPenisBase;
 		_oNodePenisScaleDampCenter = _oNodePenisRootBone.FindChild("PenisScaleDampCenter");
 		_oNodePenisScaleDampCenter.position = vecPenisScaleDampCenter;
@@ -115,7 +116,7 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		_vecPenisRootBoneStartPos = _oNodePenisRootBone.localPosition;		// Remember start position of penis root bone for CBClothUnderwear fitting procedure.
 
 		_eColGroup = EColGroups.eLayerPenisI;
-		base.OnStart(oBody);
+		//####DEV!!!!!!! base.OnStart(oBody);
 
 		_oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
 

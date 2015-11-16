@@ -137,35 +137,34 @@ public class CBBodyColCloth : CBSkinBaked {		// Manages a 'body collider' that v
 	public	IntPtr				_hBodyColCloth;					// Handle to our corresponding entity in our C++ dll.
 
 	public static CBBodyColCloth Create(GameObject oBMeshGO, CBody oBody, string sNameCharacter) {	// Static function override from CBMesh::Create() to route Blender request to BodyCol module and deserialize its additional information for the local creation of a CBBodyColCloth
-		CBBodyColCloth oBBodyColCloth = (CBBodyColCloth)CBMesh.Create(oBMeshGO, oBody, sNameCharacter, G.C_NameSuffix_BodyColCloth, "CBBodyCol", "CBBodyColCloth_GetMesh", "", typeof(CBBodyColCloth));
-		return oBBodyColCloth;
+		//###BROKEN: CBBodyColCloth oBBodyColCloth = (CBBodyColCloth)CBMesh.Create(oBMeshGO, oBody, sNameCharacter, G.C_NameSuffix_BodyColCloth, "CBBodyCol", "CBBodyColCloth_GetMesh", "", typeof(CBBodyColCloth));
+		return null;//oBBodyColCloth;
 	}
 
-	public override void OnSerializeIn(ref byte[] oBA, ref int nPosBA) {			// Extended deserialization for this object must extract additional arrays sent from Blender for our type.
 
-		//=== Receive the 'aEdges' flat array that exists on _BodyCol meshes ===
-		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memEdges = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {	// Stream in the flat array and store in memArray for sharing with C++ side
-			_memEdges.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 
-		//=== Receive the 'aVertToVerts' flat array that exists on _BodyCol meshes ===
-		nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memVertToVerts = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
-			_memVertToVerts.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
+		//####DEV ####BROKEN
+		////=== Receive the 'aEdges' flat array that exists on _BodyCol meshes ===
+		//int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+		//_memEdges = new CMemAlloc<ushort>(nArrayElements);
+		//for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {	// Stream in the flat array and store in memArray for sharing with C++ side
+		//	_memEdges.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//}
 
-		//=== Read the 'end magic number' that always follows a stream.  Helps catch deserialization errors ===
-		ReadEndMagicNumber(ref oBA, ref nPosBA);
-	}
+		////=== Receive the 'aVertToVerts' flat array that exists on _BodyCol meshes ===
+		//nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+		//_memVertToVerts = new CMemAlloc<ushort>(nArrayElements);
+		//for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
+		//	_memVertToVerts.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//}
 
-	public override void OnStart(CBody oBody) {
-		base.OnStart(oBody);
-		GetComponent<Renderer>().enabled = false;
-		base.Baking_UpdateBakedMesh();			// Bake mesh once so that we initialize PhysX with valid data at the first game frame.
-		_hBodyColCloth = ErosEngine.BodyColCloth_Create(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memTris.L.Length / 3, _memTris.P, _memEdges.L.Length / 2, _memEdges.P, _memVertToVerts.P);
+		//CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+
+		//GetComponent<Renderer>().enabled = false;
+		//base.Baking_UpdateBakedMesh();			// Bake mesh once so that we initialize PhysX with valid data at the first game frame.
+		//_hBodyColCloth = ErosEngine.BodyColCloth_Create(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memTris.L.Length / 3, _memTris.P, _memEdges.L.Length / 2, _memEdges.P, _memVertToVerts.P);
 	}
 
 	public override void OnDestroy() {

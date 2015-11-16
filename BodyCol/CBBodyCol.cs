@@ -43,32 +43,32 @@ public class CBBodyCol : CBSkinBaked {		// Manages a 'body collider' that approx
 	public	IntPtr				_hBodyCol;					// Handle to our corresponding entity in our C++ dll.
 
 	public static CBBodyCol Create(GameObject oBMeshGO, CBody oBody, string sNameCharacter) {	// Static function override from CBMesh::Create() to route Blender request to BodyCol module and deserialize its additional information for the local creation of a CBBodyCol
-		CBBodyCol oBBodyCol = (CBBodyCol)CBMesh.Create(oBMeshGO, oBody, oBody._sNameSrcBody, G.C_NameSuffix_BodyCol, "CBBodyCol", "CBBodyCol_GetMesh", "", typeof(CBBodyCol));
-		return oBBodyCol;
+		//###BROKEN: CBBodyCol oBBodyCol = (CBBodyCol)CBMesh.Create(oBMeshGO, oBody, oBody._sMeshSource, G.C_NameSuffix_BodyCol, "CBBodyCol", "CBBodyCol_GetMesh", "", typeof(CBBodyCol));
+		return null;	//oBBodyCol;
 	}
 
-	public override void OnSerializeIn(ref byte[] oBA, ref int nPosBA) {			// Extended deserialization for this object must extract additional arrays sent from Blender for our type.
+	//####BROKEN
+	//public override void OnSerializeIn(ref byte[] oBA, ref int nPosBA) {			// Extended deserialization for this object must extract additional arrays sent from Blender for our type.
 
-		//=== Receive the 'aEdges' flat array that exists on _BodyCol meshes ===
-		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memEdges = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {	// Stream in the flat array and store in memArray for sharing with C++ side
-			_memEdges.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
+	//	//=== Receive the 'aEdges' flat array that exists on _BodyCol meshes ===
+	//	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+	//	_memEdges = new CMemAlloc<ushort>(nArrayElements);
+	//	for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {	// Stream in the flat array and store in memArray for sharing with C++ side
+	//		_memEdges.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+	//	}
 
-		//=== Receive the 'aVertToVerts' flat array that exists on _BodyCol meshes ===
-		nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memVertToVerts = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
-			_memVertToVerts.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
+	//	//=== Receive the 'aVertToVerts' flat array that exists on _BodyCol meshes ===
+	//	nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+	//	_memVertToVerts = new CMemAlloc<ushort>(nArrayElements);
+	//	for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
+	//		_memVertToVerts.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+	//	}
 
-		//=== Read the 'end magic number' that always follows a stream.  Helps catch deserialization errors ===
-		ReadEndMagicNumber(ref oBA, ref nPosBA);
-	}
+	//	CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+	//}
 
-	public override void OnStart(CBody oBody) {
-		base.OnStart(oBody);
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 		GetComponent<Renderer>().enabled = false;
 		base.Baking_UpdateBakedMesh();
 		_hBodyCol = ErosEngine.BodyCol_Init(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memTris.L.Length / 3, _memTris.P, _memEdges.L.Length / 2, _memEdges.P, _memVertToVerts.P);

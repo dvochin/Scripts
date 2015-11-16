@@ -23,8 +23,8 @@ public class CFace : CBMesh, IObject {
 
 	CProp _oPropEyesClose;
 
-	public override void OnStart(CBody oBody) {			//###BUG!!!!: Old property sheets won't reconnect after rebuild?  (Has to close prop viewer??)
-		base.OnStart(oBody);
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 
 		//=== Reparent this non-skinned mesh to the head bone so it moves with the neck & body ===
 		transform.parent = _oBody.FindBone("chest/neck/head");		//###DESIGN???

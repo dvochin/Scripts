@@ -40,8 +40,9 @@ public class CBodyColBreasts : CBMesh {		// CBodyColBreasts: A simple mesh (abou
 
 	public CBodyColBreasts() {}
 
-	public override void OnStart(CBody oBody) {
-		base.OnStart(oBody);
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
+
 		Destroy(GetComponent<Renderer>());									// Destroy the renderer.  We don't need to show our mesh in Unity (only for PhysX)
 
 		//if (CGame.INSTANCE._GameMode == EGameModes.Play)					// Adjust what mesh this collider mesh maps to (breasts or body) depending on game mode at init
@@ -49,47 +50,48 @@ public class CBodyColBreasts : CBMesh {		// CBodyColBreasts: A simple mesh (abou
 		//else
 		//	_oPairMesh = CBodyColBreasts_PairMesh.ToBody;
 
-		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Breasts", "CBodyColBreasts_GetColliderInfo('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);		// Call the Blender-side of our function to retrieve the collider information we require to form breast colliders in PhysX
-		byte[] oBA = (byte[])memBA.L;
-		int nPosBA = 0;
+		//####BROKEN: Also split??
+		//CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+		//CGame.gBL_SendCmd_GetMemBuffer("Breasts", "CBodyColBreasts_GetColliderInfo('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);		// Call the Blender-side of our function to retrieve the collider information we require to form breast colliders in PhysX
+		//byte[] oBA = (byte[])memBA.L;
+		//int nPosBA = 0;
 
-		//=== Receive the 'VertSphereRadiusRatio' flat array that contain the relative radius of each of our spheres / vertices ===
-		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memVertSphereRadiusRatio = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {      // Stream in the flat array and store in memArray for sharing with C++ side
-			_memVertSphereRadiusRatio.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
-		_memVertSphereRadiusRatio.PinInMemory();
+		////=== Receive the 'VertSphereRadiusRatio' flat array that contain the relative radius of each of our spheres / vertices ===
+		//int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+		//_memVertSphereRadiusRatio = new CMemAlloc<ushort>(nArrayElements);
+		//for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {      // Stream in the flat array and store in memArray for sharing with C++ side
+		//	_memVertSphereRadiusRatio.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//}
+		//_memVertSphereRadiusRatio.PinInMemory();
 
-		//=== Receive the 'CapsuleSpheres' flat array that tells PhysX how to form tapered capsules from two linked spheres ===
-		nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memCapsuleSpheres = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
-			_memCapsuleSpheres.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
-		_memCapsuleSpheres.PinInMemory();
+		////=== Receive the 'CapsuleSpheres' flat array that tells PhysX how to form tapered capsules from two linked spheres ===
+		//nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+		//_memCapsuleSpheres = new CMemAlloc<ushort>(nArrayElements);
+		//for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
+		//	_memCapsuleSpheres.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//}
+		//_memCapsuleSpheres.PinInMemory();
 
-		//=== Read the 'end magic number' that always follows a stream.  Helps catch deserialization errors ===
-		ReadEndMagicNumber(ref oBA, ref nPosBA);
+		////=== Read the 'end magic number' that always follows a stream.  Helps catch deserialization errors ===
+		//ReadEndMagicNumber(ref oBA, ref nPosBA);
 
 
-		//===== Obtain the 'slave vert to master vert' constructed by PairMesh_DoPairing() during body construction =====  ####IMPROVE: Create subclass of CBMesh called CBPairedMesh?? ####DESIGN ####SOON
-		CGame.gBL_SendCmd_GetMemBuffer("CBBodyCol", "PairMesh_GetVertMapSlaveToMaster('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);
-		oBA = (byte[])memBA.L;
-		nPosBA = 0;
-		nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
-		_memMapPairMeshSlaveToMaster = new CMemAlloc<ushort>(nArrayElements);
-		for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
-			_memMapPairMeshSlaveToMaster.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-		}
-		ReadEndMagicNumber(ref oBA, ref nPosBA);
-		_memMapPairMeshSlaveToMaster.PinInMemory();
+		////===== Obtain the 'slave vert to master vert' constructed by PairMesh_DoPairing() during body construction =====  ####IMPROVE: Create subclass of CBMesh called CBPairedMesh?? ####DESIGN ####SOON
+		//CGame.gBL_SendCmd_GetMemBuffer("CBBodyCol", "PairMesh_GetVertMapSlaveToMaster('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);
+		//oBA = (byte[])memBA.L;
+		//nPosBA = 0;
+		//nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;
+		//_memMapPairMeshSlaveToMaster = new CMemAlloc<ushort>(nArrayElements);
+		//for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
+		//	_memMapPairMeshSlaveToMaster.L[nArrayElement] = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//}
+		//ReadEndMagicNumber(ref oBA, ref nPosBA);
+		//_memMapPairMeshSlaveToMaster.PinInMemory();
 
-		//=== Create the CBodyColBreasts PhysX3 object that will absorb the location of the PhysX2 softbody vert position to convert to an approximation of the breast position in PhysX3 ===
-		_hBodyColBreasts = ErosEngine.BodyColBreasts_Create(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memVertSphereRadiusRatio.L.Length, _memVertSphereRadiusRatio.P, _memCapsuleSpheres.L.Length / 2, _memCapsuleSpheres.P);
+		////=== Create the CBodyColBreasts PhysX3 object that will absorb the location of the PhysX2 softbody vert position to convert to an approximation of the breast position in PhysX3 ===
+		//_hBodyColBreasts = ErosEngine.BodyColBreasts_Create(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memVertSphereRadiusRatio.L.Length, _memVertSphereRadiusRatio.P, _memCapsuleSpheres.L.Length / 2, _memCapsuleSpheres.P);
 
-		UpdateVertsFromBlenderMesh(true);					// Update the collider verts once to form the colliders for cloth
+		//UpdateVertsFromBlenderMesh(true);					// Update the collider verts once to form the colliders for cloth
 	}
 
 	public override void UpdateVertsFromBlenderMesh(bool bUpdateNormals) {			// Only called from the context when we're paired to body... ####DESIGN: Update verts outselves??

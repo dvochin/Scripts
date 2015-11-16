@@ -58,10 +58,29 @@ public class CBSoft : CBSkin, IObject {	// Manages a single soft body object sen
 		_nRangeTetraPinHunt		= 0.03f;
 	}
 
-	public override void OnStart(CBody oBody) {
-		_oObj = new CObject(this, 0, typeof(ESoftBody), GetType().Name);		//###IMPROVE: Name of soft body to GUI
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 
-		base.OnStart(oBody);
+		////=== Receive the important 'aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to.)  Only present on softbody Blender meshes!
+		//int nTwinVerts = BitConverter.ToInt32(oBA, nPosBA) / 6; nPosBA += 4;    // Number of twin vert definitions is divided by serialized lenght per defintion (three members of 2-byte = 6 bytes)
+		//if (nTwinVerts > 0) {
+		//	List<CMapTwinVert> aMapTwinVerts;
+		//	if (oBSoft != null)
+		//		aMapTwinVerts = oBSoft._aMapTwinVerts;
+		//	else
+		//		throw new CException("Error in CBMesh.ctor(): Receiving a aMapTwinVerts array but INSTANCE was not of type CBSoft or CBCloth!");
+
+		//	for (int nTwinVert = 0; nTwinVert < nTwinVerts; nTwinVert++) {
+		//		CMapTwinVert oMapTwinVert = new CMapTwinVert();
+		//		oMapTwinVert.nVertPart = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//		oMapTwinVert.nVertHost = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//		oMapTwinVert.nVertHostAdj = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
+		//		aMapTwinVerts.Add(oMapTwinVert);
+		//	}
+		//}
+		//ReadEndMagicNumber(ref oBA, ref nPosBA);
+
+		_oObj = new CObject(this, 0, typeof(ESoftBody), GetType().Name);		//###IMPROVE: Name of soft body to GUI
 
 		_oMeshNow.MarkDynamic();		// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
@@ -101,7 +120,7 @@ public class CBSoft : CBSkin, IObject {	// Manages a single soft body object sen
 	}
 
 	public override void OnDestroy() {
-		Debug.Log("Destroy CBSoft " + _sNameBlender);
+		Debug.Log("Destroy CBSoft " + gameObject.name);
 		ErosEngine.SoftBody_Destroy(_oObj._hObject);		//###CHECK: Everything destroyed?  Pins, colliders, etc?
 		base.OnDestroy();
 	}

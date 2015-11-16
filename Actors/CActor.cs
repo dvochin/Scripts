@@ -270,7 +270,7 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		}
 
 		if (_oJointDrvParent == null) {				// If we have a null parent then we're the root and we're kinematic with no joint to anyone!
-			_oTransform = _oActor._oBody.transform.FindChild("Bones/" + sChildNodeName);		//###TEMP!!!: Connect to root soon!
+			_oTransform = _oActor._oBody._oBodySkinnedMesh.transform.FindChild("Bones/" + sChildNodeName);		//###TEMP!!!: Connect to root soon!
 			_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(Rigidbody));		//###TODO: Add a "CRigidBodyWake"???
 			_oRigidBody.isKinematic = true;
 			_oRigidBody.mass = nMass;

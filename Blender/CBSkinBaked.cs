@@ -10,8 +10,8 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 
 	//---------------------------------------------------------------------------	INIT
 
-	public override void OnStart(CBody oBody) {
-		base.OnStart(oBody);
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 		GetComponent<Renderer>().enabled = false;						// Our skinned mesh exists only for providing fast position of our skinned verts and normals... we never display (unless for debugging)
 		_oPinGroup_Rim = (CPin)CUtility.FindOrCreateNode(gameObject, "[Pins-" + gameObject.name + "]", typeof(CPin));
 		_oMeshBaked = new Mesh();						//###LEARN: We can allocate mesh for BakeMesh() at beginning!  Yes!!

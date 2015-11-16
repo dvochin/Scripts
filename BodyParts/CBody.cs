@@ -1,4 +1,9 @@
 /*###DISCUSSION: Dual-mode game functionality: Morphing and gameplay
+=== REWRITE TODO ===
+- Finally get fucking mesh in... too many vert groups per bone! (Because bad body morph??)
+- Continue CBody ctor to split everything
+- Swtich to real body... work on other meshes
+
 === NEXT ===
 
 === TODO ===
@@ -59,15 +64,16 @@ using System.Collections.Generic;
 
 
 
-public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As we are derived from CBSkin, our INSTANCE is the main skinned mesh with our related _oBSkinBaked acting as a pin reference for soft body parts to attach to.
+public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not actually represent a mesh (most of the skinned body represtend by _oBodySkinnedMesh;
 	// The main purpose of this class is to act as a bridge between the bone structure used for animation of the main skinned mesh and enable our connected soft-body parts to move along with us via our rim mesh and the pins it updates with PhysX
 
 	//---------------------------------------------------------------------------	VISIBLE PROPERTIES
-	[HideInInspector]	public 	int					_nBodyID;				// The 1-based numeric ID of our body.
-						public	string				_sNameGameBody;				// The Blender-supplied ID of the body it generated from our specs.  This is the "BodyA", "BodyB", "BodyC" that performs the layer of abstraction for the various bodies of various sex cobbled together from main bodies and genital parts.
-	[HideInInspector]	public 	CHeadLook			_oHeadLook;				// Object in charge of moving head toward points of interest
-	[HideInInspector]	public 	string				_sHumanCharacterName;			// The human nickname given to this character... less impersonal than 'Body1'
-	[HideInInspector]	public 	string				_sNameSrcBody;			// The name of the Blender source mesh: Such as 'ManA' / 'WomanA'
+						public 	int					_nBodyID;				// The 0-based numeric ID of our body.  Extremely important.  Matches Blender's CBody.nBodyID as well
+						public	string				_sBodyPrefix;			// The 'body prefix' string used to identify Blender & Unity node for this body (Equals to 'BodyA', 'BodyB', 'BodyC', etc)
+						public 	string				_sHumanCharacterName;	// The human first-name given to this character... purely cosmetic
+	[HideInInspector]	public 	CObject				_oObj;					// The user-configurable object representing this body.
+	[HideInInspector]	public 	CBSkin				_oBodySkinnedMesh;		// The main skinned mesh representing most of the body (e.g. everything except detached soft body parts, head, hair, clothing, etc)
+	[HideInInspector]	public 	CHeadLook			_oHeadLook;             // Object in charge of moving head toward points of interest
 	[HideInInspector]	public 	EBodySex			_eBodySex;				// The body's sex (man, woman, shemale)
 	[HideInInspector]	public 	bool				_bIsCumming;			// Character is currently cumming.  Set globally
 
@@ -128,216 +134,223 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 	public bool _bForMorphingOnly;								// Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
 
 
-	public static CBody Create(CObject oObjBodyDef, int nBodyID, bool bForMorphingOnly) {	// Static function override from CBMesh::Create() to route Blender request to BodyCol module and deserialize its additional information for the local creation of a CBBodyColCloth
-		//=== Construct the top-level "BodyX" mesh from the base body type and the added genitals ===
-		string sNameSrcBody = "";
-		string sNameSrcGenitals = "";
-		string sHumanCharacterName = "";
-		EBodySex eBodySex = (EBodySex)oObjBodyDef.PropGet((int)EBodyDef.Sex);
-		switch (eBodySex) {
-			case EBodySex.Man:
-				sNameSrcBody = "ManA";						//###CHECK
-				sNameSrcGenitals = "PenisM-Erotic9-A-Big";
-				sHumanCharacterName = (nBodyID == 1) ? "Karl" : "Brent";		//###HACK!!!!
-				break;
-			case EBodySex.Woman:
-				sNameSrcBody = "WomanA";						//###TODO: Determine these source string from body type provided
-				sNameSrcGenitals = "Vagina-Erotic9-A";		//###DESIGN??? Crotch and not vagina???
-				sHumanCharacterName = (nBodyID == 1) ? "Emily" : "Eve";		//###HACK!!!!  ###DESIGN: Pull from database of designed characters (e.g. each different hair, skin color, etc)	Liza, Anna
-				break;
-			case EBodySex.Shemale:
-				sNameSrcBody = "WomanA";						//###TODO: Determine these source string from body type provided
-				sNameSrcGenitals = "PenisW-Erotic9-A-Big";				//###TODO: Comes from GUI!
-				sHumanCharacterName = (nBodyID == 1) ? "Emily" : "Eve";
-				break;
-		}
+	public CBody(int nBodyID) {
+		_nBodyID = nBodyID;
+		bool bForMorphingOnly = (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
+		Debug.Log(string.Format("+ Creating body #{0}", _nBodyID));
 
-		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
-		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sNameSrcBody, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sNameSrcBody + 
-		GameObject oBodyGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
-		oBodyGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
 
-		//=== Ask Blender to create the full collection of meshes that make a body. (Complex processing!!) ===
-		char chBodyID = (char)(64 + nBodyID);			// Convert the 1-based numeric ID into A,B,C,D,E...
-		string sNameGameBody = CBody.GetNameGameBodyFromPrefix(nBodyID);	// The important prefix to many Blender-side objects / meshes related to constucting this CBody
-		string sClothingT = ((EBodyClothingTop_HACK)oObjBodyDef.PropGet(EBodyDef.ClothingTop)).ToString();
-		string sClothingB = ((EBodyClothingBottom_HACK)oObjBodyDef.PropGet(EBodyDef.ClothingBottom)).ToString();
-		string sClothingList = "['" + sClothingT + "','" + sClothingB + "']";       // Blender expects all meshes to add to body in a comma seperated string list
+		_sBodyPrefix = CBody.GetNameGameBodyFromPrefix(_nBodyID);		// The name of the Blender-side object that will store our property is the base mesh named like 'BodyA', 'BodyB', etc
+		_oObj = new CObject(this, _nBodyID, typeof(EBodyDef), "Body", null, _sBodyPrefix);	//###NOTE: Note that this is a 'Blender-enabled' CObject with some properties existing in Blender!
+		_oObj.PropGroupBegin("", "", true);
+		_oObj.PropAdd(EBodyDef.Sex,				"Sex",				typeof(EBodySex), (int)EBodySex.Woman,	"", CProp.Local);
+		_oObj.PropAdd(EBodyDef.ClothingTop,		"Top Clothing",		typeof(EBodyClothingTop_HACK), 0, "", CProp.Local);		//###HACK!!!!
+		_oObj.PropAdd(EBodyDef.ClothingBottom,	"Bottom Clothing",	typeof(EBodyClothingBottom_HACK), 0, "", CProp.Local + CProp.Hide);	//###BROKEN: Need to switch off vagina soft body!!
+		_oObj.PropAdd(EBodyDef.Hair,			"Hair",				typeof(EBodyHair), 0,	"", CProp.Local);
+		_oObj.PropAdd(EBodyDef.BtnUpdateBody,	"Update Body",		0,	"", CProp.Local | CProp.AsButton);
+		_oObj.PropAdd(EBodyDef.BreastSize_OBSOLETE,		"Breast Size",		1.0f, 0.5f, 2.5f, "", CProp.Local);
+		_oObj.FinishInitialization();
 
-		//=== Create the morphing body.  This is used for morphing or also the basis of complex gameplay meshes ===
-		//CGame.gBL_SendCmd("Client", "gBL_Body_CreateForMorph('" + sNameSrcBody + "', '" + sNameGameBody + "', '" + sNameGameBody + G.C_NameSuffix_BodyMorph + "')");
-
-		string sNameMeshSuffix;
-		if (bForMorphingOnly == false) {
-			/*sNameChunksCreated = */CGame.gBL_SendCmd("Client", "gBL_Body_Create('" + sNameGameBody + "','" + sNameSrcBody + "','" + eBodySex.ToString() + "','" + sNameSrcGenitals + "'," + sClothingList + ")");
-			sNameMeshSuffix = G.C_NameSuffix_BodySkin;
+		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
+		if (_nBodyID == 0) {
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
+//			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
+//			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
+//			oObj.PropFind(EBodyDef.BreastSize)._nPropFlags |= CProp.Hide;
+//			oObj.PropFind(EBodyDef.Hair)._nPropFlags |= CProp.Hide;
 		} else {
-			sNameMeshSuffix = G.C_NameSuffix_BodyMorph;			//####IMPROVE: Redo this name BS!
+			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Man);		####REVB
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			//oObj.PropSet(EBodyDef.ClothingTop, (int)EBodyClothingTop_HACK.TiedTop);
+			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
+			//if (CGame.INSTANCE._bRunningInEditor)		//###TEMP! :)
+			//	oObj.PropSet(EBodyDef.BreastSize, 1.3f);
 		}
-		//string[] aNameChunksCreated = CUtility.SplitCommaSeparatedPythonListOutput(sNameChunksCreated);
-		CBody oBody = (CBody)CBMesh.Create(oBodyGO, null, sNameGameBody, sNameMeshSuffix, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBody));		// Get the prepared skinned-version of the body Blender prepared for us (includes skinned part of clothing)
-		oBody.Initialize(oObjBodyDef, nBodyID, sHumanCharacterName, sNameSrcBody, sNameGameBody, bForMorphingOnly);
-
-		return oBody;
 	}
 
-	public void Initialize(CObject oObjBodyDef, int nBodyID, string sHumanCharacterName, string sNameSrcBody, string sNameGameBody, bool bForMorphingOnly) {			// The real initialization occurs when CGame calls ConnectToBSoft() ###DESIGN!! ###WEAK: Also OnStart() from CBMesh().  Remove that??
-		_oBody = this;						//###DESIGN!!!! _oBody kept at CBMesh which we derive from... unintuitive in this one case where we're CBody... can be improved??
-		_oObjBodyDef = oObjBodyDef;
-		_oObjBodyDef.UpdateOwningObject(this);		//###NOTE: Body definition was created by owning CGamePlay which passed in its pointer for initialization... Our body def is meant to send US messages so we reroute as soon as we have our 'this' pointer
-		_nBodyID = nBodyID;
-		_sHumanCharacterName	= sHumanCharacterName;
-		_sNameSrcBody			= sNameSrcBody;
-		_sNameGameBody			= sNameGameBody;
-		_bForMorphingOnly		= bForMorphingOnly;
-		Debug.Log(string.Format("+ Creating body '{0}'", sNameGameBody));
+	public void DoInitialize() { 
+		//=== Create default values for important body parameters from the sex ===
+		string sMeshSource = "";
+		string sNameSrcGenitals = "";
+		EBodySex eBodySex = (EBodySex)_oObj.PropGet((int)EBodyDef.Sex);
 
-		_eBodySex = (EBodySex)oObjBodyDef.PropGet((int)EBodyDef.Sex);
-		gameObject.name = _sNameGameBody + "(" + _eBodySex.ToString() + ")";// Rename ourselves to a more meaningful name based on our bland Blender ID and our type
-		gameObject.SetActive(true);							// We're initialized from the only proper place, proceed with showing ourselves. (we're from a hidden template)
-		_oBonesT	= transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
-		_oBaseT		= transform.FindChild("Base");
-
-		//=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
-		Transform oHeadT = FindBone("chest/neck/head");			// Our hotspot is located on the forehead of the character.
-		_oHotSpot = CHotSpot.CreateHotspot(this, oHeadT, _sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);		//###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
-
-		//=== Create the 'skinned rim' skinned mesh that is baked at every frame to enable all softbody bits and dynamic clothing items to attach to the current shape of the main skinned body ===
-		if (_bForMorphingOnly == false)
-			_oBSkinRim = (CBSkinBaked)CBMesh.Create(null, this, _sNameGameBody, G.C_NameSuffix_BodyRim, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSkinBaked));
-
-		//=== Create the various soft-body mesh parts that are dependant on the body sex ===
-		//###IMPROVE!!!! Parse array of Blender-pushed chunks into our parts (instead of pulling like below?)
-		if (_bForMorphingOnly == false) {
-			if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
-				_aSoftBodies.Add(_oBreasts = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???
-				_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBreasts", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));		//###NOTE: Note the '-ToBreasts' suffix this mesh has been paired to detached softbody breasts
-			}
-			if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
-				_aSoftBodies.Add(_oPenis = (CPenis)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Penis", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CPenis)));
-			if (_eBodySex == EBodySex.Woman)
-				_oVagina = new CVagina(this);
-
-			//=== Create the important body collider that will repel fluid in the scene ===
-			_oBodyCol = (CBBodyCol)CBBodyCol.Create(null, this, _sNameGameBody);
+		if (eBodySex == EBodySex.Man) {
+			sMeshSource = "ManA";
+			_sHumanCharacterName = (_nBodyID == 0) ? "Karl" : "Brent";          //###IMPROVE: Database of names?  From user???
 		} else {
-			if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale)
-				_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBody", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));	//###NOTE: Note the '-ToBody' suffix this mesh has been paired to the main body mesh
+			sMeshSource = "WomanA";
+			_sHumanCharacterName = (_nBodyID == 0) ? "Emily" : "Eve";
 		}
 
-		//####TEMP ####DESIGN ####TEMP ####MOVE
-		//_aCloths.Add(CBCloth.Create(this, "BodySuit-Top2"));
-		//_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
-		//_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
-		//_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
-		_aCloths.Add(CBCloth.Create(this, "FullShirt"));
+		switch (eBodySex) {									//###CHECK	####TEMP ####DESIGN: Loaded from file or user top-level selection! ####DESIGN: Public properties?
+			case EBodySex.Man:
+				sNameSrcGenitals = "PenisM-Erotic9-A-Big";
+				break;
+			case EBodySex.Woman:
+				sNameSrcGenitals = "Vagina-Erotic9-A";					//###DESIGN??? Crotch and not vagina???
+				break;
+			case EBodySex.Shemale:
+				sNameSrcGenitals = "PenisW-Erotic9-A-Big";				//###TODO: Comes from GUI!
+				break;
+		}
 
-		//=== Create the head look controller to look at parts of the other body ===
-		_oHeadLook = gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
+
+		//===== CREATE THE BODY IN BLENDER =====  
+		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "')");		// This new instance is an extension of this Unity CBody instance and contains most instance members
+
+		
+		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
+		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
+		GameObject oBodyGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
+		oBodyGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
+		_oBodySkinnedMesh = (CBSkin)CBMesh.Create(oBodyGO, this, "oMeshMorph", "CBody", "GetMesh", "'SkinInfo'", typeof(CBSkin));       // Get the prepared skinned-version of the body Blender CBody constructed for us
+
+		//=== Obtain references to needed sub-objects of our prefab ===
+		_oBonesT	= _oBodySkinnedMesh.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
+		_oBaseT		= _oBodySkinnedMesh.transform.FindChild("Base");
+
+		//=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
+		Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
+		_oHotSpot = CHotSpot.CreateHotspot(this, oHeadT, this._sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);		//###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
+
+		////=== Create the 'skinned rim' skinned mesh that is baked at every frame to enable all softbody bits and dynamic clothing items to attach to the current shape of the main skinned body ===
+		//if (_bForMorphingOnly == false)
+		//	_oBSkinRim = (CBSkinBaked)CBMesh.Create(null, this, _sNameGameBody, G.C_NameSuffix_BodyRim, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSkinBaked));
+
+		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
+		////###IMPROVE!!!! Parse array of Blender-pushed chunks into our parts (instead of pulling like below?)
+		//if (_bForMorphingOnly == false) {
+		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
+		//		_aSoftBodies.Add(_oBreasts = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???
+		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBreasts", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));		//###NOTE: Note the '-ToBreasts' suffix this mesh has been paired to detached softbody breasts
+		//	}
+		//	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
+		//		_aSoftBodies.Add(_oPenis = (CPenis)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Penis", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CPenis)));
+		//	if (_eBodySex == EBodySex.Woman)
+		//		_oVagina = new CVagina(this);
+
+		//	//=== Create the important body collider that will repel fluid in the scene ===
+		//	_oBodyCol = (CBBodyCol)CBBodyCol.Create(null, this, _sNameGameBody);
+		//} else {
+		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale)
+		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBody", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));	//###NOTE: Note the '-ToBody' suffix this mesh has been paired to the main body mesh
+		//}
+
+		////####TEMP ####DESIGN ####TEMP ####MOVE
+		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top2"));
+		////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
+		////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
+		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
+		//_aCloths.Add(CBCloth.Create(this, "FullShirt"));
+
+		////=== Create the head look controller to look at parts of the other body ===
+		_oHeadLook = _oBodySkinnedMesh.gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
 		_oHeadLook.OnStart(this);
 
 
 		//=== Instantiate the requested hair and pin as child of the head bone ===
-		EBodyHair eBodyHair = (EBodyHair)oObjBodyDef.PropGet(EBodyDef.Hair);
+		EBodyHair eBodyHair = (EBodyHair)_oObj.PropGet(EBodyDef.Hair);
 		if (eBodyHair != EBodyHair.None) {
-			string sNameHair = "HairW-" + eBodyHair.ToString();			//###HACK!!! W extension!		###HACK!!!! Man support!!
-			GameObject oHairTemplateGO = Resources.Load("Models/Characters/Woman/Hair/" + sNameHair + "/" + sNameHair, typeof(GameObject)) as GameObject;	// Hair has name of folder and filename the same.	//###HACK: Path to hair, selection control, enumeration, etc
+			string sNameHair = "HairW-" + eBodyHair.ToString();         //###HACK!!! W extension!		###HACK!!!! Man support!!
+			GameObject oHairTemplateGO = Resources.Load("Models/Characters/Woman/Hair/" + sNameHair + "/" + sNameHair, typeof(GameObject)) as GameObject;   // Hair has name of folder and filename the same.	//###HACK: Path to hair, selection control, enumeration, etc
 			GameObject oHairGO = GameObject.Instantiate(oHairTemplateGO) as GameObject;
 			Transform oBoneHead = FindBone("chest/neck/head");
 			oHairGO.transform.parent = oBoneHead;
 			oHairGO.transform.localPosition = Vector3.zero;
 			oHairGO.transform.localRotation = Quaternion.identity;
-			if (_eBodySex == EBodySex.Man) {			//###HACK!!!!!! To reuse messy hair for man!!
+			if (_eBodySex == EBodySex.Man) {            //###HACK!!!!!! To reuse messy hair for man!!
 				oHairGO.transform.localPosition = new Vector3(0, 0.0f, 0.0f);
 				oHairGO.transform.localScale = new Vector3(1.07f, 1.07f, 1.08f);
 			}
 		}
 
-		_oSkinMeshRendNow.updateWhenOffscreen = true;			//###NOTE: Prevents from having to do expensive recalc bounds as pins move body far away from starting point...
+		//###HACK???  ####MOVE?
+		_oBodySkinnedMesh._oSkinMeshRendNow.updateWhenOffscreen = true;           //###NOTE: Prevents from having to do expensive recalc bounds as pins move body far away from starting point...
+		//####DEV
+		//Body_InitActors();
 
-		Body_InitActors();
+		////=== Setup the keys to handle penis control on non-woman bodies ===
+		//if (_eBodySex != EBodySex.Woman) {      //###MOVE?
+		//	bool bSelectedBodyOnly = (CGame.INSTANCE._nNumPenisInScene_BROKEN > 1);    // Keys below are active if this body is the selected body ONLY if we have more than one man in the scene
+		//	if (_oPenis != null) {
+		//		_oKeyHook_PenisBaseUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.BaseUpDown), KeyCode.Q, EKeyHookType.QuickMouseEdit, "Penis up/down", 1, bSelectedBodyOnly);
+		//		_oKeyHook_PenisShaftUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.ShaftUpDown), KeyCode.E, EKeyHookType.QuickMouseEdit, "Penis bend up/down", 1, bSelectedBodyOnly);
+		//		_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
+		//	}
+		//}
+		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Chest_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
-		//=== Setup the keys to handle penis control on non-woman bodies ===
-		if (_eBodySex != EBodySex.Woman) {		//###MOVE?
-			bool bSelectedBodyOnly = (CGame.INSTANCE._nNumPenisInScene > 1);	// Keys below are active if this body is the selected body ONLY if we have more than one man in the scene
-			if (_oPenis != null) { 
-				_oKeyHook_PenisBaseUpDown		= new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.BaseUpDown),			KeyCode.Q, EKeyHookType.QuickMouseEdit, "Penis up/down", 1, bSelectedBodyOnly);
-				_oKeyHook_PenisShaftUpDown		= new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.ShaftUpDown),		KeyCode.E, EKeyHookType.QuickMouseEdit, "Penis bend up/down", 1, bSelectedBodyOnly);
-				_oKeyHook_PenisDriveStrengthMax	= new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax),	KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
-			}
-		}
-		_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Chest_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
+		////=== Create the face and its associated morph channels ===
+		////####DEV _oFace = (CFace)CBMesh.Create(null, this, _sMeshSource, G.C_NameSuffix_Face, "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CFace));
 
-		//=== Create the face and its associated morph channels ===
-		_oFace = (CFace)CBMesh.Create(null, this, _sNameSrcBody, G.C_NameSuffix_Face, "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CFace));
+		////=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
+		//_oActor_Base.transform.parent = CGame.INSTANCE._oPoseRoot.transform;
+		//_oActor_Base.gameObject.name = _sBodyPrefix + "_Base";
 
-		//=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
-		_oActor_Base.transform.parent = CGame.INSTANCE._oPoseRoot.transform;
-		_oActor_Base.gameObject.name = _sNameGameBody + "_Base";
+		////=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
+		//Base =		_oActor_Base._oObj;              // CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
+		//Chest =		_oActor_Chest._oObj;
+		//Torso =		_oActor_Torso._oObj;
+		//Pelvis =	_oActor_Pelvis._oObj;
+		//ArmL =		_oActor_ArmL._oObj;
+		//ArmR =		_oActor_ArmR._oObj;
+		//LegL =		_oActor_LegL._oObj;
+		//LegR =		_oActor_LegR._oObj;
+		//Face =		_oFace._oObj;
+		//Penis =		(_oPenis == null) ? null : _oPenis._oObjDriver;
 
-		//=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
-		Base	= _oActor_Base._oObj;				// CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
-		Chest	= _oActor_Chest._oObj;
-		Torso	= _oActor_Torso._oObj;
-		Pelvis	= _oActor_Pelvis._oObj;
-		ArmL	= _oActor_ArmL._oObj;
-		ArmR	= _oActor_ArmR._oObj;
-		LegL	= _oActor_LegL._oObj;
-		LegR	= _oActor_LegR._oObj;
-		Face	= _oFace._oObj;
-		Penis	= (_oPenis == null) ? null : _oPenis._oObjDriver;
+		//_oScriptPlay = CUtility.FindOrCreateComponent(_oBodySkinnedMesh.transform, typeof(CScriptPlay)) as CScriptPlay;
+		//_oScriptPlay.OnStart(this);
 
-		_oScriptPlay = CUtility.FindOrCreateComponent(gameObject, typeof(CScriptPlay)) as CScriptPlay;
-		_oScriptPlay.OnStart(this);
-
-		//=== Rotate the 2nd body toward the first and separate slightly loading poses doesn't pile up one on another ===	####MOVE? ####OBS? (Depend on pose?)
-		if (_nBodyID == 1) {
-			_oActor_Base.transform.position = new Vector3(0, 0, -CGame.C_BodySeparationAtStart);		//###DESIGN: Don't load base actor instead??  ###BUG Overwrites user setting of base!!!!
-		} else {
-			_oActor_Base.transform.position = new Vector3(0, 0, CGame.C_BodySeparationAtStart);
-			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);		// Rotate the 2nd body 180 degrees
-		}
+		////=== Rotate the 2nd body toward the first and separate slightly loading poses doesn't pile up one on another ===	####MOVE? ####OBS? (Depend on pose?)
+		////####PROBLEM: Set separation and don't do in all game modes
+		//if (_nBodyID == 0) {
+		//	_oActor_Base.transform.position = new Vector3(0, 0, -CGame.C_BodySeparationAtStart);        //###DESIGN: Don't load base actor instead??  ###BUG Overwrites user setting of base!!!!
+		//} else {
+		//	_oActor_Base.transform.position = new Vector3(0, 0, CGame.C_BodySeparationAtStart);
+		//	_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
+		//}
 	}
 
 
 	public void Body_InitActors() {
 		//=== Fetch the body part components, assign them to easy-to-access variables (and a collection for easy iteration) and initialize them by telling them their 'side' ===
-		_aActors.Add(_oActor_Base	= transform.FindChild("Base")				.GetComponent<CActorNode>());
-		_aActors.Add(_oActor_Torso	= transform.FindChild("Base/Torso")			.GetComponent<CActorNode>());
-		_aActors.Add(_oActor_Chest	= transform.FindChild("Base/Torso/Chest")	.GetComponent<CActorChest>());
-		_aActors.Add(_oActor_Pelvis	= transform.FindChild("Base/Torso/Pelvis")	.GetComponent<CActorPelvis>());
-		_aActors.Add(_oActor_ArmL	= transform.FindChild("Base/ArmL")			.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_ArmR	= transform.FindChild("Base/ArmR")			.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_LegL	= transform.FindChild("Base/LegL")			.GetComponent<CActorLeg>());
-		_aActors.Add(_oActor_LegR	= transform.FindChild("Base/LegR")			.GetComponent<CActorLeg>());
+		_aActors.Add(_oActor_Base	= _oBodySkinnedMesh.transform.FindChild("Base")				.GetComponent<CActorNode>());
+		_aActors.Add(_oActor_Torso	= _oBodySkinnedMesh.transform.FindChild("Base/Torso")		.GetComponent<CActorNode>());
+		_aActors.Add(_oActor_Chest	= _oBodySkinnedMesh.transform.FindChild("Base/Torso/Chest")	.GetComponent<CActorChest>());
+		_aActors.Add(_oActor_Pelvis	= _oBodySkinnedMesh.transform.FindChild("Base/Torso/Pelvis").GetComponent<CActorPelvis>());
+		_aActors.Add(_oActor_ArmL	= _oBodySkinnedMesh.transform.FindChild("Base/ArmL")		.GetComponent<CActorArm>());
+		_aActors.Add(_oActor_ArmR	= _oBodySkinnedMesh.transform.FindChild("Base/ArmR")		.GetComponent<CActorArm>());
+		_aActors.Add(_oActor_LegL	= _oBodySkinnedMesh.transform.FindChild("Base/LegL")		.GetComponent<CActorLeg>());
+		_aActors.Add(_oActor_LegR	= _oBodySkinnedMesh.transform.FindChild("Base/LegR")		.GetComponent<CActorLeg>());
 
 		foreach (CActor oActor in _aActors)
 			oActor.OnStart(this);
 	}
 
-	public override void OnDestroy() {				//###BUG: We sure as heck don't destroy everything... ###IMPROVE!
-		Debug.Log("CBody.OnDestroy() " + _sNameBlender);
+	public void Destroy() {             //###BUG: We sure as heck don't destroy everything... ###IMPROVE!
+		Debug.Log("CBody.OnDestroy(): " + _sBodyPrefix);
 		foreach (CActor oActor in _aActors)
-			DestroyImmediate(oActor);
+			GameObject.DestroyImmediate(oActor);
 
-		DestroyImmediate(_oActor_Base.gameObject);			// Destroy our body's entry in top-level CPoseRoot
+		GameObject.DestroyImmediate(_oActor_Base.gameObject);          // Destroy our body's entry in top-level CPoseRoot
 
-		if (_oKeyHook_PenisBaseUpDown != null)			_oKeyHook_PenisBaseUpDown		.Dispose();		//###WEAK!!! Try to enable auto-dispose!!
-		if (_oKeyHook_PenisShaftUpDown != null)			_oKeyHook_PenisShaftUpDown		.Dispose();
-		if (_oKeyHook_PenisDriveStrengthMax != null)	_oKeyHook_PenisDriveStrengthMax	.Dispose();
-		if (_oKeyHook_ChestUpDown != null)				_oKeyHook_ChestUpDown			.Dispose();
+		if (_oKeyHook_PenisBaseUpDown != null) _oKeyHook_PenisBaseUpDown.Dispose();     //###WEAK!!! Try to enable auto-dispose!!
+		if (_oKeyHook_PenisShaftUpDown != null) _oKeyHook_PenisShaftUpDown.Dispose();
+		if (_oKeyHook_PenisDriveStrengthMax != null) _oKeyHook_PenisDriveStrengthMax.Dispose();
+		if (_oKeyHook_ChestUpDown != null) _oKeyHook_ChestUpDown.Dispose();
 
 		foreach (CBCloth oBCloth in _aCloths)
-			DestroyImmediate(oBCloth.gameObject);
+			GameObject.DestroyImmediate(oBCloth.gameObject);
 		if (_oBSkinRim != null)
-			DestroyImmediate(_oBSkinRim);
-		base.OnDestroy();
+			GameObject.DestroyImmediate(_oBSkinRim);
 	}
 
 	
 	//---------------------------------------------------------------------------	UPDATE
 
-	public override void OnSimulatePre() {
+	public void OnSimulatePre() {
 		//		if (Input.GetKeyDown(KeyCode.F12))			//####TEMP
 		//			gBL_UpdateClientVerts();
 
@@ -434,14 +447,14 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 	//---------------------------------------------------------------------------	EDIT-TIME BONE UPDATE FROM BLENDER
 
 	public void UpdateBonesFromBlender() {						// Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
-		_oBonesT = transform.FindChild("Bones");
+		_oBonesT = _oBodySkinnedMesh.transform.FindChild("Bones");
 
-		string sNameBodySrc = gameObject.name;
+		string sNameBodySrc = _sBodyPrefix;			//####BROKEN?
 		if (sNameBodySrc.StartsWith("Prefab") == false)
 			throw new CException("UpdateBonesFromBlender could not recognize PrefabXXX game object name " + sNameBodySrc);
 		sNameBodySrc = sNameBodySrc.Substring(6);			// Remove 'Prefab' to obtain Blender body source name (a bit weak)
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetBones('" + sNameBodySrc + "')", ref memBA);		//###TODO: get body type from enum in body plus type!	//oBody._sNameSrcBody + 
+		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetBones('" + sNameBodySrc + "')", ref memBA);		//###TODO: get body type from enum in body plus type!	//oBody._sMeshSource + 
 		byte[] oBA = (byte[])memBA.L;
 		int nPosBA = 0;
 
@@ -453,7 +466,7 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
 		ReadBone(ref oBA, ref nPosBA, _oBonesT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)
 
-		CBMesh.ReadEndMagicNumber(ref oBA, ref nPosBA);		// Ensure streams are still synced-up
+		CBMesh.CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 
 		Debug.Log("+++ UpdateBonesFromBlender() OK +++");
 	}
@@ -487,8 +500,8 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 		ResetPinToBone("Torso/Pelvis", "chest/abdomen/hip");		
 	}
 	public void ResetPinToBone(string sPathPin, string sPathBone) {		//###IMPROVE: Fix to run during play-time... Have to re-root from CPoseRoot
-		Transform oRootPinT = (_oActor_Base != null) ? _oActor_Base.transform : transform.FindChild("Base");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
-		Transform oRootBontT = transform.FindChild("Bones");
+		Transform oRootPinT = (_oActor_Base != null) ? _oActor_Base.transform : _oBodySkinnedMesh.transform.FindChild("Base");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
+		Transform oRootBontT = _oBodySkinnedMesh.transform.FindChild("Bones");
 		Transform oPinT = oRootPinT.FindChild(sPathPin);
 		Transform oBoneT = oRootBontT.FindChild(sPathBone);
 		oPinT.position = oBoneT.position;
@@ -530,7 +543,7 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 		}
 	}
 	public static string GetNameGameBodyFromPrefix(int nBodyID) {		// Returns the important prefix to many Blender-side objects / meshes related to constucting this CBody... 
-		char chBodyID = (char)(64 + nBodyID);			// Convert the 1-based numeric ID into A,B,C,D,E...
+		char chBodyID = (char)(65 + nBodyID);			// Convert the 0-based numeric ID into A,B,C,D,E...
 		return "Body" + chBodyID;						// Body prefixes look like 'BodyA', 'BodyB', etc
 	}
 	public void SetIsCumming(bool bIsCumming) {	// Only one character can cum at a time as there is only one fluid.  Configure the fluid for our usage
@@ -564,7 +577,7 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 
 		CGame.INSTANCE._oGamePlay.TemporarilyDisablePhysicsCollision();
 
-		Debug.Log(string.Format("Pose_Load() on body '{0}' loaded '{1}'", _sNameGameBody, _sNamePose));
+		Debug.Log(string.Format("Pose_Load() on body '{0}' loaded '{1}'", _sBodyPrefix, _sNamePose));
 		return true;
 	}
 	public void Pose_Save(string sNamePose) {
@@ -575,7 +588,7 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 		foreach (CActor oActor in _aActors)
 			if (oActor != _oActor_Base)						// We do not save the base actor.  User orients this to position the body in the scene.
 				oScriptRec.WriteObject(oActor._oObj);
-		Debug.Log(string.Format("Pose_Save() on body '{0}' saved '{1}'", _sNameGameBody, _sNamePose));
+		Debug.Log(string.Format("Pose_Save() on body '{0}' saved '{1}'", _sBodyPrefix, _sNamePose));
 	}
 	public void Pose_Reload() {
 		Pose_Load(_sNamePose);
@@ -588,14 +601,15 @@ public class CBody : CBSkin, IObject, IHotSpotMgr { 		// Manages a 'body'.  As w
 
 	//--------------------------------------------------------------------------	IOBJECT INTERFACE
 	public void OnPropSet_BreastSize(float nValueOld, float nValueNew) {		//####DEV ####TEMP: Abstract code for all sliders
-		CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('" + _sNameBase + G.C_NameSuffix_BodyMorph + "', '" + _sNameSrcBody + "', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
-		UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
-		CGame.gBL_SendCmd("CBBodyCol", "PairMesh_Apply('BodyA-BreastCol-ToBody', 'BodyA_BodyMorph')");			//####DEV ####MOVE??
-		_oBodyColBreasts.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
+		//####BROKEN
+		//CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('" + _sNameCBodyDataMember + G.C_NameSuffix_BodyMorph + "', '" + _sMeshSource + "', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
+		//UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
+		//CGame.gBL_SendCmd("CBBodyCol", "PairMesh_Apply('BodyA-BreastCol-ToBody', 'BodyA_BodyMorph')");			//####DEV ####MOVE??
+		//_oBodyColBreasts.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 
 	public void OnPropSet_BtnUpdateBody(float nValueOld, float nValueNew) {
-		Debug.Log("CBody: Rebuilding body " + _sNameBlender);
+		Debug.Log("CBody: Rebuilding body " + _sBodyPrefix);
 		//Pose_Save("TEMP");				// Save the current pose to a temp file so we can restore body as it was right after rebuild
 		CGame.INSTANCE._oGamePlay.CreateBody(_nBodyID);		// Will destroy 'this' and rebuild entire new tree of objects & meshes all the way from Blender
 		//Pose_Load("TEMP");				// Restore pose saved earlier

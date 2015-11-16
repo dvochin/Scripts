@@ -9,9 +9,9 @@ public class CBSoftVagina : CBSoft {		// Class to abstract away complexity of ma
 		_SoftBodyDetailLevel = 20;				//###TUNE
 	}
 
-	public override void OnStart(CBody oBody) {
+	public override void OnDeserializeFromBlender() {
+		base.OnDeserializeFromBlender();
 		_eColGroup = EColGroups.eLayerVagina;
-		base.OnStart(oBody);
 
 		_oObj.PropSet(ESoftBody.SolverIterations, 2);		//###OPT!!!! Expensive but shakes otherwise!
 		_oObj.PropSet(ESoftBody.VolumeStiffness, 1);			//###IMPROVE: Make properties publicly available? (like penis?)

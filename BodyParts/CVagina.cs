@@ -56,7 +56,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 
-public class CVagina {		// Class to abstract away complexity of managing L/R vagina under one set of properties
+public class CVagina {		// Class to abstract away complexity of managing L/R vagina under one set of properties		//####OBS ####SOON
 	public CBSoftVaginaL 		_oBSoftVaginaL;
 	public CBSoftVaginaR 		_oBSoftVaginaR;
 	CBody				_oBody;
@@ -74,8 +74,9 @@ public class CVagina {		// Class to abstract away complexity of managing L/R vag
 
 	public CVagina(CBody oBody) {
 		_oBody = oBody;		//###WEAK!!! Filling in body's array of softbodies!  Revisit??
-		oBody._aSoftBodies.Add(_oBSoftVaginaR = (CBSoftVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaR)));
-		oBody._aSoftBodies.Add(_oBSoftVaginaL = (CBSoftVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaL)));
+		//###BROKEN
+		//oBody._aSoftBodies.Add(_oBSoftVaginaR = (CBSoftVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaR)));
+		//oBody._aSoftBodies.Add(_oBSoftVaginaL = (CBSoftVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaL)));
 
 		_aColliders.Add(_oColGuideU  = PrepareCollider("VaginaGuideTrackU"));
 		_aColliders.Add(_oColGuideD  = PrepareCollider("VaginaGuideTrackD"));

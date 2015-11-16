@@ -13,7 +13,7 @@ public class CMorphChannel {
 	public CMorphChannel(CFace oFace, string sNameMorphChannel) {
 		_oFace = oFace;
 		//=== Get the morphing records from Blender.  Code finds the proper shape key, calculates delta and sends us records that our C++ code processes containing vert and delta vector ===
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "CMorphChannel_GetMorphVerts('" + _oFace._sNameBlender  + "', '" + sNameMorphChannel + "')", ref _memMorphDeltaVerts);
+		CGame.gBL_SendCmd_GetMemBuffer("Client", "CMorphChannel_GetMorphVerts('" + _oFace._sNameBlenderMesh  + "', '" + sNameMorphChannel + "')", ref _memMorphDeltaVerts);
 	}
 
 	public void ApplyMorph(float nMorphStrength) {

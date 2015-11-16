@@ -16,8 +16,8 @@ public class CGameMorph_OBS : IObject, IHotSpotMgr  {
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morph", false, new Vector3(0, 0.10f, 0.20f), 2.0f);        //####TODO: Pos!
 
-		_oMeshMorph_TEMP = CBMesh.Create(null, null, "WomanA_BodyMorph", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
-		CBMesh.Create(null, null, "WomanA_Face", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
+		//_oMeshMorph_TEMP = CBMesh.Create(null, null, "WomanA_BodyMorph", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
+		//CBMesh.Create(null, null, "WomanA_Face", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
 
 		//=== Instantiate the requested hair and pin as child of the head bone ===
 		string sNameHair = "HairW-TiedUp";

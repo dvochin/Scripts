@@ -329,7 +329,7 @@ public class CGame : MonoBehaviour {	// The singleton game object.  Accessable v
 	[HideInInspector]	public	bool			_bGameModeBasicInteractions;		// When in basic interaction mode game is not showing the hotspots and editing is limited (to be more 'play like' = normal play mode)
 
 	[HideInInspector]	public	int				_nSelectedBody;
-	[HideInInspector]	public	int				_nNumPenisInScene;
+	[HideInInspector]	public	int				_nNumPenisInScene_BROKEN;
 	[HideInInspector]	public	bool			_GameIsRunning = false;			// When true all FixedUpdate() functions of any object can / should update themselves with FastPhysics (e.g. kinematic colliders)  //###DESIGN: Can get rid of this flag and just test for CGame.enabled??
 	[HideInInspector]	public	int				_nFluidParticleRemovedByOverflow_HACK;
 	[HideInInspector]	public	uint			_nFrameCount_MainUpdate;		// Number of calls to 'FixedUpdate()'  Used to efficiently perform tasks that don't need to run every frame.  ###DESIGN: Keep???
