@@ -17,7 +17,6 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		base.OnDeserializeFromBlender();			// First call the CBMesh base class to serialize the mesh itself...
 
 		_oSkinMeshRendNow = (SkinnedMeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(SkinnedMeshRenderer));
-		//###DEV? _oSkinMeshRendNowNow.updateWhenOffscreen = true;		//###CHECK: Not working?
 
 		////=== Send blender command to obtain the skinned mesh info ===
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
@@ -26,6 +25,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		int nPosBA = 0;
 		CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
 		
+
 		//===== RECEIVE SKINNING INFORMATION =====
 		Matrix4x4[] aSkinBindPoses 		= null;			//###WEAK: A bit of unfortunate structure imposed on the code because of how late we read the stream versus how we must init vars for skinned mesh...  Can be improved.
 		Transform[]	aSkinBones 			= null;
@@ -36,8 +36,8 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		aSkinBones = new Transform[nVertGroupsMesh];
 		aSkinBindPoses = new Matrix4x4[nVertGroupsMesh];
 
-		//=== Find the root of our skinning bones (from our node if we're a body and from our body if we're a body collider ===		###IMPROVE: Clarify / improve tests below!!
-		Transform oNodeBoneParentRoot = transform.FindChild("Bones/chest");			// If we're passed in a body (we're a body collider or a body-related attachment) we adopt same bones as our body.
+		//=== Find the root of our skinning bones from our body's main skinned mesh ===
+		Transform oNodeBoneParentRoot = _oBody._oBodyRootGO.transform.FindChild("Bones/chest");
 
 		if (oNodeBoneParentRoot == null)
 			throw new CException("CBMesh is attempting to reconstruct a skinned mesh but was not able to find root node of bones!");
@@ -69,10 +69,10 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 				float nBoneWeight = BitConverter.ToSingle(oBA, nPosBA); nPosBA+=4;
 				if (nBoneWeight < 0)
 					//Debug.LogError("CBMesh.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
-					throw new CException("CBMesh.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
+					throw new CException("CBSkin.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
 				if (nBoneWeight > 1)
 					//throw new CException("CBMesh.ctor() encountered a bone weight over 1 at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
-					Debug.LogWarning("CBMesh.ctor() encountered a bone weight over 1 = " + nBoneWeight + " at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
+					Debug.LogWarning("CBSkin.ctor() encountered a bone weight over 1 = " + nBoneWeight + " at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 				aBoneWeight[nVertGroup] = nBoneWeight;
 				nBoneWeightSum += nBoneWeight;
 			}
@@ -94,14 +94,15 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		}
 			
 		if (nErrSumOutOfRange > 0)		//###CHECK: What to do???
-			Debug.LogWarning("###ERROR: CBMesh.ctor() found " + nErrSumOutOfRange + " bones with out-of-range sums!");
+			Debug.LogWarning("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with out-of-range sums!");
 			
 		//=== Read the number of errors detected when sending over the blender bone weights... what to do?? ===		
 		int nErrorsBoneGroups = BitConverter.ToInt32(oBA, nPosBA); nPosBA+=4;
 		if (nErrorsBoneGroups > 0)			//###IMPROVE ###CHECK: What to do???
-			Debug.LogError("###ERROR: CBMesh.ctor() detected " + nErrorsBoneGroups + "	blender-side errors while reading in blender mesh!");
+			Debug.LogError("###ERROR: CBSkin.ctor() detected " + nErrorsBoneGroups + "	blender-side errors while reading in blender mesh!");
 		
 		CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+
 
 		//=== Finalize the mesh creation by stuffing _oMeshRender into mesh filter or skinned mesh renderer as appropriate ===
 		UpdateNormals();									// Fix the normals with the just-serialized map of shared normals
@@ -114,10 +115,9 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 		//=== Conveniently reset skinned mesh renderer flags we always keep constant... makes it easier to override the defaults which go the other way ===
 		_oSkinMeshRendNow.updateWhenOffscreen = false;
-		//_oSkinMeshRendNow.castShadows = false;
         _oSkinMeshRendNow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         _oSkinMeshRendNow.receiveShadows = false;
-		if (/*Application.isPlaying &&*/ _oSkinMeshRendNow.GetComponent<Collider>() != null)						//###CHECK: ReleaseGlobalHandles mesh collider here if it exists at gameplay
+		if (_oSkinMeshRendNow.GetComponent<Collider>() != null)						//###CHECK: ReleaseGlobalHandles mesh collider here if it exists at gameplay
 			Destroy(_oSkinMeshRendNow.GetComponent<Collider>());
 	}
 

@@ -23,7 +23,7 @@ public class CPinSkinned : CPin {								// Abstracts a skinned rigid-body pin: 
 	}
 	
 	public void InitializePinSkinned(CPin oPinParent, CBSkinBaked oBSkinBaked, int nVertPart, int nVertHost, int nVertHostAdj) {
-		_oBSkinBaked			= oBSkinBaked;
+		_oBSkinBaked		= oBSkinBaked;
 		_nVertPart			= nVertPart;
 		_nVertHost			= nVertHost;
 		_nVertHostAdj		= nVertHostAdj;

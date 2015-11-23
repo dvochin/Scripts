@@ -6,14 +6,14 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 
 	//---------------------------------------------------------------------------	MEMBERS
 	[HideInInspector]	public 	Mesh				_oMeshBaked;
-	[HideInInspector]	public 	CPin				_oPinGroup_Rim;		//###DESIGN!?!? No longer just a rim!!  The pin group we own and control.  All children under this node move at every frame based on the updated vert positions of our body mesh subset
+	/////////[HideInInspector]	public 	CPin				_oPinGroup_Rim;		//###DESIGN!?!? No longer just a rim!!  The pin group we own and control.  All children under this node move at every frame based on the updated vert positions of our body mesh subset
 
 	//---------------------------------------------------------------------------	INIT
 
 	public override void OnDeserializeFromBlender() {
 		base.OnDeserializeFromBlender();
 		GetComponent<Renderer>().enabled = false;						// Our skinned mesh exists only for providing fast position of our skinned verts and normals... we never display (unless for debugging)
-		_oPinGroup_Rim = (CPin)CUtility.FindOrCreateNode(gameObject, "[Pins-" + gameObject.name + "]", typeof(CPin));
+		////////////////////////_oPinGroup_Rim = (CPin)CUtility.FindOrCreateNode(gameObject, "[Pins-" + gameObject.name + "]", typeof(CPin));
 		_oMeshBaked = new Mesh();						//###LEARN: We can allocate mesh for BakeMesh() at beginning!  Yes!!
 		//###DESIGN: Disabled because of CBBodyColCloth superclass!  ###DESIGN: Improve by re-classing these?? OnSimulatePre();								// Simulate manually first time so very first update PhysX gets valid positions
 	}
@@ -29,16 +29,19 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 		return _memNormals.L[nVert];
 	}
 
-	public void Baking_UpdateBakedMesh() {
+	public void Baking_UpdateBakedMesh() {				//####CLEAN 
 		_oSkinMeshRendNow.BakeMesh(_oMeshBaked);
 		//_oMeshBaked.RecalculateNormals();			//###LEARN: Weirdly enough this messes up the normals -> reset of pin vert normals if we recalc here will show seams as body moves away from startup T-pose.  I have no idea why!!
 		//_oMeshBaked.RecalculateBounds();			//###CHECK: Not needed as we're invisible?
-		Vector3[] aVerts = _oMeshBaked.vertices;	//###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!!!!!!		###TODO!!!!!: Insure this is done throughout the game
-		Vector3[] aNormals = _oMeshBaked.normals;
-		for (int nVert = 0; nVert < _oMeshBaked.vertexCount; nVert++) {			//###HACK!!!! ###OPT!!!! Bodycol won't get updated verts if we don't do deep copy!  Find better way!!!
-			_memVerts  .L[nVert] = aVerts[nVert];
-			_memNormals.L[nVert] = aNormals[nVert];
-		}
+
+		//####OBS?
+		//Vector3[] aVerts = _oMeshBaked.vertices;	//###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!!!!!!		###TODO!!!!!: Insure this is done throughout the game
+		//Vector3[] aNormals = _oMeshBaked.normals;
+		//for (int nVert = 0; nVert < _oMeshBaked.vertexCount; nVert++) {			//###HACK!!!! ###OPT!!!! Bodycol won't get updated verts if we don't do deep copy!  Find better way!!!
+		//	_memVerts  .L[nVert] = aVerts[nVert];
+		//	_memNormals.L[nVert] = aNormals[nVert];
+		//}
+
 		//###DESIGN!!!  memVerts.L	= _oMeshBaked.vertices;
 		//_memNormals.L = _oMeshBaked.normals;
 	}

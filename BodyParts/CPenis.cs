@@ -108,7 +108,7 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		Vector3 vecPenisScaleDampCenter = new Vector3(0, Single.Parse(aStringParts[4]), Single.Parse(aStringParts[5]));
 		_nScaleDampSizeStart = Single.Parse(aStringParts[6]);
 		_nScaleDampSizeEnd   = Single.Parse(aStringParts[7]);
-		_oNodePenisRootBone = _oBody._oBodySkinnedMesh.transform.FindChild(C_PathPenisBoneParent);
+		_oNodePenisRootBone = _oBody._oBodyRootGO.transform.FindChild(C_PathPenisBoneParent);
 		_oNodePenisRootBone.position = _vecPenisBase;
 		_oNodePenisScaleDampCenter = _oNodePenisRootBone.FindChild("PenisScaleDampCenter");
 		_oNodePenisScaleDampCenter.position = vecPenisScaleDampCenter;

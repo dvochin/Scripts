@@ -56,7 +56,7 @@ public class CCutterCurve : IHotSpotMgr {
 	void UpdateUnityCutterMesh() {						// ReleaseGlobalHandles the highly-transient cutter mesh rendering the curve in Unity and request an updated mesh from Blender. (This is the 'thick curve' glued to the side of the cloth providing user feedback on where the cut will occur)
 		//if (_oBMesh_Cutter != null)		//???
 		//	_oBMesh_Cutter.Destroy();
-		_oBMesh_Cutter = CBMesh.Create(null, null, G.C_NamePrefix_CutterAsMesh + _eCurveType.ToString(), "Curve", "gBL_Curve_GetCutterAsMesh", "", typeof(CBMesh));
+		//####BROKEN: _oBMesh_Cutter = CBMesh.Create(null, null, G.C_NamePrefix_CutterAsMesh + _eCurveType.ToString(), "Curve", "gBL_Curve_GetCutterAsMesh", "", typeof(CBMesh));
 	}
 	
 	void UpdateCurvePoint(int nCurvePt, Vector3 v, bool bUpdateHotspotToAdjustedCurvePt) {

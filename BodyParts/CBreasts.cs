@@ -33,14 +33,13 @@
 
 */
 using UnityEngine;
-using System;
 
 public class CBreasts : CBSoft, IHotSpotMgr {
 
 	CHotSpot	_oHotSpot;
 
 	public CBreasts() {
-		_nRangeTetraPinHunt = 0.022f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
+		_nRangeTetraPinHunt = 0.015f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
 		_SoftBodyDetailLevel = 15;          //###TUNE
 	}
 

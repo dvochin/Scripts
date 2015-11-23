@@ -19,7 +19,7 @@ public class CGamePlay : MonoBehaviour, IObject {
 		Debug.Log("=== Entering Game Play Mode ===");
 		CGame.INSTANCE._oGamePlay = this;		//###WEAK: We must fill in our pointer in owning CGame so code below can find us from global CGame
 
-		//=== Create our publicly-editable properties for gameplay ===
+		//=== Create our publicly-editable41 properties for gameplay ===
 		_oObj = new CObject(this, 0, typeof(EGamePlay), "Erotic9");		//###TEMP!!! Main game name in this low-importance GUI???
 		_oObj.PropGroupBegin("", "", true);
 		_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)", CProp.Local);	//###BUG with first setting
@@ -174,7 +174,7 @@ public class CGamePlay : MonoBehaviour, IObject {
 	public void BroadcastMessageToAllBodies(string sFunction, object oArg) {			//###IMPROVE: Redo all broadcasting through this approach!
 		foreach (CBody oBody in _aBodies)
 			if (oBody != null)
-				oBody._oBodySkinnedMesh.BroadcastMessage(sFunction, oArg);
+				oBody._oBodyRootGO.BroadcastMessage(sFunction, oArg);
 		CGame.INSTANCE._oPoseRoot.gameObject.BroadcastMessage(sFunction, oArg);		// Also broadcast to the pose root which keeps many helper objects
 	}
 

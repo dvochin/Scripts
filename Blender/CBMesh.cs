@@ -34,13 +34,13 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	
 	//---------------------------------------------------------------------------	INIT
 
-	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyDataMember, string sCmdBlModule_HACK, string sCmdBlFunction_HACK, string sCmdExtraArgs_HACK, Type oTypeBMesh) {
+	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyDataMember, Type oTypeBMesh) {
 		//===== Important static function that reads a Blender mesh definition stream and create the requested CBMesh-derived entity on the provided gameObject node =====
 
 		//=== Create the game object that will host our component ===
 		if (oBMeshGO == null) {						// When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
 			oBMeshGO = new GameObject(sNameCBodyDataMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...
-			oBMeshGO.transform.parent = oBody._oBodySkinnedMesh.transform;			//... Parent it to the body if specified (body is always specified for rim or body parts)
+			oBMeshGO.transform.parent = oBody._oBodyRootGO.transform;			//... Parent it to the body if specified (body is always specified for rim or body parts)
 		}
 
 		//=== Create our component (of the requested type) from the above-created game object ===
@@ -196,7 +196,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		GetBlenderMeshArray("aMapSharedNormals", ref _aMapSharedNormals);			// Read the 'shared normals' flattened map
 	}
 
-	public void GetBlenderMeshArray(string sNameArray, ref List<ushort> aBlenderArray) {			//####DEV: As array
+	public void GetBlenderMeshArray(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
 		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
 
@@ -242,6 +242,12 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		_oMeshNow.vertices = _memVerts.L;
 		if (bUpdateNormals)
 			UpdateNormals();								// Verts have moved, update * fix normals...
+	}	
+
+	public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
+		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
+		if (nError != 0)
+			throw new CException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
 	}	
 
 	public void UpdateNormals() {		// Unity must split Blender's verts at the seam.  Blender provides the '' map for us to average out these normals in order to display seamlessly accross seams.  

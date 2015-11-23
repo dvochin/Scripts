@@ -641,7 +641,8 @@ public class CGame : MonoBehaviour {	// The singleton game object.  Accessable v
 			_oGameMorph.OnUpdate();
 		if (_oGameClothFit != null)
 			_oGameClothFit.OnUpdate();
-		if (_oGamePlay != null)
+		//###BROKEN!!! WTF???  How can this be "null"??? if (_oGamePlay != null)
+		if (_GameMode == EGameModes.Play || _GameMode == EGameModes.PlayNoAnim)
 			_oGamePlay.OnUpdate();
 
 		if (Input.GetKeyDown(KeyCode.G) && _bKeyControl)		// Ctrl+G = Enter game key	//###IMPROVE: Game option!!
