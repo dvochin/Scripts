@@ -52,7 +52,7 @@ public class CBodyColBreasts : CBMesh {		// CBodyColBreasts: A simple mesh (abou
 
 		//####BROKEN: Also split??
 		//CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		//CGame.gBL_SendCmd_GetMemBuffer("Breasts", "CBodyColBreasts_GetColliderInfo('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);		// Call the Blender-side of our function to retrieve the collider information we require to form breast colliders in PhysX
+		//CGame.gBL_SendCmd_GetMemBuffer("'Breasts'", "CBodyColBreasts_GetColliderInfo('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);		// Call the Blender-side of our function to retrieve the collider information we require to form breast colliders in PhysX
 		//byte[] oBA = (byte[])memBA.L;
 		//int nPosBA = 0;
 
@@ -77,7 +77,7 @@ public class CBodyColBreasts : CBMesh {		// CBodyColBreasts: A simple mesh (abou
 
 
 		////===== Obtain the 'slave vert to master vert' constructed by PairMesh_DoPairing() during body construction =====  ####IMPROVE: Create subclass of CBMesh called CBPairedMesh?? ####DESIGN ####SOON
-		//CGame.gBL_SendCmd_GetMemBuffer("CBBodyCol", "PairMesh_GetVertMapSlaveToMaster('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);
+		//CGame.gBL_SendCmd_GetMemBuffer("'CBBodyCol'", "PairMesh_GetVertMapSlaveToMaster('" + oBody._sNameGameBody + "-BreastCol-" + _oPairMesh.ToString() + "')", ref memBA);
 		//oBA = (byte[])memBA.L;
 		//nPosBA = 0;
 		//nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA += 4;

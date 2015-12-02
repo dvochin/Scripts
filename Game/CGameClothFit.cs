@@ -25,7 +25,7 @@ public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important
 //
 //		//=== Obtain the list of breast morph operation hotspots and create them in Unity ===
 //		CMemAlloc<byte> mem = new CMemAlloc<byte>();
-//		int nSizeData = CGame.gBL_SendCmd_GetMemBuffer("Breasts", "Breasts_GetMorphList()", ref mem);
+//		int nSizeData = CGame.gBL_SendCmd_GetMemBuffer("'Breasts'", "Breasts_GetMorphList()", ref mem);
 //		int i = 0;
 //		while (i < nSizeData) {
 //			string sNameMorph = CUtility.BlenderStream_ReadStringPascal(ref mem.L, ref i);

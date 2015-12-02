@@ -20,10 +20,10 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 		////=== Send blender command to obtain the skinned mesh info ===
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetMesh_SkinnedInfo('" + _sNameBlenderMesh + "')", ref memBA);	
+		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh_SkinnedInfo('" + _sNameBlenderMesh + "')", ref memBA);	
 		byte[] oBA = (byte[])memBA.L;			// Setup the deserialization arrays and deserialize the body from Blender
 		int nPosBA = 0;
-		CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
 		
 
 		//===== RECEIVE SKINNING INFORMATION =====
@@ -101,7 +101,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		if (nErrorsBoneGroups > 0)			//###IMPROVE ###CHECK: What to do???
 			Debug.LogError("###ERROR: CBSkin.ctor() detected " + nErrorsBoneGroups + "	blender-side errors while reading in blender mesh!");
 		
-		CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 
 
 		//=== Finalize the mesh creation by stuffing _oMeshRender into mesh filter or skinned mesh renderer as appropriate ===

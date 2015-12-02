@@ -818,8 +818,8 @@ public class CGame : MonoBehaviour {	// The singleton game object.  Accessable v
 		return sResults;
 	}
 
-	public static int gBL_SendCmd_GetMemBuffer(string sModule, string sCmd, ref CMemAlloc<byte> mem) {
-		string sCmdFull = "__import__('" + sModule + "')." + sCmd;
+	public static int gBL_SendCmd_GetMemBuffer(string sModuleList, string sCmd, ref CMemAlloc<byte> mem) {			//####SOON ####IMPROVE: Can get rid of damn import list by importing everything once at game init??
+		string sCmdFull = "__import__(" + sModuleList + ")." + sCmd;
 		IntPtr pSizeInBuf = ErosEngine.gBL_Cmd(sCmdFull, true);
 		int nSizeByteBuf = pSizeInBuf.ToInt32();		
 		if (nSizeByteBuf <= 0)

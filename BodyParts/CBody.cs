@@ -460,7 +460,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			throw new CException("UpdateBonesFromBlender could not recognize PrefabXXX game object name " + sNameBodySrc);
 		sNameBodySrc = sNameBodySrc.Substring(6);			// Remove 'Prefab' to obtain Blender body source name (a bit weak)
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetBones('" + sNameBodySrc + "')", ref memBA);		//###TODO: get body type from enum in body plus type!	//oBody._sMeshSource + 
+		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetBones('" + sNameBodySrc + "')", ref memBA);		//###TODO: get body type from enum in body plus type!	//oBody._sMeshSource + 
 		byte[] oBA = (byte[])memBA.L;
 		int nPosBA = 0;
 
@@ -472,7 +472,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
 		ReadBone(ref oBA, ref nPosBA, _oBonesT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)
 
-		CBMesh.CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 
 		Debug.Log("+++ UpdateBonesFromBlender() OK +++");
 	}

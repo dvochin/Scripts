@@ -2,10 +2,9 @@ using UnityEngine;
 using System;
 using System.IO;
 using System.Text;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.Serialization.Formatters.Binary;
+//using System.Runtime.Serialization.Formatters.Binary;
 
 #pragma warning disable 162         // "Unreacheable Code Detected"
 
@@ -289,6 +288,40 @@ public class CUtility {			// Collection of static utility functions
 		return quat;
 	}
 	#endregion
+
+	#region === Blender Serialization ===
+	public static void BlenderSerialize_GetSerializableCollection(string sNameModuleList, string sFullyQualifiedMemberVariable, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+		//CGame.gBL_SendCmd_GetMemBuffer(sNameModule, "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
+		CGame.gBL_SendCmd_GetMemBuffer(sNameModuleList, sFullyQualifiedMemberVariable, ref memBA);
+
+		byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
+		int nPosBA = 0;
+
+		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
+		if (nArrayElements > 0) {
+			aBlenderArray = new List<ushort>();
+			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
+				aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
+			}
+		}
+		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+	}
+	public static void BlenderSerialize_CheckMagicNumber(ref byte[] oBA, ref int nPosBA, bool bCheckForEnd) {
+		//=== Read the 'magic number' that must exists at the beginning and end of all Blender-sourced streams to help catch out-of-sync errors.  ===
+		ushort nMagic = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;     // Read basic sanity check magic number at end
+		if (bCheckForEnd) {
+			if (nMagic != G.C_MagicNo_TranEnd)
+				throw new CException("ERROR in CBMesh.ctor().  Invalid transaction end magic number!  Stream is bad.");
+		} else {
+			if (nMagic != G.C_MagicNo_TranBegin)
+				throw new CException("ERROR in CBMesh.ctor().  Invalid transaction beginning magic number!  Stream is bad.");
+		}
+    }
+	#endregion
+	
+
 
 	#region === Strings ===
 	public static string ConvertCamelCaseToHumanReadableString(string sCamelCase) {		// Returns a string like _MyCamelCaseVariable into "My Camel Case Variable" for GUI display of our internal variable (typically used by reflection)

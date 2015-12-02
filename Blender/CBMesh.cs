@@ -21,7 +21,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 						public	string			_sNameBlenderMesh;				// The name of the Blender mesh object.  Used to obtain mesh verts, tris, etc.
 	[HideInInspector]	public 	CBody			_oBody;							// Body this mesh / skinned mesh is associated too.
 	[HideInInspector]	public  Mesh			_oMeshNow;	
-	[HideInInspector]	public	List<ushort>	_aMapSharedNormals;
+	[HideInInspector]	public	List<ushort>	_aMapSharedNormals_BROKEN;
 	[HideInInspector]	public	Material[]		_aMats;							// Array of materials deserialized from Blender
 
 	//---------------------------------------------------------------------------	MESH ARRAYS
@@ -60,13 +60,13 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	public virtual void OnDeserializeFromBlender() {		//===== Very important top-level call to begin the process of deserializing a mesh from Blender.  Central to all our meshes! =====
 		//=== Send blender command to obtain the mesh header.  This will return a large stream containing material names, bones, bone weight, etc ===
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetMesh('" + _sNameBlenderMesh + "')", ref memBA);	
+		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh('" + _sNameBlenderMesh + "')", ref memBA);	
 		byte[] oBA = (byte[])memBA.L;			// Setup the deserialization arrays and deserialize the body from Blender
 		int nPosBA = 0;
 
 		//=== Create various casts to subclasses to facilitate deserializing info into the proper subclasses ===
 		bool bCreatingSkinnedMesh = ((this as CBSkin) != null);		// We create a skinned mesh if we're a CBSkin or related rim... otherwise we're (probably) a body part requiring softbody/cloth simulation so we're just a simple mesh
-		CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
 
 		//=== Read the number of verts and tris.  Must be < 64K for Unity! ===
 		int nVerts = BitConverter.ToInt32(oBA, nPosBA); nPosBA+=4;
@@ -147,7 +147,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 			_aMats[0] = new Material(Shader.Find("Diffuse"));	// Create a default material so we can see the material-less Blender mesh in Unity
 		}
 		_oMeshNow.subMeshCount = nMats;
-		CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 		
 
 		
@@ -193,40 +193,29 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		_memNormals		.AssignAndPin(_oMeshNow.normals);
 		_memTris		.AssignAndPin(_oMeshNow.triangles);
 
-		GetBlenderMeshArray("aMapSharedNormals", ref _aMapSharedNormals);			// Read the 'shared normals' flattened map
+		//####BROKEN!  Still relevant??
+		//string sAccessString_CBody = "CBody_GetBody(" + _oBody._nBodyID.ToString() + ")";					// Simplify access to Blender CBody instance			####MOVE??
+		//CUtility.BlenderSerialize_GetSerializableCollection("CBody", sAccessString_CBody + ".aMapSharedNormals.tobytes()", ref _aMapSharedNormals_BROKEN);				// Read the 'shared normals' flattened map
 	}
 
-	public void GetBlenderMeshArray(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
-		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("Client", "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
+	//public void GetBlenderSerializableCollection(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+	//	CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+	//	CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
 
-		byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
-		int nPosBA = 0;
+	//	byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
+	//	int nPosBA = 0;
 
-		CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
-		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
-		if (nArrayElements > 0) {
-			aBlenderArray = new List<ushort>();
-			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
-				aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
-			}
-		}
-		CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
-	}
+	//	CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+	//	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
+	//	if (nArrayElements > 0) {
+	//		aBlenderArray = new List<ushort>();
+	//		for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
+	//			aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
+	//		}
+	//	}
+	//	CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+	//}
 
-
-	public static void CheckMagicNumber(ref byte[] oBA, ref int nPosBA, bool bCheckForEnd) {
-		//=== Read the 'magic number' that must exists at the beginning and end of all Blender-sourced streams to help catch out-of-sync errors.  ===
-		ushort nMagic = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;     // Read basic sanity check magic number at end
-		if (bCheckForEnd) {
-			if (nMagic != G.C_MagicNo_TranEnd)
-				throw new CException("ERROR in CBMesh.ctor().  Invalid transaction end magic number!  Stream is bad.");
-		} else {
-			if (nMagic != G.C_MagicNo_TranBegin)
-				throw new CException("ERROR in CBMesh.ctor().  Invalid transaction beginning magic number!  Stream is bad.");
-		}
-    }
-	
 
 	public virtual void OnDestroy() {
 		Debug.Log("OnDestroy CBMesh " + gameObject.name);
@@ -252,13 +241,13 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 	public void UpdateNormals() {		// Unity must split Blender's verts at the seam.  Blender provides the '' map for us to average out these normals in order to display seamlessly accross seams.  
 		_oMeshNow.RecalculateNormals();					// First recalc the normals from Unity's implementations.  Duplicated verts at the seams will have slighly different normals because their polygons don't meet over seams.
-		if (_aMapSharedNormals == null)					// If the map of shared normal info does not exist then there are no normals to fix so just RecalculateNormals() above is enough.
+		if (_aMapSharedNormals_BROKEN == null)					// If the map of shared normal info does not exist then there are no normals to fix so just RecalculateNormals() above is enough.
 			return;
 
 		//=== Manually iterate through the Blender-supplied flat list of 'shared normal groups' to set all verts that were split by seams to the same (average) normal so they appear seamless ===
 		Vector3[] aNormals = _oMeshNow.normals;			// Obtain array for much faster iteration
 		List<ushort> aSharedNormals_CurrentGroup = new List<ushort>();
-		foreach (ushort nSharedNormal in _aMapSharedNormals) {
+		foreach (ushort nSharedNormal in _aMapSharedNormals_BROKEN) {
 			if (nSharedNormal != G.C_MagicNo_EndOfFlatGroup) {							// Normal vertex in the current 'shared normal group'.  Just append to current group until we meet the 'end of group' magic number
 				aSharedNormals_CurrentGroup.Add(nSharedNormal);
 			} else {												// This 'invalid vertex ID' reprensents the 'end of shared normal group'. At this point we set the normals for this group to their average
