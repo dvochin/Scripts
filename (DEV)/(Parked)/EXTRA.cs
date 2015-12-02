@@ -155,7 +155,7 @@
 		
 //		switch (sTabCaption) {
 //			case "Cloth Cutting":	CGame.INSTANCE.ChangeGameMode(EGameModes.Morph);	break;
-//			case "Cloth Fitting":	CGame.INSTANCE.ChangeGameMode(EGameModes.ClothFit);	break;		//###DESIGN: Consider rename to 'BodyMorph' throughout??
+//			case "Cloth Fitting":	CGame.INSTANCE.ChangeGameMode(EGameModes.ClothFit);	break;		//###DESIGN: Consider rename to 'Morph' throughout??
 //			case "Game":			CGame.INSTANCE.ChangeGameMode(EGameModes.Play);		break;		//###DESIGN: Game or Play??
 //			default:				throw new CException("Exception in iGUI OnTabChange: Could not recognize tab caption '" + sTabCaption + "'");
 //		}

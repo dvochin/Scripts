@@ -34,7 +34,11 @@ public class CObject {				// Centrally-important base class (with matching imple
 		_sNameFull			= _sNameEngineType + "." + _sNameObject;
 		_aProps = new CProp[GetNumProps()];				// Initialize our array at the right size from the number of fields defined in the associated enum of this object
 	}
-	public void OnDestroy() { 
+	public void OnDestroy() {
+		RemoveAllProperties();
+	}
+
+	public void RemoveAllProperties() {
 		if (_aProps != null) {					//###CHECK: Why can this be null during destruction flow???
 			foreach (CProp oProp in _aProps)	//###TODO!!!: Destroy GUI if created!!	
 				if (oProp != null)
@@ -42,7 +46,6 @@ public class CObject {				// Centrally-important base class (with matching imple
 			_aProps = null;
 		}			//###CHECK: Need to iterate through prop group??
 	}
-
 	//---------------------------------------------------------------------------	UPDATE
 
 	public virtual void OnSimulatePre() {				//###DESIGN!!!! Revisit autorefresh concept??

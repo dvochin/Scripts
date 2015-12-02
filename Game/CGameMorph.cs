@@ -16,7 +16,7 @@ public class CGameMorph_OBS : IObject, IHotSpotMgr  {
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morph", false, new Vector3(0, 0.10f, 0.20f), 2.0f);        //####TODO: Pos!
 
-		//_oMeshMorph_TEMP = CBMesh.Create(null, null, "WomanA_BodyMorph", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
+		//_oMeshMorph_TEMP = CBMesh.Create(null, null, "WomanA_Morph", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
 		//CBMesh.Create(null, null, "WomanA_Face", "", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
 
 		//=== Instantiate the requested hair and pin as child of the head bone ===
@@ -38,7 +38,7 @@ public class CGameMorph_OBS : IObject, IHotSpotMgr  {
 	//--------------------------------------------------------------------------	IOBJECT INTERFACE
 	public void OnPropSet_BreastSize(float nValueOld, float nValueNew) {
 		Debug.Log("PropSet " + nValueNew.ToString());
-		CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('BodyA_BodyMorph', 'WomanA', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
+		CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('BodyA_Morph', 'WomanA', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
 		_oMeshMorph_TEMP.UpdateVertsFromBlenderMesh(true);
 	}
 

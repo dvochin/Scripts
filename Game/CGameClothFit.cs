@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important flaw with this class appears by recreating most of what CBody does to avoid its animation... Better to just use it and create a 'special mode' so it doesn't animate???
 
-//	CBMesh			_oBBodyMorphing;				// The body mesh we morph in this mode.
+//	CBMesh			_oBMorphing;				// The body mesh we morph in this mode.
 //	CBCloth			_oBClothFit;
 //	CBBodyColCloth	_oBBodyColCloth_Morphed_OBS;			// Our body collider in 'morphed mode': It will adjust its low-density collision mesh from the position of the related high-density verts of the body we morph in this game mode
 //	public List<CHotSpot>	_aHotSpots = new List<CHotSpot>();						// Hotspots pertinent to each of our derived game modes.  Created / destroyed at begin / end
@@ -15,7 +15,7 @@ public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important
 
 //		CGame.gBL_SendCmd("Client", "GameMode_ClothFit('" + G.C_NameBaseCharacter_HACK + "')");		// Tell Blender we're entering cloth fit mode so it copies the cut cloth into the fit cloth
 //
-//        _oBBodyMorphing    = CBMesh   .Create(null, null, G.C_NameBaseCharacter_HACK + G.C_NameSuffix_BodyMorph, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
+//        _oBMorphing    = CBMesh   .Create(null, null, G.C_NameBaseCharacter_HACK + G.C_NameSuffix_Morph, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBMesh));
 //		_oBBodyColCloth_Morphed_OBS = CBBodyColCloth.Create(null, null, G.C_NameBaseCharacter_HACK);		//###DESIGN??? Important design issue with creating CBodyCol without body, as receiving bones requires node path!  Consider redesigning this class to use a CBody (and all its dependencies) in a 'special' non-animated mode??
 //
 //
@@ -41,7 +41,7 @@ public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important
 
 //		_oBClothFit.gBL_UpdateBlenderVerts();					//###IMPORTANT: Before we leave cloth fit mode we upload our verts to Blender so it builds from our latest cloth fitting for other game modes.
 //		CGame.gBL_SendCmd("Client", "GameMode_ClothFit_End()");		// Tell blender we're done with cloth fit so it can cleanup and smooth our simulated output
-//		//_oBBodyMorphing.Destroy();				//###CHECK: Leak?
+//		//_oBMorphing.Destroy();				//###CHECK: Leak?
 //		//_oBClothFit.Destroy();
 //		//_oBBodyColCloth_Morphed_OBS.Destroy();
 //		//foreach (CHotSpot oHotSpot in _aHotSpots)			// ReleaseGlobalHandles the hotspot game objects owned by this game mode to cleanup the scene before the next game mode
@@ -60,8 +60,8 @@ public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important
 	}
 	
 	
-	public void OnBodyMorphOperationApplied() {					// Sent by GUI when user modifies body.  We now update the character static mesh and clothing...
-//		_oBBodyMorphing.gBL_UpdateClientVerts();
+	public void OnMorphOperationApplied() {					// Sent by GUI when user modifies body.  We now update the character static mesh and clothing...
+//		_oBMorphing.gBL_UpdateClientVerts();
 //		//###BROKEN _oBBodyColCloth_Morphed_OBS.BodyCol_Update();
 	}	
 	
@@ -99,7 +99,7 @@ public class CGameClothFit : IHotSpotMgr {			//###DESIGN!!!:  ###SOON: Important
 		////Debug.Log(sCmdValue);
 		//string sCmdFull = "Breasts_ApplyOp('" + sCmdType + "','" + oGizmoT.name + "','" + sPivot + "','" + sEffect + "'," + sCmdValue + "," + sCmdAxis + ")";
 		//CGame.gBL_SendCmd("Breasts", sCmdFull);
-		//CGame.INSTANCE._oGameClothFit.OnBodyMorphOperationApplied();				// Cloth fit game mode will now update the character static mesh and clothing...
+		//CGame.INSTANCE._oGameClothFit.OnMorphOperationApplied();				// Cloth fit game mode will now update the character static mesh and clothing...
 	}
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) { }
 }

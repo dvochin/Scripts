@@ -212,10 +212,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		
 		//===== DETACHED SOFTBODY PARTS PROCESSING =====
-		CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + _nBodyID.ToString() + ").SeparateSoftBodyPart('Breasts')");		//####DEV ####MOVE? Send command to separate breasts.  Move into own class??
-		_aSoftBodies.Add(_oBreasts = (CBreasts)CBMesh.Create(null, this, "aMeshSoftBodies['Breasts']", typeof(CBreasts)));           //###WEAK: Create utility function like before???
-		//CBSkin.Create(null, this, "aMeshSoftBodiesRim['Breasts']", typeof(CBSkin));           //###DEV
-
+		_aSoftBodies.Add(_oBreasts = (CBreasts)CBSoft.Create(this, typeof(CBreasts)));
 
 		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
 		////###IMPROVE!!!! Parse array of Blender-pushed chunks into our parts (instead of pulling like below?)
@@ -611,9 +608,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//--------------------------------------------------------------------------	IOBJECT INTERFACE
 	public void OnPropSet_BreastSize(float nValueOld, float nValueNew) {		//####DEV ####TEMP: Abstract code for all sliders
 		//####BROKEN
-		//CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('" + _sNameCBodyDataMember + G.C_NameSuffix_BodyMorph + "', '" + _sMeshSource + "', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
+		//CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('" + _sNameCBodyDataMember + G.C_NameSuffix_Morph + "', '" + _sMeshSource + "', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
 		//UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
-		//CGame.gBL_SendCmd("CBBodyCol", "PairMesh_Apply('BodyA-BreastCol-ToBody', 'BodyA_BodyMorph')");			//####DEV ####MOVE??
+		//CGame.gBL_SendCmd("CBBodyCol", "PairMesh_Apply('BodyA-BreastCol-ToBody', 'BodyA_Morph')");			//####DEV ####MOVE??
 		//_oBodyColBreasts.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 
