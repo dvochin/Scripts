@@ -17,7 +17,7 @@ using System.Collections.Generic;
 public class CBMesh : MonoBehaviour {		// The base class to any Unity object that requires Blender meshes.  Derived classes extend functionality to skinned meshes, softbody-simulated meshes, clothing-simulated meshes
 
 	//---------------------------------------------------------------------------	IMPLEMENTATION MEMBERS
-						public	string			_sNameCBodyDataMember;			// The base part of the name (without suffix)
+						public	string			_sNameCBodyInstanceMember;			// The base part of the name (without suffix)
 						public	string			_sNameBlenderMesh;				// The name of the Blender mesh object.  Used to obtain mesh verts, tris, etc.
 	[HideInInspector]	public 	CBody			_oBody;							// Body this mesh / skinned mesh is associated too.
 	[HideInInspector]	public  Mesh			_oMeshNow;	
@@ -34,22 +34,22 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	
 	//---------------------------------------------------------------------------	INIT
 
-	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyDataMember, Type oTypeBMesh) {
+	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyInstanceMember, Type oTypeBMesh) {
 		//===== Important static function that reads a Blender mesh definition stream and create the requested CBMesh-derived entity on the provided gameObject node =====
 
 		//=== Create the game object that will host our component ===
 		if (oBMeshGO == null) {						// When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
-			oBMeshGO = new GameObject(sNameCBodyDataMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...
+			oBMeshGO = new GameObject(sNameCBodyInstanceMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...
 			oBMeshGO.transform.parent = oBody._oBodyRootGO.transform;			//... Parent it to the body if specified (body is always specified for rim or body parts)
 		}
 
 		//=== Create our component (of the requested type) from the above-created game object ===
 		CBMesh oBMesh = (CBMesh)CUtility.FindOrCreateComponent(oBMeshGO.transform, oTypeBMesh);
 		oBMesh._oBody = oBody;									// Push-in some important args manually (so we don't have to push them in OnDeserializeFromBlender()
-		oBMesh._sNameCBodyDataMember = sNameCBodyDataMember;
+		oBMesh._sNameCBodyInstanceMember = sNameCBodyInstanceMember;
 
 		//=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
-		string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyDataMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
+		string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
 		oBMesh._sNameBlenderMesh = CGame.gBL_SendCmd("CBody", sCBodyDataMember + ".name");								// Store the name of the Blender object holding the mesh so we can directly access.
 
 		oBMesh.OnDeserializeFromBlender();				// Fully deserialize the mesh from Blender.  (Virtual call that cascades accross several classes in order)
@@ -72,7 +72,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		int nVerts = BitConverter.ToInt32(oBA, nPosBA); nPosBA+=4;
 		int nTris  = BitConverter.ToInt32(oBA, nPosBA); nPosBA+=4;
 		byte nMats = oBA[nPosBA]; nPosBA++;
-		Debug.Log("CBMesh obtains mesh '" + _sNameCBodyDataMember + "' for body '" + _oBody._nBodyID + "' with " + nVerts + " verts " + nTris + " triangles and " + nMats + " materials.");
+		Debug.Log("CBMesh obtains mesh '" + _sNameCBodyInstanceMember + "' for body '" + _oBody._nBodyID + "' with " + nVerts + " verts " + nTris + " triangles and " + nMats + " materials.");
 		
 		if (nVerts > 65530)
 			throw new CException("ERROR in CBMesh.ctor().  Mesh has over 64K verts: " + nVerts);

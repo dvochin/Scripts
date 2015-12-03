@@ -69,6 +69,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 	//---------------------------------------------------------------------------	VISIBLE PROPERTIES
 	public 	int					_nBodyID;				// The 0-based numeric ID of our body.  Extremely important.  Matches Blender's CBody.nBodyID as well
+	public	string				_sBlenderInstancePath_CBody;				// The Blender instance path where our corresponding CBody is access (from global scope)
 	public	string				_sBodyPrefix;			// The 'body prefix' string used to identify Blender & Unity node for this body (Equals to 'BodyA', 'BodyB', 'BodyC', etc)
 	public 	string				_sHumanCharacterName;	// The human first-name given to this character... purely cosmetic
 	public  GameObject			_oBodyRootGO;			// The root game object of every Unity object for this body.  (Created from prefab)
@@ -87,7 +88,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	Transform			_oBaseT;				// The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
 	public 	CScriptPlay			_oScriptPlay;			// Scripting interpreter in charge of loading user scripts that programmatically control this body (poses also load this way)
 	public 	CFace				_oFace;
-	public 	string				_sNamePose;					// The name of the current loaded pose (Same as filename in /Poses directory)
+	public	CBMesh				_oMesh_Unity2Blender;	// The Unity2Blender mesh we use to pass meshes from Unity to Blender for processing there (e.g. Softbody tetramesh skinning & pinning)
+	public 	string				_sNamePose;				// The name of the current loaded pose (Same as filename in /Poses directory)
 
 	//---------------------------------------------------------------------------	SOFT BODY PARTS
 	public	CBreasts 			_oBreasts;					// The possible soft-body + related clothing parts.  What is filled in depends on what kind of character we are (man, woman, shemale)
@@ -132,11 +134,16 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
 	//---------------------------------------------------------------------------
-	public bool _bForMorphingOnly;								// Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
+	public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
+
+	public const int C_Unity2Blender_MaxVerts = 5000;			// Maximum number of verts for Unity2Blender mesh
+
 
 
 	public CBody(int nBodyID) {
 		_nBodyID = nBodyID;
+		_sBlenderInstancePath_CBody = "CBody_GetBody(" + _nBodyID.ToString() + ")";					// Simplify access to Blender CBody instance			####MOVE??
+
 		bool bForMorphingOnly = (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _nBodyID));
 
@@ -177,7 +184,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		EBodySex eBodySex = (EBodySex)_oObj.PropGet((int)EBodyDef.Sex);
 
 		if (eBodySex == EBodySex.Man) {
-			sMeshSource = "ManA";
+			sMeshSource = "ManA"; 
 			_sHumanCharacterName = (_nBodyID == 0) ? "Karl" : "Brent";          //###IMPROVE: Database of names?  From user???
 		} else {
 			sMeshSource = "WomanA";
@@ -198,13 +205,13 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 		//===== CREATE THE BODY IN BLENDER =====  
-		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "')");		// This new instance is an extension of this Unity CBody instance and contains most instance members
-
+		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "', " + C_Unity2Blender_MaxVerts.ToString() + ")");		// This new instance is an extension of this Unity CBody instance and contains most instance members
 		
 		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
 		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
+		_oMesh_Unity2Blender = CBMesh.Create(null, this, "oMeshUnity2Blender", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
 
 		//=== Obtain references to needed sub-objects of our prefab ===
 		_oBonesT	= _oBodyRootGO.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
@@ -215,7 +222,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_aSoftBodies.Add(_oBreasts = (CBreasts)CBSoft.Create(this, typeof(CBreasts)));
 
 		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
-		////###IMPROVE!!!! Parse array of Blender-pushed chunks into our parts (instead of pulling like below?)
+		////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
 		//if (_bForMorphingOnly == false) {
 		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
 		//		_aSoftBodies.Add(_oBreasts = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???

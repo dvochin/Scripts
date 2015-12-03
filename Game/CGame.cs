@@ -340,7 +340,6 @@ public class CGame : MonoBehaviour {	// The singleton game object.  Accessable v
 	[HideInInspector]	public	bool			_bCursorEnabled_HACK = true;	//###HACK Temp disabling of our 3D cursor in situations where we display a full screen GUI (pic laoders)
 	[HideInInspector]	public	bool			_bRunningInEditor;				//###HACK Game running in editor is configured for development
 	[HideInInspector]	public	GameObject		_oSceneMeshesGO;                // The 'game scene' that is the current 'eye candy' room purely for visuals.  Stored to hide / show
-
     [HideInInspector]	public	Text            _oTextUL, _oTextUC, _oTextUR;       // Access members to GUI text fields ###MOVE???
     //---------------------------------------------------------------------------	FPS CALC
     const float         C_TimeBetweenMinCalc = 5.0f;
@@ -813,7 +812,7 @@ public class CGame : MonoBehaviour {	// The singleton game object.  Accessable v
 		IntPtr hStringIntPtr = ErosEngine.gBL_Cmd(sCmdFull, false);		//###LEARN: Non-crash & non-leak way to obtain strings from C++ is at http://www.mono-project.com/Interop_with_Native_Libraries#Strings_as_Return_Values
 		string sResults = Marshal.PtrToStringAnsi(hStringIntPtr);
 		if (sResults.StartsWith("ERROR:"))		//###IMPROVE: Internal C code also has numeric error values not exported to Unity... Error strings enough?
-			throw new CException("ERROR: Cmd_Wrapper error results.  OUT='" + sCmdFull + "'  IN='" + sResults + "'");		//###WEAK: Assume all error strings start with this!
+			Debug.LogError("ERROR: Cmd_Wrapper error results.  OUT='" + sCmdFull + "'  IN='" + sResults + "'");		//###WEAK: Assume all error strings start with this!  ####DEV!!!!
 		//Debug.Log("-Cmd_Wrapper OUT='" + sCmd + "'  IN='" + sResults + "'");
 		return sResults;
 	}
