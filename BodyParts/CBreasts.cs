@@ -30,7 +30,7 @@ public class CBreasts : CBSoft, IHotSpotMgr {
 	CHotSpot	_oHotSpot;
 
 	public CBreasts() {
-		_nRangeTetraPinHunt = 0.015f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
+		_nRangeTetraPinHunt = 0.012f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
 		_SoftBodyDetailLevel = 15;          //###TUNE
 	}
 
@@ -42,7 +42,7 @@ public class CBreasts : CBSoft, IHotSpotMgr {
 	public override void OnChangeGameMode(EGameModes eGameMode) {
 		base.OnChangeGameMode(eGameMode);
 
-		switch (eGameMode) {
+		switch (eGameMode) {		//####DEV ####OBS??
 			case EGameModes.Play:
 				_oObj.PropSet(ESoftBody.VolumeStiffness, 0.4f);             //####MOD: Was .9, .6
 				_oObj.PropSet(ESoftBody.StretchingStiffness, 0.35f);        //###TUNE!!

@@ -106,12 +106,12 @@ public class CBodyColBreasts : CBMesh {		// CBodyColBreasts: A simple mesh (abou
 
 	public void OnSimulateBetweenPhysX23() {
 		//=== Right after PhysX has update the softbody position of our breasts, we need to now update the related colliders in PhysX3 scene so it repells cloth for this time frame ===
-		if (_oBody._oBreasts != null) { 
+		if (_oBody._oBreastL != null) {				//####DEV ####BROKEN for dual breasts?
 			int nMapEntries = _memMapPairMeshSlaveToMaster.L.Length / 2;                        // Each map entry takes two slots in array in order slave vert 1, master vert 1, slave vert 2, master vert 2, etc.
 			for (int nMapEntry = 0; nMapEntry < nMapEntries; nMapEntry++) {						//####IMPROVE: Do this in C++!!  ####OPT
 				int nVertSlave  = _memMapPairMeshSlaveToMaster.L[2*nMapEntry + 0];
 				int nVertMaster = _memMapPairMeshSlaveToMaster.L[2*nMapEntry + 1];
-				_memVerts.L[nVertSlave] = _oBody._oBreasts._memVerts.L[nVertMaster];
+				_memVerts.L[nVertSlave] = _oBody._oBreastL._memVerts.L[nVertMaster];
 			}
 			//=== Update PhysX3 collider ===
 			ErosEngine.SoftBody_Breasts_UpdateCBodyColBreasts(_hBodyColBreasts, _memVerts.P, _memNormals.P,  _nRadiusSphereBase, _nOutsideProtusion, (int)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._nBodyID));

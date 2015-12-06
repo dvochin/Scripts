@@ -75,6 +75,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public  GameObject			_oBodyRootGO;			// The root game object of every Unity object for this body.  (Created from prefab)
 	public 	CObject				_oObj;					// The user-configurable object representing this body.
 	public 	CBSkin				_oBodySkinnedMesh;		// The main skinned mesh representing most of the body (e.g. everything except detached soft body parts, head, hair, clothing, etc)
+	public 	CBMesh				_oBodySource;			// The source body unmodified in any way.  (Currently used to extract normals for softbody rims)
 	public 	CHeadLook			_oHeadLook;             // Object in charge of moving head toward points of interest
 	public 	EBodySex			_eBodySex;				// The body's sex (man, woman, shemale)
 	public 	bool				_bIsCumming;			// Character is currently cumming.  Set globally
@@ -92,7 +93,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	string				_sNamePose;				// The name of the current loaded pose (Same as filename in /Poses directory)
 
 	//---------------------------------------------------------------------------	SOFT BODY PARTS
-	public	CBreasts 			_oBreasts;					// The possible soft-body + related clothing parts.  What is filled in depends on what kind of character we are (man, woman, shemale)
+	public	CBreasts 			_oBreastL;					// The left and right breasts as softbodies
+	public	CBreastR 			_oBreastR;					
 	public	CBodyColBreasts		_oBodyColBreasts;			// The breast collider mesh.  Used in PhysX3 to repell cloth
 	public	CPenis				_oPenis;
 	public	CVagina				_oVagina;
@@ -219,13 +221,14 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		
 		//===== DETACHED SOFTBODY PARTS PROCESSING =====
-		_aSoftBodies.Add(_oBreasts = (CBreasts)CBSoft.Create(this, typeof(CBreasts)));
+		_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL)));
+		_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR)));
 
 		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
 		////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
 		//if (_bForMorphingOnly == false) {
 		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
-		//		_aSoftBodies.Add(_oBreasts = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???
+		//		_aSoftBodies.Add(_oBreastL = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???
 		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBreasts", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));		//###NOTE: Note the '-ToBreasts' suffix this mesh has been paired to detached softbody breasts
 		//	}
 		//	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
@@ -240,6 +243,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBody", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));	//###NOTE: Note the '-ToBody' suffix this mesh has been paired to the main body mesh
 		//}
 
+
+		//=== Obtain the source mesh body for normal extraction ===
+		_oBodySource = CBMesh.Create(null, this, "oMeshSource", typeof(CBMesh));
+		_oBodySource.GetComponent<MeshRenderer>().enabled = false;					// This mesh is to pull normals only.  Not visible at runtime!
 
 		//===== MAIN SKINNED BODY PROCESSING =====
 		//=== Get the main body skinned mesh (has to be done once all softbody parts have been detached) ===

@@ -47,6 +47,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		CBMesh oBMesh = (CBMesh)CUtility.FindOrCreateComponent(oBMeshGO.transform, oTypeBMesh);
 		oBMesh._oBody = oBody;									// Push-in some important args manually (so we don't have to push them in OnDeserializeFromBlender()
 		oBMesh._sNameCBodyInstanceMember = sNameCBodyInstanceMember;
+		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			// Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
 
 		//=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
 		string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.

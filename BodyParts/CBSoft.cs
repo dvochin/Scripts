@@ -38,6 +38,7 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 	
 	[HideInInspector]	public	List<ushort>		_aMapRimVerts2Verts = new List<ushort>();		// Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
 	[HideInInspector]	public	List<ushort>		_aMapRimTetravert2Tetravert;	// Map of rim tetraverts to tetraverts.  Used to translate between our 'rim + close tetraverts' to PhysX2 softbody tetraverts. (To pin some tetraverts to skinned body)
+	[HideInInspector]	public	List<ushort>		_aMapRimVerts2SourceVerts;		// Map of flattened rim vert IDs to source vert IDs.  Allows Unity to reset rim vert normals messed-up by capping to default normal for seamless rendering
 	
 	//---------------------------------------------------------------------------	PhysX-related properties sent during BSoft_Init()
 	[HideInInspector]	public	string				_sNameSoftBody;					// The name of our 'detached softbody' in Blender.  ('BreastL', 'BreastR', 'Penis', 'VaginaL', 'VaginaR') from a substring of our class name.  Must match Blender!!
@@ -84,6 +85,8 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 		if (_eGameModeSoftBody == eGameMode)				// Avoid creating / destroying more than once.
 			return;
 
+		//####IMPROVE: Have transitions being processed as opposed to states!
+
 		switch (eGameMode) { 
 			case EGameModes.Play:
 				//=== Call our C++ side to construct the solid tetra mesh.  We need that to assign tetrapins ===		//###DESIGN!: Major design problem between cutter sent here... can cut cloth too??  (Will have to redesign cutter on C++ side for this problem!)
@@ -124,12 +127,25 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 				break;
 
 			case EGameModes.PlayNoAnim:
-				ErosEngine.Object_GoOffline(_oObj._hObject);
-				ErosEngine.SoftBody_Destroy(_oObj._hObject);
-				Destroy(_oMeshRimBaked);
+				if (_oObj != null) {
+					ErosEngine.Object_GoOffline(_oObj._hObject);
+					ErosEngine.SoftBody_Destroy(_oObj._hObject);
+					_oObj = null;
+				}
+				if (_oMeshRimBaked != null)
+					Destroy(_oMeshRimBaked.gameObject);
 				_oMeshRimBaked = null;
 				_aMapRimVerts2Verts = null;
-				_oObj = null;
+
+				//=== Capped softbodies have messed up normals due to capping.  Blender constructed for us a map of which rim verts map to which source verts.  Reset the rim normals to the corresponding source vert normal for seamless rendering ===
+				CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2SourceVerts()",	ref _aMapRimVerts2SourceVerts);
+				for (int nIndex = 0; nIndex < _aMapRimVerts2SourceVerts.Count;) {         // Iterate through the flattened map...
+					int nVertID			= _aMapRimVerts2SourceVerts[nIndex++];            // The simple list has been flattened into <nVertID0, nVertSourceID0>, etc...
+					int nVertSourceID   = _aMapRimVerts2SourceVerts[nIndex++];
+					_memNormals.L[nVertID] = _oBody._oBodySource._memNormals.L[nVertSourceID];
+				}
+				_oMeshNow.normals   = _memNormals.L;
+
 				//=== Restore Blender's mesh and our visible mesh to the way it was during first creation (e.g. no softbody movement) ===
 				//_oMeshNow.vertices  = _memVerts.L = _memVertsStart.L;				//###LEARN: This call doesn't do it! (copy whole array)  Must copy each vert for _memVerts to really be set to _memVertsStart...
 				for (int nVert = 0; nVert < GetNumVerts(); nVert++)					//###IMPROVE: A better way to 'deep copy'??
@@ -177,13 +193,13 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 
 	public virtual void OnSimulatePost() {
 		switch (_eGameModeSoftBody) {
-			case EGameModes.Play:		//=== Update the position and normals of the softbody mesh rim vertices to their equivalent on baked skinned rim mesh.  (This prevents gaps in the two meshes and aligns normals so shading is ok accross the two meshes) ===
+			case EGameModes.Play:       //=== Update the position and normals of the softbody mesh rim vertices to their equivalent on baked skinned rim mesh.  (This prevents gaps in the two meshes and aligns normals so shading is ok accross the two meshes) ===
 				Vector3[] aVertsRimBaked   = _oMeshRimBaked._oMeshBaked.vertices;       //###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!!
 				Vector3[] aNormalsRimBaked = _oMeshRimBaked._oMeshBaked.normals;
-				for (int nIndex = 0; nIndex < _aMapRimVerts2Verts.Count; ) {			// Iterate through the twin vert flattened map...
-					ushort nVertMesh	= _aMapRimVerts2Verts[nIndex++];			// The simple list has been flattened into <nVertMesh0, nVertRim0>, <nVertMesh1, nVertRim1>, etc
-					ushort nVertRim		= _aMapRimVerts2Verts[nIndex++];
-					_memVerts  .L[nVertMesh] = aVertsRimBaked  [nVertRim];
+				for (int nIndex = 0; nIndex < _aMapRimVerts2Verts.Count;) {         // Iterate through the twin vert flattened map...
+					ushort nVertMesh    = _aMapRimVerts2Verts[nIndex++];            // The simple list has been flattened into <nVertMesh0, nVertRim0>, <nVertMesh1, nVertRim1>, etc
+					ushort nVertRim     = _aMapRimVerts2Verts[nIndex++];
+					_memVerts.L[nVertMesh] = aVertsRimBaked[nVertRim];
 					_memNormals.L[nVertMesh] = aNormalsRimBaked[nVertRim];
 				}
 				_oMeshNow.vertices  = _memVerts.L;

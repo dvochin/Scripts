@@ -299,11 +299,29 @@ public class CUtility {			// Collection of static utility functions
 		int nPosBA = 0;
 
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
-		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
+		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
 		if (nArrayElements > 0) {
 			aBlenderArray = new List<ushort>();
 			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
 				aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
+			}
+		}
+		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+	}
+	public static void BlenderSerialize_GetSerializableCollection_Float(string sNameModuleList, string sFullyQualifiedMemberVariable, ref List<float> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+		//###IMPROVE: Can merge into one call that can accept any primitive?  (short, float, etc)
+		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+		CGame.gBL_SendCmd_GetMemBuffer(sNameModuleList, sFullyQualifiedMemberVariable, ref memBA);
+
+		byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
+		int nPosBA = 0;
+
+		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 4; nPosBA+=4;		// gBL_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
+		if (nArrayElements > 0) {
+			aBlenderArray = new List<float>();
+			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
+				aBlenderArray.Add(BitConverter.ToSingle(oBA, nPosBA)); nPosBA+=4;
 			}
 		}
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
