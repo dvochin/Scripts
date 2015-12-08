@@ -81,7 +81,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	bool				_bIsCumming;			// Character is currently cumming.  Set globally
 
 	//---------------------------------------------------------------------------	IMPLEMENTATION MEMBERS
-	public 	CObject				_oObjBodyDef;			// The body object definition that contains the important properties needed to initialize this body. (body sex, what clothing, etc)
 	public 	CHotSpot			_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
 	public 	CBSkinBaked 		_oBSkinRim;				//###DESIGN!!!! Rename the old 'rim'?
 	public 	CBBodyCol			_oBodyCol;				// The full 'Body Collider' that repells fluid, hands, softbody breasts, etc from this human body.	###OPT!!!: Cut into 'body parts' that activate/deactivate when something is near
@@ -89,11 +88,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	Transform			_oBaseT;				// The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
 	public 	CScriptPlay			_oScriptPlay;			// Scripting interpreter in charge of loading user scripts that programmatically control this body (poses also load this way)
 	public 	CFace				_oFace;
-	public	CBMesh				_oMesh_Unity2Blender;	// The Unity2Blender mesh we use to pass meshes from Unity to Blender for processing there (e.g. Softbody tetramesh skinning & pinning)
 	public 	string				_sNamePose;				// The name of the current loaded pose (Same as filename in /Poses directory)
 
 	//---------------------------------------------------------------------------	SOFT BODY PARTS
-	public	CBreasts 			_oBreastL;					// The left and right breasts as softbodies
+	public	CBreastBase 			_oBreastL;					// The left and right breasts as softbodies
 	public	CBreastR 			_oBreastR;					
 	public	CBodyColBreasts		_oBodyColBreasts;			// The breast collider mesh.  Used in PhysX3 to repell cloth
 	public	CPenis				_oPenis;
@@ -158,7 +156,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_oObj.PropAdd(EBodyDef.ClothingBottom,	"Bottom Clothing",	typeof(EBodyClothingBottom_HACK), 0, "", CProp.Local + CProp.Hide);	//###BROKEN: Need to switch off vagina soft body!!
 		_oObj.PropAdd(EBodyDef.Hair,			"Hair",				typeof(EBodyHair), 0,	"", CProp.Local);
 		_oObj.PropAdd(EBodyDef.BtnUpdateBody,	"Update Body",		0,	"", CProp.Local | CProp.AsButton);
-		_oObj.PropAdd(EBodyDef.BreastSize_OBSOLETE,		"Breast Size",		1.0f, 0.5f, 2.5f, "", CProp.Local);
+		_oObj.PropAdd(EBodyDef.BreastSize,		"Breast Size",		1.0f, 0.5f, 2.5f, "", CProp.Local);
 		_oObj.FinishInitialization();
 
 		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
@@ -213,7 +211,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
-		_oMesh_Unity2Blender = CBMesh.Create(null, this, "oMeshUnity2Blender", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
 
 		//=== Obtain references to needed sub-objects of our prefab ===
 		_oBonesT	= _oBodyRootGO.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
@@ -228,7 +225,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
 		//if (_bForMorphingOnly == false) {
 		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
-		//		_aSoftBodies.Add(_oBreastL = (CBreasts)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreasts)));           //###WEAK: Create utility function like before???
+		//		_aSoftBodies.Add(_oBreastL = (CBreastBase)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreastBase)));           //###WEAK: Create utility function like before???
 		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBreasts", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));		//###NOTE: Note the '-ToBreasts' suffix this mesh has been paired to detached softbody breasts
 		//	}
 		//	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
@@ -621,10 +618,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 	//--------------------------------------------------------------------------	IOBJECT INTERFACE
 	public void OnPropSet_BreastSize(float nValueOld, float nValueNew) {		//####DEV ####TEMP: Abstract code for all sliders
-		//####BROKEN
-		//CGame.gBL_SendCmd("Breasts", "Breasts_ApplyOp('" + _sNameCBodyDataMember + G.C_NameSuffix_Morph + "', '" + _sMeshSource + "', 'RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
+		CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBody + ".Breasts_ApplyOp('RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
 		//UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
-		//CGame.gBL_SendCmd("CBBodyCol", "PairMesh_Apply('BodyA-BreastCol-ToBody', 'BodyA_Morph')");			//####DEV ####MOVE??
+		_oBreastL.UpdateVertsFromBlenderMesh(false);		//####DEV ###TEMP
+		_oBreastR.UpdateVertsFromBlenderMesh(false);
 		//_oBodyColBreasts.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 
@@ -644,7 +641,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		//###IMPROVE: Make this work by clicking on head? _oBody.SelectBody();			// Doing anything with a body's hotspot (head) selects the body
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObjBodyDef, _oFace._oObj });		//###TEMP: Face??
+			_oHotSpot.WndPopup_Create(new CObject[] { _oObj /*, _oFace._oObj*/ });		//###TEMP: Face??
 	}
 }
 

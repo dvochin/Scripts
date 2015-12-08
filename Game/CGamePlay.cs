@@ -94,7 +94,7 @@ public class CGamePlay : MonoBehaviour, IObject {
 				oBody.OnSimulatePre();
 
 		//=== Simulate PhysX2 for SoftBodies ===
-		ErosEngine.PhysX2_SimulateFrame(Time.deltaTime);		// We simulate PhysX2 scene so that CBreasts colliders that appear in PhysX3 scene can push away the cloth there with the softbody breast position of this time frame (expensive blocking call) 
+		ErosEngine.PhysX2_SimulateFrame(Time.deltaTime);		// We simulate PhysX2 scene so that CBreastBase colliders that appear in PhysX3 scene can push away the cloth there with the softbody breast position of this time frame (expensive blocking call) 
 
 		//=== Iterate through the bodies for any code that must run between PhysX2 and PhysX3 ===
 		foreach (CBody oBody in _aBodies)

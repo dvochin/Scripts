@@ -50,6 +50,7 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 	[HideInInspector]	public	EGameModes			_eGameModeSoftBody = EGameModes.None;			// The last-configured game mode for this softbody.  (e.g. 'Where we're at now')
 	[HideInInspector]	public	string				_sBlenderInstancePath_CSoftBody;				// The Blender instance path where our corresponding CSoftBody is access from CBody's Blender instance
 	[HideInInspector]	public	string				_sBlenderInstancePath_CSoftBody_FullyQualfied;	// The Blender instance path where our corresponding CSoftBody is access from CBody's Blender instance (Fully qualified (includes CBody access string)
+	[HideInInspector]	public	CBMesh				_oMesh_Unity2Blender;							// The Unity2Blender mesh we use to pass meshes from Unity to Blender for processing there (e.g. Softbody tetramesh skinning & pinning)
 
 
 
@@ -79,6 +80,9 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 		//=== Set bounds to infinite so our dynamically-created mesh never has to recalculate bounds ===
 		_oMeshNow.bounds = CGame._oBoundsInfinite;          //####IMPROVE: This can hurt performance ####OPT!!
 		_oMeshNow.MarkDynamic();        // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
+
+		//=== Create the Unity2Blender mesh so we can pass tetraverts to Blender for processing there ===
+		_oMesh_Unity2Blender = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
 	}
 
 	public virtual void OnChangeGameMode(EGameModes eGameMode) {
@@ -111,8 +115,8 @@ public class CBSoft : CBMesh, IObject {					//####DEV ####DESIGN: Based on CBMes
 
 				//=== Upload our tetraverts to Blender so it can select those that are pinned and skin them ===
 				for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
-					_oBody._oMesh_Unity2Blender._memVerts.L[nVertTetra] = ErosEngine.SoftBody_GetTetraVert(_oObj._hObject, nVertTetra);
-				_oBody._oMesh_Unity2Blender.UpdateVertsToBlenderMesh();				// Blender now has our tetraverts.  It can now find the tetraverts near the rim and skin them
+					_oMesh_Unity2Blender._memVerts.L[nVertTetra] = ErosEngine.SoftBody_GetTetraVert(_oObj._hObject, nVertTetra);
+				_oMesh_Unity2Blender.UpdateVertsToBlenderMesh();				// Blender now has our tetraverts.  It can now find the tetraverts near the rim and skin them
 
 				//=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
 				CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nVertTetras.ToString() + ", " + _nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them

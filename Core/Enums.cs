@@ -163,7 +163,7 @@ public enum EBodyDef {
 	ClothingBottom,
 	Hair,
 	BtnUpdateBody,
-	BreastSize_OBSOLETE				//####DEV
+	BreastSize				//####DEV
 //	BlenderProp_HACK
 };
 
