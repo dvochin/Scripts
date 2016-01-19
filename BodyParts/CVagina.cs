@@ -113,7 +113,7 @@ public class CVagina {		// Class to abstract away complexity of managing L/R vag
 
 	public void OnSimulatePre() {			//###OPT: Run once in a while?
 
-		CPenis oPenis = CGame.INSTANCE._oGamePlay._aBodies[0]._oPenis;		//###BUG!!!!! ###HACK!!!: Bad assumption on penis in slot 0?
+		CPenis oPenis = CGame.INSTANCE._aBodies[0]._oPenis;		//###BUG!!!!! ###HACK!!!: Bad assumption on penis in slot 0?
 		if (oPenis == null)			//###HACK!!!!: Make radius global??
 			return;
 
@@ -152,7 +152,7 @@ public class CVagina {		// Class to abstract away complexity of managing L/R vag
 			_oColGuideRF.SetBoxSize(new Vector3(0.01f, 2.0f * nFunnelSize, 3.5f * nFunnelSize));
 		}
 
-		//CVagina oVagina = CGame.INSTANCE._oGamePlay._oBodyWoman._oVagina;		//###DESIGN: Any value to a menu for vagina??
+		//CVagina oVagina = CGame.INSTANCE._oBodyWoman._oVagina;		//###DESIGN: Any value to a menu for vagina??
 		//iGUISmartPrefab_WndPopup.WndPopup_Create(new CObject[] { oVagina._oBSoftVaginaL._oObj, oVagina._oBSoftVaginaR._oObj }, "Vagina HACK", Input.mousePosition.x, Input.mousePosition.y);
 	}
 

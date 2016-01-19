@@ -42,9 +42,10 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	//---------------------------------------------------------------------------	CLOTH
 	[DllImport(ErosDll)] public static extern IntPtr	Cloth_Create(string sNameObject, int nNumProps, int nVerts, IntPtr aVertsIntPtr, int nTris, IntPtr aTris, IntPtr aMapClothVertsSimToSkin, int nMapClothVertsSimToSkin, float nClothInitStretch, float nClothInitStretchFirstFrame);
 	[DllImport(ErosDll)] public static extern void		Cloth_Destroy(IntPtr hCloth);
-	[DllImport(ErosDll)] public static extern void		Cloth_OnSimulatePre (IntPtr hCloth, IntPtr pBodyColClothPtr, IntPtr pBodyColSpheresPtr, IntPtr aVertsSkinnedCloth);
+	[DllImport(ErosDll)] public static extern void		Cloth_OnSimulatePre (IntPtr hCloth, IntPtr pBodyColClothPtr, IntPtr aVertsSkinnedCloth);
 	[DllImport(ErosDll)] public static extern void		Cloth_OnSimulatePost(IntPtr hCloth);
 	[DllImport(ErosDll)] public static extern void		Cloth_Reset(IntPtr hCloth);
+	[DllImport(ErosDll)] public static extern void		Cloth_ConnectClothToBreastColliders(IntPtr pClothPtr, IntPtr pBodyColBreastLPtr, IntPtr pBodyColBreastRPtr);
 
     //---------------------------------------------------------------------------	SOFTBODY
 	[DllImport(ErosDll)] public static extern IntPtr	SoftBody_Create(string szNameObject, int nNumProps, IntPtr pVerts, int nVerts, IntPtr pTris, int nTris, IntPtr pNormals, int nTetraMeshDetailLevel, float nDensity, bool bCollisionSelf, bool bCollisionTwoWay, int eColGroup);
@@ -52,8 +53,8 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern int		SoftBody_GetTetraTri(IntPtr pSoftBodyPtr, int nTetraIndex);		// Accesses inside the tetramesh triangle index to find and constuct CPinTetras
 	[DllImport(ErosDll)] public static extern Vector3	SoftBody_GetTetraVert(IntPtr pSoftBodyPtr, int nVertTetra);		// Accesses inside the tetramesh vertices to find and constuct CPinTetras
 	[DllImport(ErosDll)] public static extern int		SoftBody_GetTetraVertCount(IntPtr pSoftBodyPtr);					// Accesses inside the tetramesh vertices to find number of tetraverts
-	[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreasts(IntPtr pBodyColBreastsPtr, IntPtr pVerts, IntPtr pNormals, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);
-	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachTetraVertToPos(IntPtr pBSoftPtr, int nVertTetra, Vector3 vecPinPos);
+	[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreast(IntPtr pBodyColBreastPtr, IntPtr pVerts, IntPtr pNormals, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);
+	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachTetraVertToPos(IntPtr pBSoftPtr, int nVertTetra, Vector3 vecPinPos);		//####TODO: Rename?
 	
 	//---------------------------------------------------------------------------	COLLIDERS
 	[DllImport(ErosDll)] public static extern IntPtr	Collider_Box_Create		(string szName, uint nFlags, Vector3 vecPos, Quaternion quatRot, Vector3 vecBoxSize, float nDensityOrMass, int eColGroup);
@@ -74,10 +75,10 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern int		BodyCol_RayCast(IntPtr pBodyColPtr, Vector3 vecOrigin, Vector3 vecUnitDir, IntPtr aVecRayHitInfoPtr);
 
 	//---------------------------------------------------------------------------	BODY COLLIDER (FLUID AND CLOTH REPEL)
-	[DllImport(ErosDll)] public static extern IntPtr	BodyColCloth_Create(int nVerts, IntPtr aVertsPtr, IntPtr aNormalsPtr, int nTris, IntPtr aTris, int nEdges, IntPtr aEdgesPtr, IntPtr aVertToVertsPtr);
+	[DllImport(ErosDll)] public static extern IntPtr	BodyColCloth_Create(int nVerts, IntPtr aVertsPtr, IntPtr aNormalsPtr, int nTris, IntPtr aTris);
 	[DllImport(ErosDll)] public static extern void		BodyColCloth_Destroy(IntPtr pBodyColClothPtr);
-	[DllImport(ErosDll)] public static extern IntPtr	BodyColBreasts_Create(int nVerts, IntPtr aVertsPtr, IntPtr aNormalsPtr, int nVertSphereRadiusRatio, IntPtr aVertSphereRadiusRatioPtr, int nCapsuleSpheres, IntPtr aCapsuleSpheresPtr);
-	[DllImport(ErosDll)] public static extern void		BodyColBreasts_Destroy(IntPtr pBodyColBreastsPtr);
+	[DllImport(ErosDll)] public static extern IntPtr	BodyColBreast_Create(int nBreastID, int nVerts, IntPtr aVertsPtr, IntPtr aNormalsPtr, int nVertSphereRadiusRatio, IntPtr aVertSphereRadiusRatioPtr, int nCapsuleSpheres, IntPtr aCapsuleSpheresPtr);
+	[DllImport(ErosDll)] public static extern void		BodyColBreast_Destroy(IntPtr pBodyColBreastPtr);
 
 	//---------------------------------------------------------------------------	BLENDER INTERFACE
 	//[DllImport(PhysX3)] public static extern bool		gBL_StartBlender(string sPathRuntime);
@@ -112,4 +113,4 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 }
 
 
-	//[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreasts_PhysX3(IntPtr pSoftBodyPtr, IntPtr pBodyColBreastsPtr, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);
+	//[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreast_PhysX3(IntPtr pSoftBodyPtr, IntPtr pBodyColBreastPtr, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);

@@ -305,7 +305,7 @@ public class CFluid : MonoBehaviour, IObject {
 
 			if (nNumParticles < 0) {
 				Debug.LogError(string.Format("ERROR {0} with OpenCL Fluid Polygonization.  Forcing fluid reset to prevent crash.", nNumParticles));
-				CGame.INSTANCE._oGamePlay.Cum_Stop();
+				CGame.INSTANCE.Cum_Stop();
 				return;
 			}
 

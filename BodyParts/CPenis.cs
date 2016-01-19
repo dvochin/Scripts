@@ -159,7 +159,7 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		base.OnSimulatePre();
 
 		//=== Calculate physical penis size from the current percentage stored in global gameplay property ===
-		CProp oPropPenisSizePercent = CGame.INSTANCE._oGamePlay._oObj.PropFind(EGamePlay.PenisSize);
+		CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
 		CProp oPropPenisScale = _oObjDriver.PropFind(EPenis.PenisScale);
 		float nPenisScale = oPropPenisScale._nMin + oPropPenisScale._nMinMaxRange * oPropPenisSizePercent._nValueLocal / 100.0f;
 		_oObjDriver.PropSet(EPenis.PenisScale, nPenisScale);
@@ -167,13 +167,13 @@ public class CPenis : CBSoft, IObject, IHotSpotMgr {
 		_nSegLenNow			= _nSegLenStart * nPenisScale;
 
 		//=== Calculate physical penis erection from the current percentage stored in global gameplay property ===	###DESIGN ###SIMPLIFY: This drive strength complexity really required??? Try to simplify!!
-		CProp oPropPenisErectionPercent = CGame.INSTANCE._oGamePlay._oObj.PropFind(EGamePlay.PenisErectionMax);
+		CProp oPropPenisErectionPercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisErectionMax);
 		CProp oPropDriveStrength = _oObjDriver.PropFind(EPenis.DriveStrength);
 		float nDriveStrengthMax = _oObjDriver.PropGet(EPenis.DriveStrengthMax) / 100;
 		float nDriveStrength = oPropDriveStrength._nMin + oPropDriveStrength._nMinMaxRange * oPropPenisErectionPercent._nValueLocal / 100.0f * nDriveStrengthMax;
 		_oObjDriver.PropSet(EPenis.DriveStrength, nDriveStrength);
 
-		ErosEngine.Penis_Update(_oObjDriver._hObject, _oNodePenisRootBone.position, _oNodePenisRootBone.rotation, _oPenisTip._memTransformPhysX.P, nPenisScale, CGame.INSTANCE._oGamePlay._bPenisInVagina);
+		ErosEngine.Penis_Update(_oObjDriver._hObject, _oNodePenisRootBone.position, _oNodePenisRootBone.rotation, _oPenisTip._memTransformPhysX.P, nPenisScale, CGame.INSTANCE._bPenisInVagina);
 
 		_oPenisTip.OnSimulatePre();
 	}

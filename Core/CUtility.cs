@@ -290,8 +290,10 @@ public class CUtility {			// Collection of static utility functions
 	#endregion
 
 	#region === Blender Serialization ===
-	public static void BlenderSerialize_GetSerializableCollection(string sNameModuleList, string sFullyQualifiedMemberVariable, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+	public static void BlenderSerialize_GetSerializableCollection(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+		aBlenderArray = new List<ushort>();
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+
 		//CGame.gBL_SendCmd_GetMemBuffer(sNameModule, "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
 		CGame.gBL_SendCmd_GetMemBuffer(sNameModuleList, sFullyQualifiedMemberVariable, ref memBA);
 
@@ -301,15 +303,15 @@ public class CUtility {			// Collection of static utility functions
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
 		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
 		if (nArrayElements > 0) {
-			aBlenderArray = new List<ushort>();
 			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
 				aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
 			}
 		}
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 	}
-	public static void BlenderSerialize_GetSerializableCollection_Float(string sNameModuleList, string sFullyQualifiedMemberVariable, ref List<float> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+	public static void BlenderSerialize_GetSerializableCollection_Float(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<float> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
 		//###IMPROVE: Can merge into one call that can accept any primitive?  (short, float, etc)
+		aBlenderArray = new List<float>();
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
 		CGame.gBL_SendCmd_GetMemBuffer(sNameModuleList, sFullyQualifiedMemberVariable, ref memBA);
 
@@ -319,7 +321,6 @@ public class CUtility {			// Collection of static utility functions
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
 		int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 4; nPosBA+=4;		// gBL_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
 		if (nArrayElements > 0) {
-			aBlenderArray = new List<float>();
 			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
 				aBlenderArray.Add(BitConverter.ToSingle(oBA, nPosBA)); nPosBA+=4;
 			}
@@ -338,9 +339,7 @@ public class CUtility {			// Collection of static utility functions
 		}
     }
 	#endregion
-	
-
-
+		
 	#region === Strings ===
 	public static string ConvertCamelCaseToHumanReadableString(string sCamelCase) {		// Returns a string like _MyCamelCaseVariable into "My Camel Case Variable" for GUI display of our internal variable (typically used by reflection)
 		string sHumanReadable = "";
@@ -468,8 +467,7 @@ public class CUtility {			// Collection of static utility functions
         return calcColour;
     }
     #endregion
-
-
+	
     #region === UI ===
     public static void WndPopup_Create(EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1)
     {

@@ -82,6 +82,6 @@ public class CBBodyCol : CBSkinBaked {		// Manages a 'body collider' that approx
 
 	public override void OnSimulatePre() {
 		base.OnSimulatePre();			//###OPT!!!  Don't update radius at all??  (or occasionally??)  ###IMPROVE: Redo passing in of flags to this expensive function to tune!
-		ErosEngine.BodyCol_Update(_hBodyCol, false, CGame.INSTANCE._oGamePlay._bPenisInVagina);		// Update the body collider mesh in C++ for speed (done from copying verts from source body with maps setup in Blender)
+		ErosEngine.BodyCol_Update(_hBodyCol, false, CGame.INSTANCE._bPenisInVagina);		// Update the body collider mesh in C++ for speed (done from copying verts from source body with maps setup in Blender)
 	}
 }

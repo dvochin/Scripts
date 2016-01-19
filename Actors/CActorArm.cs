@@ -201,7 +201,7 @@ public class CActorArm : CActor {
 
 		Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-		foreach (CBody oBody in CGame.INSTANCE._oGamePlay._aBodies) {		//###OPT!!: Expensive call currently and we throwaway most of the precision work!  Rethink!!
+		foreach (CBody oBody in CGame.INSTANCE._aBodies) {		//###OPT!!: Expensive call currently and we throwaway most of the precision work!  Rethink!!
 			if (oBody != null) {
 				_nArmPinBodyColVert = ErosEngine.BodyCol_RayCast(oBody._oBodyCol._hBodyCol, oRay.origin, oRay.direction, _memVecRayHitInfo.P);		//###SIMPLIFY  ###CLEANUP: Extra stuff!
 				if (_nArmPinBodyColVert != -1) {		// If a raycast vert was found pin this arm to the raycast-provided bodycol vert...

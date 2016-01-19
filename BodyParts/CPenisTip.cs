@@ -45,7 +45,7 @@ public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CP
 		float nPenisRadiusPlusSegLenght = _oPenis._nRadiusNow + _oPenis._nSegLenNow;
 		_oHotSpot.transform.localPosition = new Vector3(0, nPenisRadiusPlusSegLenght * -.08f, nPenisRadiusPlusSegLenght * .9f);	//###HACK: Bit of a hack as per the ratio
 
-		//CProp oPropPenisSizePercent = CGame.INSTANCE._oGamePlay._oObj.PropFind(EGamePlay.PenisSize);
+		//CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
 	}
 
 
@@ -72,12 +72,12 @@ public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CP
 			case EHotSpotEvent.TriggerEnter:
 				Collider oCol1 = o as Collider;
 				if (oCol1.gameObject.name == "VaginaEntryTrigger")
-					CGame.INSTANCE._oGamePlay.SetPenisInVagina(true);
+					CGame.INSTANCE.SetPenisInVagina(true);
 				break;
 			case EHotSpotEvent.TriggerExit:
 				Collider oCol2 = o as Collider;
 				if (oCol2.gameObject.name == "VaginaEntryTrigger")
-					CGame.INSTANCE._oGamePlay.SetPenisInVagina(false);
+					CGame.INSTANCE.SetPenisInVagina(false);
 				break;
 		}
 	}

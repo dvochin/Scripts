@@ -93,7 +93,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//---------------------------------------------------------------------------	SOFT BODY PARTS
 	public	CBreastBase 			_oBreastL;					// The left and right breasts as softbodies
 	public	CBreastR 			_oBreastR;					
-	public	CBodyColBreasts		_oBodyColBreasts;			// The breast collider mesh.  Used in PhysX3 to repell cloth
 	public	CPenis				_oPenis;
 	public	CVagina				_oVagina;
 	public	List<CBSoft>		_aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
@@ -142,9 +141,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 	public CBody(int nBodyID) {
 		_nBodyID = nBodyID;
-		_sBlenderInstancePath_CBody = "CBody_GetBody(" + _nBodyID.ToString() + ")";					// Simplify access to Blender CBody instance			####MOVE??
+		_sBlenderInstancePath_CBody = "CBody_GetBody(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBody instance			####MOVE??
 
-		bool bForMorphingOnly = (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
+		bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _nBodyID));
 
 
@@ -220,13 +219,14 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//===== DETACHED SOFTBODY PARTS PROCESSING =====
 		_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL)));
 		_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR)));
+		_oBreastL.FinishColliderCreation();			// Breasts require a late-init call to properly setup colliders
+		_oBreastR.FinishColliderCreation();
 
 		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
 		////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
 		//if (_bForMorphingOnly == false) {
 		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
 		//		_aSoftBodies.Add(_oBreastL = (CBreastBase)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreastBase)));           //###WEAK: Create utility function like before???
-		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBreasts", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));		//###NOTE: Note the '-ToBreasts' suffix this mesh has been paired to detached softbody breasts
 		//	}
 		//	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
 		//		_aSoftBodies.Add(_oPenis = (CPenis)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Penis", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CPenis)));
@@ -235,9 +235,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//	//=== Create the important body collider that will repel fluid in the scene ===
 		//	_oBodyCol = (CBBodyCol)CBBodyCol.Create(null, this, _sNameGameBody);
-		//} else {
-		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale)
-		//		_oBodyColBreasts = (CBodyColBreasts)CBMesh.Create(null, this, _sNameGameBody, "-BreastCol-ToBody", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBodyColBreasts));	//###NOTE: Note the '-ToBody' suffix this mesh has been paired to the main body mesh
 		//}
 
 
@@ -259,7 +256,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
 		////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
 		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
-		//_aCloths.Add(CBCloth.Create(this, "FullShirt"));
+		_aCloths.Add(CBCloth.Create(this, "FullShirt"));
 
 		////=== Create the head look controller to look at parts of the other body ===
 		_oHeadLook = _oBodyRootGO.gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
@@ -445,8 +442,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public void OnSimulateBetweenPhysX23() {
 		foreach (CBSoft oBSoft in _aSoftBodies)					// First simulate the PhysX2 soft bodies
 			oBSoft.OnSimulateBetweenPhysX23();
-		if (_oBodyColBreasts != null)							// Update the breast colliders from PhysX2 breasts so they are available next call for PhysX3
-			_oBodyColBreasts.OnSimulateBetweenPhysX23();
 		foreach (CBCloth oBCloth in _aCloths)					// Simulate the PhysX3 cloths from the just-updated colliders above
 			oBCloth.OnSimulateBetweenPhysX23();
 		if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
@@ -587,12 +582,12 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		}
 		_sNamePose = sNamePose;
 		_oActor_Pelvis._eAnimMode = EAnimMode.Stopped;		// Cancel animation on sex bone on pose load
-		CGame.INSTANCE._oGamePlay.Cum_Stop();			// Stop & clear cum upon a pose loading on any body.
+		CGame.INSTANCE.Cum_Stop();			// Stop & clear cum upon a pose loading on any body.
 
 		_oScriptPlay.LoadScript(sPathPose);
 		_oScriptPlay.ExecuteAll();			// Execute all statements in file without pausing
 
-		CGame.INSTANCE._oGamePlay.TemporarilyDisablePhysicsCollision();
+		CGame.INSTANCE.TemporarilyDisablePhysicsCollision();
 
 		Debug.Log(string.Format("Pose_Load() on body '{0}' loaded '{1}'", _sBodyPrefix, _sNamePose));
 		return true;
@@ -616,21 +611,30 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			oActor.Serialize_OBS(oStream);
 	}
 
+
+	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {        //###DEV
+		foreach (CBSoft oBSoft in _aSoftBodies)
+			oBSoft.OnChangeGameMode(eGameModeNew, eGameModeOld);
+		foreach (CActor oActor in _aActors)
+			oActor.OnChangeGameMode(eGameModeNew, eGameModeOld);
+	}
+
+
 	//--------------------------------------------------------------------------	IOBJECT INTERFACE
 	public void OnPropSet_BreastSize(float nValueOld, float nValueNew) {		//####DEV ####TEMP: Abstract code for all sliders
-		CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBody + ".Breasts_ApplyOp('RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
+		CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBody + ".Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
 		//UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
 		_oBreastL.UpdateVertsFromBlenderMesh(false);		//####DEV ###TEMP
 		_oBreastR.UpdateVertsFromBlenderMesh(false);
-		//_oBodyColBreasts.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
+		//_oBodyColBreast.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 
 	public void OnPropSet_BtnUpdateBody(float nValueOld, float nValueNew) {
 		Debug.Log("CBody: Rebuilding body " + _sBodyPrefix);
 		//Pose_Save("TEMP");				// Save the current pose to a temp file so we can restore body as it was right after rebuild
-		CGame.INSTANCE._oGamePlay.CreateBody(_nBodyID);		// Will destroy 'this' and rebuild entire new tree of objects & meshes all the way from Blender
+		CGame.INSTANCE.CreateBody(_nBodyID);		// Will destroy 'this' and rebuild entire new tree of objects & meshes all the way from Blender
 		//Pose_Load("TEMP");				// Restore pose saved earlier
-		CGame.INSTANCE._oGamePlay.Scene_Reload();		//###HACK?  ###DESIGN: Reload whole scene to re-init position of newly created body
+		CGame.INSTANCE.Scene_Reload();		//###HACK?  ###DESIGN: Reload whole scene to re-init position of newly created body
 	}
 	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) {}		//###DESIGN!!! Damn this near-useless function getting a pain in the ass...
 

@@ -2,13 +2,9 @@ using UnityEngine;
 using System.Collections;
 
 public enum EGameModes {	//### The 'Game Modes': Central mode that changes how nearly everything operates.  Implemented by CGameXXX derivatives which are all owned by CGame singleton
-	Morph,					// Morph mode.  Skinned mesh stays whole with no CBodyCol collider created, no interaction with PhysX but constant interaction with Blender to move cloth cutters, perform cutting operations, adjust border, etc.
-	ClothFit,				// ClothFit mode.  Skinned mesh stays whole with a CBodyCol collider created, and PhysX simulates the cloth around the collider for 'cloth fit' update while user morphs skinned body
-	PlayNoAnim,				// Gameplay mode that doesn't start the animation engine  (characters are fully realized by remain in T-pose).  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
-	Play,					// Normal gameplay.  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
-	TestCodeNoDll,			// Super-local test mode that can run without PhysX or gBlender.
 	None,					// No game mode -> used during cleanup & shutdown
-	MorphNew_TEMP,			// Morphing mode.  Uses normal CBody-based creation flow with some subcomponents (softbody breasts) behaving differently
+	Configure,				// Gameplay mode that doesn't start the animation engine  (characters are fully realized by remain in T-pose).  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
+	Play,					// Normal gameplay.  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
 }
 public enum ECollLayer_OBS {
 	Default,			// Default collision layer... basically collides with everything except NoCollision
@@ -65,12 +61,6 @@ public enum EPenisArg {
 	SlerpSpringForce,
 	SlerpSpringDamping
 };
-
-public enum ECurveTypes {		// Cloth cutting curve types (used mostly in CGameMorph)
-	Top,
-	Side,
-	Bottom,
-}
 
 
 public enum EGamePlay {

@@ -21,7 +21,7 @@ public class CActorChest : CActor {
 		_aJoints.Add(_oJointHip			= new CJointDriver(this, _oJointAbdomen1,		"hip",			50.0f, 07.0f, -020f,  020f, -030f,  030f, -030f,  030f));	//###IMPROVE //###SOON: Calibrate spine!!
 		_aJoints.Add(_oJointPelvis		= new CJointDriver(this, _oJointHip,			"sex",			50.0f, 10.0f, -020f,  020f, -030f,  030f, -030f,  030f));	//###WEAK: Namespace differences pelvis / sex!
 
-		_oJointExtremity._oRigidBody.isKinematic = (CGame.INSTANCE._GameMode == EGameModes.PlayNoAnim);		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
+		_oJointExtremity._oRigidBody.isKinematic = (CGame.INSTANCE._GameMode == EGameModes.Configure);		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
 		//_oJointExtremity._oRigidBody.isKinematic = false;				// We need to disable kinematic on bone as we're driving it with our pin!
 
 		////transform.localPosition = new Vector3(0, 2.0f, 0);		//###HACK?  ###IMPROVE?? How to deal with the annoying body center not at feet?? (Not working anyways)

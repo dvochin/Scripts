@@ -1,6 +1,58 @@
+/*###DISCUSSION: Cloth cutting curves
+=== NEXT ===
+
+=== TODO ===
+
+=== LATER ===
+
+=== IMPROVE ===
+
+=== NEEDS ===
+- Intelligent 'curve points' with public menu properties
+	- Who is parent?
+		- Parent can be verts on source body! (e.g. nipple, top of shoulder, etc)
+			- These 'special nodes' are present in the recipe and get their initial position set during init from morphing body
+	- Which X,Y,Z exposed to parent objects
+		- Each X,Y,Z can have 'offsets', min and max?
+	- Each node has a 'type'
+		- Curve point: 
+		- Bezier point: Moves one of the bezier point of its parent (relationship tells)
+		- Center point
+- Properties of curves:
+	- Mirrored accross X or not:
+
+=== DESIGN ===
+- Moving of actual points via hotspot an 'advanced feature'
+	- 'Public properties' of curves extracted from curve point hierarchy and presented into a flat slider menu for easy consumption.
+	- Different 'recipes' provide users a way to define different cloths like tank-tops, T-shirts, panties, dresses, etc
+
+=== IDEAS ===
+- Create early curves from Unity objects?
+- Nodes that are based on source body verts are created as such (in Blender).  During init they get their initial position set to body vert position
+
+=== QUESTIONS ===
+- Where to store curve recipes? (Problem early on)
+	- Could store into Unity propriorety files but need a lot of editor functionality for everything (e.g. point insertion, deletion, relationships, etc)
+	- Could store as Blender nodes...  Parent-child relationship and custom properties.
+		- Once Blender recipe is created all Unity has to do is load and move!
+- Some settings would benefit from % of values instead of actual distance... e.g. distance between nipples, between nipples and shoulder point, etc.
+- Center point: can be calculated from center of other nodes?
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+- What about center point?
+
+=== PROBLEMS??? ===
+
+=== WISHLIST ===
+
+*/
+
+
+
 using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -12,10 +64,12 @@ public class CCutterCurve : IHotSpotMgr {
 	
 	public List<CHotSpot>	_aHotSpots = new List<CHotSpot>();						// Hotspots pertinent to each of our derived game modes.  Created / destroyed at begin / end
 
+	CBody			_oBody;
 	CBMesh			_oBMesh_Cutter;
 
 	//---------------------------------------------------------------------------	INIT
-	public CCutterCurve(ECurveTypes eCurveType, string sCurveName) {
+	public CCutterCurve(CBody oBody, ECurveTypes eCurveType, string sCurveName) {
+		_oBody = oBody;
 		_eCurveType = eCurveType;
 		_sCurveName = sCurveName;
 		LoadCutterCurve();
@@ -56,7 +110,8 @@ public class CCutterCurve : IHotSpotMgr {
 	void UpdateUnityCutterMesh() {						// ReleaseGlobalHandles the highly-transient cutter mesh rendering the curve in Unity and request an updated mesh from Blender. (This is the 'thick curve' glued to the side of the cloth providing user feedback on where the cut will occur)
 		//if (_oBMesh_Cutter != null)		//???
 		//	_oBMesh_Cutter.Destroy();
-		//####BROKEN: _oBMesh_Cutter = CBMesh.Create(null, null, G.C_NamePrefix_CutterAsMesh + _eCurveType.ToString(), "Curve", "gBL_Curve_GetCutterAsMesh", "", typeof(CBMesh));
+		//_oBMesh_Cutter = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+		//_oBMesh_Cutter = CBMesh.Create(null, null, G.C_NamePrefix_CutterAsMesh + _eCurveType.ToString(), "Curve", "gBL_Curve_GetCutterAsMesh", "", typeof(CBMesh));
 	}
 	
 	void UpdateCurvePoint(int nCurvePt, Vector3 v, bool bUpdateHotspotToAdjustedCurvePt) {
@@ -135,4 +190,10 @@ public class CCutterCurve : IHotSpotMgr {
 	public static string GetFolderPath(ECurveTypes eCurveType) { return Application.dataPath + "/Resources/CurveDef/Body2/" + eCurveType + "/"; }	// Folder path derived from body type, curve type, curve name  //###HACK! Body type!
 	public static string GetFilePath(ECurveTypes eCurveType, string sCurveName) { return GetFolderPath(eCurveType) + sCurveName + ".CrvDef"; }
 	public bool IsCurveSymmetryX() { return _eCurveType == ECurveTypes.Side; }		//###NOTE: Only the side curve/cutter is symmetryX at this point... all others are mirrored about x=0 (e.g. neck opening, dress bottom, etc)
+}
+
+public enum ECurveTypes {		// Cloth cutting curve types
+	Top,
+	Side,
+	Bottom,
 }

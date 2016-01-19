@@ -17,7 +17,7 @@ using System.Collections.Generic;
 public class CBMesh : MonoBehaviour {		// The base class to any Unity object that requires Blender meshes.  Derived classes extend functionality to skinned meshes, softbody-simulated meshes, clothing-simulated meshes
 
 	//---------------------------------------------------------------------------	IMPLEMENTATION MEMBERS
-						public	string			_sNameCBodyInstanceMember;			// The base part of the name (without suffix)
+						public	string			_sNameCBodyInstanceMember;		// The base part of the name (without suffix)
 						public	string			_sNameBlenderMesh;				// The name of the Blender mesh object.  Used to obtain mesh verts, tris, etc.
 	[HideInInspector]	public 	CBody			_oBody;							// Body this mesh / skinned mesh is associated too.
 	[HideInInspector]	public  Mesh			_oMeshNow;	
@@ -39,7 +39,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 		//=== Create the game object that will host our component ===
 		if (oBMeshGO == null) {						// When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
-			oBMeshGO = new GameObject(sNameCBodyInstanceMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...
+			oBMeshGO = new GameObject(sNameCBodyInstanceMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...		####DEV ####NOW: Name problem here!
 			oBMeshGO.transform.parent = oBody._oBodyRootGO.transform;			//... Parent it to the body if specified (body is always specified for rim or body parts)
 		}
 
@@ -51,8 +51,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 		//=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
 		string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
-		oBMesh._sNameBlenderMesh = CGame.gBL_SendCmd("CBody", sCBodyDataMember + ".name");								// Store the name of the Blender object holding the mesh so we can directly access.
-
+		oBMesh._sNameBlenderMesh = CGame.gBL_SendCmd("CBody", sCBodyDataMember + ".GetName()");                              // Store the name of the Blender object holding the mesh so we can directly access.
 		oBMesh.OnDeserializeFromBlender();				// Fully deserialize the mesh from Blender.  (Virtual call that cascades accross several classes in order)
 
 		return oBMesh;
@@ -230,6 +229,8 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 			throw new CException("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
 		_oMeshNow.MarkDynamic();		// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 		_oMeshNow.vertices = _memVerts.L;
+		for (int nVert = 0; nVert < GetNumVerts(); nVert++)					//###IMPROVE: A better way to 'deep copy'??
+			_memVertsStart.L[nVert] = _memVerts.L[nVert];					// Set the 'startup verts' to what Blender just provided.  (Blender is always authoritative)
 		if (bUpdateNormals)
 			UpdateNormals();								// Verts have moved, update * fix normals...
 	}	

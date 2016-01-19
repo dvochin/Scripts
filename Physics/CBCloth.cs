@@ -37,7 +37,7 @@
 
 using UnityEngine;
 using System;
-
+using System.Collections.Generic;
 
 public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-based mesh that is cloth-simulated by our PhysX code.
 	[HideInInspector]	public 	CObject				_oObj;					// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
@@ -45,7 +45,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-b
 						public	float				_nClothInitStretch = 0.9f;	//####REVA ####IMPROVE: Export!			// Amount cloth is stretched (<1) at startup to pre-stretch all cloth triangles to more closely simulate the stretched look that 3dsMax delivered
 						public	float				_nClothInitStretchFirstFrame = 1.0f;	//####REVA			// Amount cloth is stretched (<1) at startup to pre-stretch all cloth triangles to more closely simulate the stretched look that 3dsMax delivered
 
-	[HideInInspector]	public 	CMemAlloc<CMapClothVertsSimToSkin>	_memMapClothVertsSimToSkin = new CMemAlloc<CMapClothVertsSimToSkin>();	// Map of which periphery vert on simulated half of cloth maps to which periphery vert on skinned half of this cloth.  (Pins the simulated cloth to the body)
+	[HideInInspector]	public 	CMemAlloc<ushort>	_memMapClothVertsSimToSkin = new CMemAlloc<ushort>();	// Map of which periphery vert on simulated half of cloth maps to which periphery vert on skinned half of this cloth.  (Pins the simulated cloth to the body)
 
 	[HideInInspector]	public 	CBMesh				_oBMeshClothAtStartup;			// The 'startup cloth' that won't get simulated.  It is used to reset the simulated cloth to its start position
 	[HideInInspector]	public 	CBSkin				_oBSkin_SkinnedHalf;			// The 'skinned half' of our cloth.  Animates just like any skinned mesh to its body.  We use some of its periphery verts to pin our simulated cloth.  Baked every frame
@@ -57,10 +57,10 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-b
                         Vector3                     _vecWatchBonePosLast, _vecWatchBonePosNow;       // Last position of watched bone above.  Used to determine speed of bone to autotune cloth simulation parameters
 
 
-    IntPtr				_hBodyColBreasts;				// Convenience reference to our body's (optional) breast collider for faster runtime update.  ###WEAK?
-	CHotSpot			_oHotSpot;						// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
+    IntPtr				_hBodyColBreastL, _hBodyColBreastR;	// Convenience reference to our body's (optional) L/R breast collider for faster runtime update.  ###DESIGN: Keep?
+	CHotSpot			_oHotSpot;							// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
 
-	CProp				_oProp_ClothDamping;			// Cached properties for fast runtime accesss
+	CProp				_oProp_ClothDamping;				// Cached properties for fast runtime accesss
 	CProp				_oProp_FrictionCoefficient;
 	CProp				_oProp_StiffnessFrequency;
 	CProp				_oProp_SolverFrequency;
@@ -71,97 +71,104 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-b
     float				_nBoneSpeedSum = 0.0f;
 
 	int                 _nNumFramesClothParamsInReset = 0;      // Number of remaining frames to adjust cloth parameters for reset (used to maximize chances of cloth sticking to body)
-	float				_nClothDampingBackupValue;				// Temporary storage for 'Cloth_Damping' property to be stored during cloth reset procedure
+	float				_nClothDampingBackupValue;              // Temporary storage for 'Cloth_Damping' property to be stored during cloth reset procedure
 
-	public static CBCloth Create(CBody oBody, string sNameSourceCloth) {    // Static function override from CBMesh::Create() to route Blender request to BodyCol module and deserialize its additional information for the local creation of a CBBodyColCloth
-		//####BROKEN CBCloth oBCloth = (CBCloth)CBMesh.Create(null, oBody, sNameSourceCloth, G.C_NameSuffix_ClothSimulated, "Client", "gBL_Cloth_SplitIntoSkinnedAndSimulated", "'" + sNameSourceCloth + "', '" + oBody._sMeshSource + "', '_ClothSkinnedArea_Top'", typeof(CBCloth));
-		return null;//oBCloth;
+	public string       _sBlenderInstancePath_CCloth;				// Blender access string to our instance (form our CBody instance)
+
+	static string       s_sNameClothSrc_HACK;					//####HACK!: To pass in name from static creation!
+
+	public static CBCloth Create(CBody oBody, string sNameClothSrc) {    // Static function override from CBMesh::Create() to route Blender request to BodyCol module and deserialize its additional information for the local creation of a CBBodyColCloth
+		CBCloth.s_sNameClothSrc_HACK = sNameClothSrc;
+		string sNameSkinnedArea = "_ClothSkinnedArea_Top";      //###TODO: Pull from properties
+		string sClothType = "Top";								//###TODO: Pull from properties  ####IMPROVE ####DESIGN: Can group these two together??
+		CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + oBody._nBodyID.ToString() + ").CreateCloth('" + sNameClothSrc + "', '" + sNameSkinnedArea + "', '" + sClothType + "')");		// Create the Blender-side CCloth entity to service our requests
+		CBCloth oBCloth = (CBCloth)CBMesh.Create(null, oBody, "aCloths['" + sNameClothSrc + "'].oMeshClothSimulated", typeof(CBCloth));		// Obtain the simulated-part of the cloth that was created in call above
+		//####IDEA: Modify static creation by first creating instance, stuffing it with custom data and feeding instance in Create to be filled in!
+		return oBCloth;
 	}
 
 	public override void OnDeserializeFromBlender() {
 		base.OnDeserializeFromBlender();
 
-		//####BROKEN
-		////=== Create the skinned-half of our simulated cloth.  It will be responsible for pinning us to the body ===
-		//_oBSkin_SkinnedHalf = (CBSkin) CBSkin.Create(null, _oBody, _sNameCBodyDataMember, G.C_NameSuffix_ClothSkinned, "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSkin));
-		//_oSkinMeshRendNow = _oBSkin_SkinnedHalf.GetComponent<SkinnedMeshRenderer>();			// Obtain reference to skinned mesh renderer as it is this object that can 'bake' a skinned mesh.
-		//_oMeshClothSkinnedBaked = new Mesh();
+		_sBlenderInstancePath_CCloth = "aCloths['" + CBCloth.s_sNameClothSrc_HACK + "']";
 
-		////=== Create the simulated part of the cloth ===
-		//MeshFilter oMeshFilter = GetComponent<MeshFilter>();
-		//MeshRenderer oMeshRend = GetComponent<MeshRenderer>();
-		//oMeshRend.sharedMaterial = Resources.Load("Materials/BasicColors/TransWhite25") as Material;		//####SOON? Get mats!
-		////oMeshRend.sharedMaterial = Resources.Load("Materials/Test-2Sided") as Material;     //####REVA
-		//_oSkinMeshRendNow.sharedMaterial = oMeshRend.sharedMaterial;		// Skinned part has same material
-		//_oMeshNow = oMeshFilter.sharedMesh;
-		//_oMeshNow.MarkDynamic();				// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
-		//_memVerts.AssignAndPin(_oMeshNow.vertices);
-		//_memTris .AssignAndPin(_oMeshNow.triangles);
+		//=== Create the skinned-half of our simulated cloth.  It will be responsible for pinning us to the body ===
+		_oBSkin_SkinnedHalf = (CBSkin)CBSkin.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkin));
+		_oSkinMeshRendNow = _oBSkin_SkinnedHalf.GetComponent<SkinnedMeshRenderer>();            // Obtain reference to skinned mesh renderer as it is this object that can 'bake' a skinned mesh.
+		_oMeshClothSkinnedBaked = new Mesh();
 
-		//_oObj = new CObject(this, 0, typeof(ECloth), "Cloth");
-		//_oObj._hObject = ErosEngine.Cloth_Create("Cloth", _oObj.GetNumProps(), _memVerts.L.Length, _memVerts.P, _memTris.L.Length / 3, _memTris.P, _memMapClothVertsSimToSkin.P, _memMapClothVertsSimToSkin.L.Length, _nClothInitStretch, _nClothInitStretchFirstFrame);
+		//=== Receive the _memMapClothVertsSimToSkin Blender created to map sim verts to skinned verts ===
+		List<ushort> aMapClothVertsSimToSkin;
+		CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapClothVertsSimToSkin()", out aMapClothVertsSimToSkin);
+		_memMapClothVertsSimToSkin.AllocateFromList(aMapClothVertsSimToSkin);
 
-		//_oObj.PropGroupBegin("", "", true);
-		//_oObj.PropAdd(ECloth.Cloth_GPU,				"GPU", 					1, "", CProp.AsCheckbox);
-		//_oObj.PropAdd(ECloth.SolverFrequency,		"SolverFrequency",		120,	30,		240, "");	//###TEMP ###TUNE!!!!
-		//_oObj.PropAdd(ECloth.Cloth_Stiffness,		"Stiffness",			0.70f,	0,		1, "");			//####MOD: Was 0.9 x3
-		//_oObj.PropAdd(ECloth.Bending,				"Bending",				0.70f,	0,		1, "");
-		//_oObj.PropAdd(ECloth.Shearing,				"Shearing",				0.70f,	0,		1, "");
+		//=== Create the simulated part of the cloth ===
+		MeshFilter oMeshFilter = GetComponent<MeshFilter>();
+		MeshRenderer oMeshRend = GetComponent<MeshRenderer>();
+		oMeshRend.sharedMaterial = Resources.Load("Materials/BasicColors/TransWhite25") as Material;        //####SOON? Get mats!
+																											//oMeshRend.sharedMaterial = Resources.Load("Materials/Test-2Sided") as Material;     //####REVA
+		_oSkinMeshRendNow.sharedMaterial = oMeshRend.sharedMaterial;        // Skinned part has same material
+		_oMeshNow = oMeshFilter.sharedMesh;
+		_oMeshNow.MarkDynamic();                // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
+		_memVerts.AssignAndPin(_oMeshNow.vertices);
+		_memTris.AssignAndPin(_oMeshNow.triangles);
 
-		//_oObj.PropAdd(ECloth.StiffnessFrequency,	"StiffnessFrequency",	20,		1,		100, "ControlAutoTriColDists the power-law nonlinearity of all rate of change parameters.");	//###BUG?: Not recommended to change after cloth creation!
-		//_oObj.PropAdd(ECloth.Cloth_Damping,			"Damping",				0.0f,	0,		1, "");
-		//_oObj.PropAdd(ECloth.Cloth_Gravity,			"Gravity",				-1.0f,	-3,		3, "");	//###DESIGN!!: How to switch off gravity??
-		//_oObj.PropAdd(ECloth.FrictionCoefficient,	"FrictionCoefficient",	1.0f,	0.01f,	1, ""); //###NOTE: Only spheres and capsules apply friction, not triangles!  ####REVA: Was .5
+		_oObj = new CObject(this, 0, typeof(ECloth), "Cloth");
+		_oObj._hObject = ErosEngine.Cloth_Create("Cloth", _oObj.GetNumProps(), _memVerts.L.Length, _memVerts.P, _memTris.L.Length / 3, _memTris.P, _memMapClothVertsSimToSkin.P, _memMapClothVertsSimToSkin.L.Length/2, _nClothInitStretch, _nClothInitStretchFirstFrame);
 
-		////=== Set runtime adjustment parameters that will push some cloth parameters toward values that can handle much more movement per frame ===	//####TUNE!
-		//_oProp_ClothDamping			= _oObj.PropFind(ECloth.Cloth_Damping);
-		//_oProp_FrictionCoefficient	= _oObj.PropFind(ECloth.FrictionCoefficient);
-		//_oProp_StiffnessFrequency	= _oObj.PropFind(ECloth.StiffnessFrequency);
-		//_oProp_SolverFrequency		= _oObj.PropFind(ECloth.SolverFrequency);
+		_oObj.PropGroupBegin("", "", true);
+		_oObj.PropAdd(ECloth.Cloth_GPU,				"GPU",					1, "", CProp.AsCheckbox);
+		_oObj.PropAdd(ECloth.SolverFrequency,		"SolverFrequency",		120, 30, 240, ""); //###TEMP ###TUNE!!!!
+		_oObj.PropAdd(ECloth.Cloth_Stiffness,		"Stiffness",			0.70f, 0, 1, "");            //####MOD: Was 0.9 x3
+		_oObj.PropAdd(ECloth.Bending,				"Bending",				0.70f, 0, 1, "");
+		_oObj.PropAdd(ECloth.Shearing,				"Shearing",				0.70f, 0, 1, "");
 
-		//_oProp_ClothDamping			.RuntimeAdjust_SetTargetValue(0.0f,		2.0f);		// The most important: We *must* greatly reduce damping when moving so cloth has the least momentum to collide against body
-		//_oProp_FrictionCoefficient	.RuntimeAdjust_SetTargetValue(1.0f,		3.0f);		// We max the cloth friction to enhance the body's ability to drag it along.
-		//_oProp_StiffnessFrequency	.RuntimeAdjust_SetTargetValue(100.0f,	5.0f);		// We increase the stiffness frequency to greatly stiffen the cloth
-		//_oProp_SolverFrequency		.RuntimeAdjust_SetTargetValue(120.0f,	6.0f);		// We increase cloth solver frequency to raise the repulsion against the body colliders (expensive!!!)
+		_oObj.PropAdd(ECloth.StiffnessFrequency,	"StiffnessFrequency",	20, 1, 100, "ControlAutoTriColDists the power-law nonlinearity of all rate of change parameters.");  //###BUG?: Not recommended to change after cloth creation!
+		_oObj.PropAdd(ECloth.Cloth_Damping,			"Damping",				0.0f, 0, 1, "");
+		_oObj.PropAdd(ECloth.Cloth_Gravity,			"Gravity",				-1.0f, -3, 3, "");   //###DESIGN!!: How to switch off gravity??
+		_oObj.PropAdd(ECloth.FrictionCoefficient,	"FrictionCoefficient",	1.0f, 0.01f, 1, ""); //###NOTE: Only spheres and capsules apply friction, not triangles!  ####REVA: Was .5
 
-		//_oObj.FinishInitialization();
+		//=== Set runtime adjustment parameters that will push some cloth parameters toward values that can handle much more movement per frame ===	//####TUNE!
+		_oProp_ClothDamping = _oObj.PropFind(ECloth.Cloth_Damping);
+		_oProp_FrictionCoefficient = _oObj.PropFind(ECloth.FrictionCoefficient);
+		_oProp_StiffnessFrequency = _oObj.PropFind(ECloth.StiffnessFrequency);
+		_oProp_SolverFrequency = _oObj.PropFind(ECloth.SolverFrequency);
 
-		////=== Go online and actually create the PhysX objects ===
-		//ErosEngine.Object_GoOnline(_oObj._hObject, IntPtr.Zero);
+		_oProp_ClothDamping.RuntimeAdjust_SetTargetValue(0.0f, 2.0f);       // The most important: We *must* greatly reduce damping when moving so cloth has the least momentum to collide against body
+		_oProp_FrictionCoefficient.RuntimeAdjust_SetTargetValue(1.0f, 3.0f);        // We max the cloth friction to enhance the body's ability to drag it along.
+		_oProp_StiffnessFrequency.RuntimeAdjust_SetTargetValue(100.0f, 5.0f);       // We increase the stiffness frequency to greatly stiffen the cloth
+		_oProp_SolverFrequency.RuntimeAdjust_SetTargetValue(120.0f, 6.0f);      // We increase cloth solver frequency to raise the repulsion against the body colliders (expensive!!!)
 
-		////=== Create the 'skinned body collider' skinned mesh that repells cloth by baking itself at every game frame and updating PhysX colliders to repel cloth in the shape of the body ===
-		//_oBBodyColCloth = CBBodyColCloth.Create(null, _oBody, _oBody._sNameGameBody);	// Create the important body collider to repel fluid and cloth from this body
+		_oObj.FinishInitialization();
 
-		////=== Obtain reference to special breast colliders if body has them for faster collider update at runtime ===
-		//_hBodyColBreasts = (_oBody._oBodyColBreasts != null) ? _oBody._oBodyColBreasts._hBodyColBreasts : IntPtr.Zero;		//####DESIGN: Cloth hardcoded for tops... what about bottoms?
+		//=== Connect this cloth to optional breast colliders.   This MUST be done before going online just below ===
+		if (_oBody._oBreastL != null)				//####TODO ####SOON: Extract from some new cloth flag if this cloth needs breast colliders!
+			ErosEngine.Cloth_ConnectClothToBreastColliders(_oObj._hObject, _oBody._oBreastL._oBodyColBreast._hBodyColBreast, _oBody._oBreastR._oBodyColBreast._hBodyColBreast);
 
-  //      _oWatchBone = _oBody.FindBone("chest");            //####HACK ####DESIGN: Assumes this cloth is a top!
-  //      _oHotSpot = CHotSpot.CreateHotspot(this, _oWatchBone, "Clothing", false, new Vector3(0, 0.22f, 0.04f));     //###HACK!!! Position offset that makes sense for a top!
+		//=== Go online and actually create the PhysX objects ===
+		ErosEngine.Object_GoOnline(_oObj._hObject, IntPtr.Zero);
 
-		////=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
-		//_oBMeshClothAtStartup = CBMesh.Create(null, oBody, _sNameCBodyDataMember, G.C_NameSuffix_ClothSimulated, "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CBMesh)); // Get another copy of the mesh that Blender just created for us above.
-		//_oBMeshClothAtStartup.transform.SetParent(_oBody.FindBone("chest").transform);      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
-		//_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
+		//=== Create the 'skinned body collider' skinned mesh that repells cloth by baking itself at every game frame and updating PhysX colliders to repel cloth in the shape of the body ===
+		_oBBodyColCloth = CBBodyColCloth.Create(null, this);   //####DEV: Push choices of which collider here!  // Create the important body collider to repel this cloth from our owning body
 
-		////=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
-		//_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;
-		////Cloth_Reset();			// Come out of init in reset... in order to gracefully adjust cloth to body!
-    }
+		//=== Obtain reference to special breast colliders if body has them for faster collider update at runtime ===
+		if (_oBody._oBreastL != null) {
+			_hBodyColBreastL = _oBody._oBreastL._oBodyColBreast._hBodyColBreast;
+			_hBodyColBreastR = _oBody._oBreastR._oBodyColBreast._hBodyColBreast;
+		}
 
-	//####BROKEN
-	//public override void OnSerializeIn(ref byte[] oBA, ref int nPosBA) {			// Extended deserialization for this object must extract additional arrays sent from Blender for our type.
-	//	//=== Receive the 'aMapTwinVerts' flat array Blender created to map simulated cloth verts to their twin skinned verts at periphery of skinned part of cloth ===
-	//	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 4; nPosBA += 4;                // Serialize stores total size of array in bytes.  Each map entry has two shorts so 4 bytes per map entry
-	//	_memMapClothVertsSimToSkin.Allocate(nArrayElements);
-	//	for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {			// Stream in the flat array and store in memArray for sharing with C++ side
-	//		_memMapClothVertsSimToSkin.L[nArrayElement].nVertSim  = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-	//		_memMapClothVertsSimToSkin.L[nArrayElement].nVertSkin = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;
-	//		Debug.Log("Cloth SimToSkin #" + nArrayElement.ToString() + "  Sim=" + _memMapClothVertsSimToSkin.L[nArrayElement].nVertSim.ToString() + "  Skin=" + _memMapClothVertsSimToSkin.L[nArrayElement].nVertSkin.ToString());
-	//	}
+		_oWatchBone = _oBody.FindBone("chest");            //####HACK ####DESIGN: Assumes this cloth is a top!
+		_oHotSpot = CHotSpot.CreateHotspot(this, _oWatchBone, "Clothing", false, new Vector3(0, 0.22f, 0.04f));     //###HACK!!! Position offset that makes sense for a top!
 
-	//	//=== Read the 'end magic number' that always follows a stream.  Helps catch deserialization errors ===
-	//	//###IMPROVE?  ReadEndMagicNumber(ref oBA, ref nPosBA);
-	//}
+		//=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
+		_oBMeshClothAtStartup = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSimulated", typeof(CBMesh));
+		_oBMeshClothAtStartup.transform.SetParent(_oBody.FindBone("chest").transform);      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
+		_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
+
+		//=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
+		_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;
+		Cloth_Reset();			// Come out of init in reset... in order to gracefully adjust cloth to body!
+	}
 
 	public override void OnDestroy() {
 		UnityEngine.Object.DestroyImmediate(_oBBodyColCloth.gameObject);
@@ -190,7 +197,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-b
 
 		if (_oBBodyColCloth != null)
 			_oBBodyColCloth.OnSimulatePre();
-		ErosEngine.Cloth_OnSimulatePre(_oObj._hObject, _oBBodyColCloth._hBodyColCloth, _hBodyColBreasts, memVertsSkinnedCloth.P);
+		ErosEngine.Cloth_OnSimulatePre(_oObj._hObject, _oBBodyColCloth._hBodyColCloth, memVertsSkinnedCloth.P);
 
 		//===== CLOTH PARAMATER AUTO-TUNE FUNCTIONALITY =====
 		/*####TODO: Cloth autotune
@@ -258,13 +265,6 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr {						// CBCloth: Blender-b
 			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
 	}
 }
-
-
-public struct CMapClothVertsSimToSkin {        // Map of 'twin verts' that maps which vert of the simulated vert maps to which vert in the skinned cloth mesh.  Same between Unity and C++ dll
-	public ushort nVertSim;			// The vertex ID on the simulated-side part of cloth
-	public ushort nVertSkin;		// The vertex ID on the skinned-side   part of cloth
-};
-
 
 
 

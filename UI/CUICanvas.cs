@@ -1,4 +1,4 @@
-﻿/*###DEVLIST: GUI
+﻿/*###DISCUSSION: GUI
 === NEXT ===
 - Position Z no clip
 - Formatting of slider values

@@ -132,7 +132,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 
 					//=== Find the other body (if it exists) and slow-down or speed up our clip if our clip time is nearby the cliptime of the other body
 					CBody oBodyOther = null;
-					foreach (CBody oBody in CGame.INSTANCE._oGamePlay._aBodies) {
+					foreach (CBody oBody in CGame.INSTANCE._aBodies) {
 						if (oBody != _oBody) {
 							oBodyOther = oBody;
 							break;

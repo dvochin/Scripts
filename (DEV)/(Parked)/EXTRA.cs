@@ -78,8 +78,8 @@
 //		//	string sCaption = _aCaptions[_nCaptionCurrent];
 //		//	_nCaptionCurrent++;
 
-//		//	CBody oBodyMan = CGame.INSTANCE._oGamePlay._aBodies[0];		//###NOTE: Assume man/shemale is body 0
-//		//	CBody oBodyWoman = CGame.INSTANCE._oGamePlay._aBodies[1];	//###WEAK: Assumes body 1 is always woman (user can change)
+//		//	CBody oBodyMan = CGame.INSTANCE._aBodies[0];		//###NOTE: Assume man/shemale is body 0
+//		//	CBody oBodyWoman = CGame.INSTANCE._aBodies[1];	//###WEAK: Assumes body 1 is always woman (user can change)
 
 //		//	sCaption = sCaption.Replace("#Man_hisher", "her");			//###TEMP!
 //		//	sCaption = sCaption.Replace("#Man", oBodyMan._sHumanName);

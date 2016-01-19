@@ -17,7 +17,7 @@ public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : 
 
 	public void OnPropSet_Flipped(float nValueOld, float nValueNew) {
 		transform.localRotation = Quaternion.Euler(0, (nValueNew == 1) ? 180 : 0, 0);
-		CGame.INSTANCE._oGamePlay.TemporarilyDisablePhysicsCollision();		// Flipping the bodies will probably cause them to tangle...
+		CGame.INSTANCE.TemporarilyDisablePhysicsCollision();		// Flipping the bodies will probably cause them to tangle...
 	}
 
 	//---------------------------------------------------------------------------	HOTSPOT EVENTS

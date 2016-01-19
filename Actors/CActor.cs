@@ -139,6 +139,17 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 		GetComponent<Renderer>().enabled = bShow;
 	}
 
+	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
+		foreach (CJointDriver oJoint in _aJoints)							// Propagate the change in game mode to all our joints
+			oJoint.OnChangeGameMode(eGameModeNew, eGameModeOld);
+		//switch (eGameModeNew) {
+		//	case EGameModes.Play:
+		//		break;
+		//	case EGameModes.Configure:
+		//		break;
+		//}
+	}
+
 	//---------------------------------------------------------------------------	COBJECT EVENTS
 
 	public void OnPropSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
@@ -248,14 +259,14 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 
 public class CJointDriver {			// CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
 
-	public CActor _oActor;			//###DESIGN!!: Proper base class for joint?
-	public CJointDriver _oJointDrvParent;
-	public Transform _oTransform;
-	public Rigidbody _oRigidBody;
-	public ConfigurableJoint _oConfJoint;
-	Vector3		_vecStartingPos;					// Pose and rotation stored so we know what to return bone too if we get disabled (e.g. entering 'cloth fit' mode)
-	Quaternion 	_quatStartingRotation;				
-	public float _X, _Y, _Z, _XL, _XH, _YL, _YH, _ZL, _ZH;
+	public CActor				_oActor;			//###DESIGN!!: Proper base class for joint?
+	public CJointDriver			_oJointDrvParent;
+	public Transform			_oTransform;
+	public Rigidbody			_oRigidBody;
+	public ConfigurableJoint	_oConfJoint;
+	Vector3						_vecStartingPos;					// Pose and rotation stored so we can return to 'configure' game mode at any time
+	Quaternion 					_quatStartingRotation;				
+	public float				_X, _Y, _Z, _XL, _XH, _YL, _YH, _ZL, _ZH;
 	
 	public CJointDriver(CActor oActor, CJointDriver oJointDrvParent, string sChildNodeName, float nDriveStrength, float nMass, float XL, float XH, float YL, float YH, float ZL, float ZH) {
 		_oActor = oActor;
@@ -288,8 +299,6 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		_oRigidBody.angularDrag = 1.5f;
 		_vecStartingPos			= _oTransform.localPosition;
 		_quatStartingRotation 	= _oTransform.localRotation;
-		if (CGame.INSTANCE._GameMode == EGameModes.PlayNoAnim)		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
-			_oRigidBody.isKinematic = true;
 
 		_oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
 		_oConfJoint.connectedBody = _oJointDrvParent._oRigidBody;
@@ -336,6 +345,20 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 				oColDst.center 		= oColSrc.center;
 				oColDst.size 		= oColSrc.size;
 			}
+		}
+	}
+
+	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
+		// Joint becomes kinematic and reverts to starting position upon configure mode, becomes PhysX-simulated during gameplay
+		switch (eGameModeNew) {
+			case EGameModes.Configure:
+				_oRigidBody.isKinematic = true;
+				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
+				_oTransform.localRotation = _quatStartingRotation;
+				break;
+			case EGameModes.Play:
+				_oRigidBody.isKinematic = false;
+				break;
 		}
 	}
 
