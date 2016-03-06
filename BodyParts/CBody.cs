@@ -132,6 +132,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//---------------------------------------------------------------------------	MISC
 	CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
+	CCutterCurve _oCutterCurve_HACK;	
+
 	//---------------------------------------------------------------------------
 	public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
 
@@ -256,7 +258,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
 		////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
 		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
-		_aCloths.Add(CBCloth.Create(this, "FullShirt"));
+		////////////###DEV _aCloths.Add(CBCloth.Create(this, "FullShirt"));
 
 		////=== Create the head look controller to look at parts of the other body ===
 		_oHeadLook = _oBodyRootGO.gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
@@ -325,6 +327,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			_oActor_Base.transform.position = new Vector3(0, 0, CGame.C_BodySeparationAtStart);
 			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
 		}
+
+		_oCutterCurve_HACK = new CCutterCurve(this, ECurveTypes.Top, "TestTop");
 	}
 
 

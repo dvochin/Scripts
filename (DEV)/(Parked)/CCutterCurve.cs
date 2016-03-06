@@ -1,11 +1,22 @@
 /*###DISCUSSION: Cloth cutting curves
 === NEXT ===
-
+- Do we need class for CHotspot_CurvePt?
+- When to convert Blender code to classes?
+- Need new game mode for cloth cutting (without cloth simulation)
+	- OR... pause simulation and restart it again with a key?
+	- What to do about breast size change???
 === TODO ===
 
 === LATER ===
 
 === IMPROVE ===
+
+
+
+
+
+
+###CLEANUP
 
 === NEEDS ===
 - Intelligent 'curve points' with public menu properties
@@ -54,8 +65,6 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
-using System.IO;
-using System.Runtime.Serialization.Formatters.Binary;
 	
 public class CCutterCurve : IHotSpotMgr {
 
@@ -66,13 +75,15 @@ public class CCutterCurve : IHotSpotMgr {
 
 	CBody			_oBody;
 	CBMesh			_oBMesh_Cutter;
+	CBMesh			_oBMesh_Cloth;
 
 	//---------------------------------------------------------------------------	INIT
 	public CCutterCurve(CBody oBody, ECurveTypes eCurveType, string sCurveName) {
 		_oBody = oBody;
 		_eCurveType = eCurveType;
 		_sCurveName = sCurveName;
-		LoadCutterCurve();
+
+		_oBMesh_Cloth = CBMesh.Create(null, _oBody, "oMeshClothHACK", typeof(CBMesh));
 	}
 	
 	public void OnDestroy() {
@@ -95,7 +106,6 @@ public class CCutterCurve : IHotSpotMgr {
 	//---------------------------------------------------------------------------	PUBLIC MEMBERS
 	public void SetCurveType(ECurveTypes eCurveType) {		//###DESIGN!! What to do here?  Set GUI??
 		_eCurveType = eCurveType;	
-		LoadCutterCurve();
 	}
 	
 	public void DoCutSingle() {
@@ -135,61 +145,12 @@ public class CCutterCurve : IHotSpotMgr {
 		}
 	}		
 
-	void ResetCurve() {				// ReleaseGlobalHandles all the hotspots that make up the curve definition.
-		//###BROKEN foreach (CHotSpot oHotSpot in _aHotSpots)
-		//	oHotSpot.Destroy();
+	void ResetCurve() {             // ReleaseGlobalHandles all the hotspots that make up the curve definition.
+		foreach (CHotSpot oHotSpot in _aHotSpots)
+			UnityEngine.Object.Destroy(oHotSpot.gameObject);
 		_aHotSpots.Clear();
 	}		
-	
-
-	//---------------------------------------------------------------------------	LOAD / SAVE
-	public bool LoadCutterCurve() {
-		string sFilePath = GetFilePath(_eCurveType, _sCurveName);
-		if (File.Exists(sFilePath) == false) 
-			return false;
-		FileStream oFile = new FileStream(sFilePath, FileMode.Open);
-	    BinaryFormatter oBF = new BinaryFormatter();
-		int nFileVersion 	= (int)oBF.Deserialize(oFile);
-		int nCurvePts 		= (int)oBF.Deserialize(oFile);
-		if (nFileVersion != G.C_FileVersion_CurveDefinition)
-			throw new CException("Exception in SaveCurrentFile().  Unrecognized file version " + nFileVersion + ".  Can only read version " + G.C_FileVersion_CurveDefinition);
-		
-		ResetCurve();				// Reset / destroy the curve before the load
-
-		bool bSymmetryX = _eCurveType == ECurveTypes.Side;			//###WEAK: Hardcoded concept of symmetry as applying only to side curve.  May need more symmetry curves later on
-		CGame.gBL_SendCmd("Curve", "gBL_Curve_Create('" + _eCurveType + "'," + (nCurvePts-1).ToString() + "," + bSymmetryX + ")");		// Rebuild entire curve now that all points set ###NOTE: -1 on num points as first one is center! (not real curve point)
-		
-		//=== Deserialize the vectors that have been stored in the curve definition file and create hotspots for each one of these positions ===
-		for (int nCurvePt = 0; nCurvePt < nCurvePts; nCurvePt++) {
-			Vector3 v = CUtility.DeserializeVec(oFile);
-			CHotSpot oHotSpot = CHotSpot.CreateHotspot(this, null, nCurvePt.ToString(), true, v);	//###BROKEN???  Transform... what to pass in??
-			oHotSpot.transform.parent = GameObject.Find("(CGame)/(CurveHotSpots)").transform;		//###WEAK: Constants!
-			_aHotSpots.Add(oHotSpot);
-		}
-		for (int nCurvePt = 1; nCurvePt < nCurvePts; nCurvePt++)			// Update all the hotspot from the adjusted position to cloth as calculated by Blender. (Done in separated loop because UpdateCurvePoint needs to have properly set # of points)
-			UpdateCurvePoint(nCurvePt, _aHotSpots[nCurvePt].transform.position, true);
-		
-		oFile.Close();
-		UpdateUnityCutterMesh();
-		Debug.Log("LoadCutterCurve() loaded " + sFilePath);
-		return true;
-	}
-	
-	public void SaveCutterCurve() {
-		string sFilePath = GetFilePath(_eCurveType, _sCurveName);
-		FileStream oFile = new FileStream(sFilePath, FileMode.Create);		//###TEMP
-	    BinaryFormatter oBF = new BinaryFormatter();
-		oBF.Serialize(oFile, G.C_FileVersion_CurveDefinition);			// Prepend each curve definition file with the version number
-		oBF.Serialize(oFile, _aHotSpots.Count);
-		foreach (CHotSpot oHotSpot in _aHotSpots)			// ReleaseGlobalHandles the hotspot game objects owned by this game mode to cleanup the scene before the next game mode
-			CUtility.Serialize(oFile, oHotSpot.transform.position);
-		oFile.Close();
-		Debug.Log("SaveCutterCurve() saved " + sFilePath);
-	}
-	
-	public static string GetFolderPath(ECurveTypes eCurveType) { return Application.dataPath + "/Resources/CurveDef/Body2/" + eCurveType + "/"; }	// Folder path derived from body type, curve type, curve name  //###HACK! Body type!
-	public static string GetFilePath(ECurveTypes eCurveType, string sCurveName) { return GetFolderPath(eCurveType) + sCurveName + ".CrvDef"; }
-	public bool IsCurveSymmetryX() { return _eCurveType == ECurveTypes.Side; }		//###NOTE: Only the side curve/cutter is symmetryX at this point... all others are mirrored about x=0 (e.g. neck opening, dress bottom, etc)
+	public bool IsCurveSymmetryX() { return _eCurveType == ECurveTypes.Side; }		//###NOTE: Only the side curve/cutter is symmetryX at this point... all others are mirrored about x=0 (e.g. neck opening, dress bottom, etc)}
 }
 
 public enum ECurveTypes {		// Cloth cutting curve types

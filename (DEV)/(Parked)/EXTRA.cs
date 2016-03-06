@@ -173,3 +173,57 @@
 
 	//const string C_SaveNewTemplate = "(Save New)";
 
+
+
+
+
+
+
+	//=== From CCutterCurve... no longer loading files from Unity
+	////---------------------------------------------------------------------------	LOAD / SAVE
+	//public bool LoadCutterCurve() {
+	//	string sFilePath = GetFilePath(_eCurveType, _sCurveName);
+	//	if (File.Exists(sFilePath) == false) 
+	//		return false;
+	//	FileStream oFile = new FileStream(sFilePath, FileMode.Open);
+	//    BinaryFormatter oBF = new BinaryFormatter();
+	//	int nFileVersion 	= (int)oBF.Deserialize(oFile);
+	//	int nCurvePts 		= (int)oBF.Deserialize(oFile);
+	//	if (nFileVersion != G.C_FileVersion_CurveDefinition)
+	//		throw new CException("Exception in SaveCurrentFile().  Unrecognized file version " + nFileVersion + ".  Can only read version " + G.C_FileVersion_CurveDefinition);
+		
+	//	ResetCurve();				// Reset / destroy the curve before the load
+
+	//	bool bSymmetryX = _eCurveType == ECurveTypes.Side;			//###WEAK: Hardcoded concept of symmetry as applying only to side curve.  May need more symmetry curves later on
+	//	CGame.gBL_SendCmd("Curve", "gBL_Curve_Create('" + _eCurveType + "'," + (nCurvePts-1).ToString() + "," + bSymmetryX + ")");		// Rebuild entire curve now that all points set ###NOTE: -1 on num points as first one is center! (not real curve point)
+		
+	//	//=== Deserialize the vectors that have been stored in the curve definition file and create hotspots for each one of these positions ===
+	//	for (int nCurvePt = 0; nCurvePt < nCurvePts; nCurvePt++) {
+	//		Vector3 v = CUtility.DeserializeVec(oFile);
+	//		CHotSpot oHotSpot = CHotSpot.CreateHotspot(this, null, nCurvePt.ToString(), true, v);	//###BROKEN???  Transform... what to pass in??
+	//		oHotSpot.transform.parent = GameObject.Find("(CGame)/(CurveHotSpots)").transform;		//###WEAK: Constants!
+	//		_aHotSpots.Add(oHotSpot);
+	//	}
+	//	for (int nCurvePt = 1; nCurvePt < nCurvePts; nCurvePt++)			// Update all the hotspot from the adjusted position to cloth as calculated by Blender. (Done in separated loop because UpdateCurvePoint needs to have properly set # of points)
+	//		UpdateCurvePoint(nCurvePt, _aHotSpots[nCurvePt].transform.position, true);
+		
+	//	oFile.Close();
+	//	UpdateUnityCutterMesh();
+	//	Debug.Log("LoadCutterCurve() loaded " + sFilePath);
+	//	return true;
+	//}
+	
+	//public void SaveCutterCurve() {
+	//	string sFilePath = GetFilePath(_eCurveType, _sCurveName);
+	//	FileStream oFile = new FileStream(sFilePath, FileMode.Create);		//###TEMP
+	//    BinaryFormatter oBF = new BinaryFormatter();
+	//	oBF.Serialize(oFile, G.C_FileVersion_CurveDefinition);			// Prepend each curve definition file with the version number
+	//	oBF.Serialize(oFile, _aHotSpots.Count);
+	//	foreach (CHotSpot oHotSpot in _aHotSpots)			// ReleaseGlobalHandles the hotspot game objects owned by this game mode to cleanup the scene before the next game mode
+	//		CUtility.Serialize(oFile, oHotSpot.transform.position);
+	//	oFile.Close();
+	//	Debug.Log("SaveCutterCurve() saved " + sFilePath);
+	//}
+	
+	//public static string GetFolderPath(ECurveTypes eCurveType) { return Application.dataPath + "/Resources/CurveDef/Body2/" + eCurveType + "/"; }	// Folder path derived from body type, curve type, curve name  //###HACK! Body type!
+	//public static string GetFilePath(ECurveTypes eCurveType, string sCurveName) { return GetFolderPath(eCurveType) + sCurveName + ".CrvDef"; }
