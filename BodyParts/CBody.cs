@@ -132,7 +132,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//---------------------------------------------------------------------------	MISC
 	CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
-	CCutterCurve _oCutterCurve_HACK;	
+	CClothEdit _oClothEdit_HACK;	
 
 	//---------------------------------------------------------------------------
 	public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
@@ -328,7 +328,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
 		}
 
-		_oCutterCurve_HACK = new CCutterCurve(this, ECurveTypes.Top, "TestTop");
+		_oClothEdit_HACK = new CClothEdit(this, "Shirt");
 	}
 
 
