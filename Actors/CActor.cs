@@ -19,6 +19,8 @@
 
 === PROBLEMS ===
  * Resettopos always??
+- Collider problems: toes and hands not symmetrical!
+- Why chest, thumb and hand not show??
 
 === PROBLEMS??? ===
  * We only display hotspot at bone, never where pin is (causes non-intuitive behavior when pinning and extremity snaps to some location user doesn't see
@@ -72,9 +74,7 @@
  * 
 */
 using UnityEngine;
-using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 
 public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base class to an 'actor': a body part such as arms, legs, chest that has intelligence to interact with the environment.  Subclassed in CActorArm / CActorLeg / CActorChest, etc...
@@ -94,7 +94,8 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 
 						public 	const float		C_DriveAng = 0.1f;					// The default angular drive for all bones... Hugely important.  multipled by some bones		//###SOON: IMPORTANT!!!!  ###TUNE
 						public	const float		C_DrivePos = 200f;					// The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
-						public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
+						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
+						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
 
 						Quaternion _quatRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
 
@@ -197,13 +198,23 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 		_oObj.PropAdd(EActorNode.RotW,				"RotW",				1,	-9999,	9999,	"", CProp.Local | CProp.Hide);
 	}
 
+    void TeleportLinkedPhysxBone() {                // Optionally teleport the attached PhysX bone of the node being moved / rotated.  (This enables pose loads to immediately snap the PhysX body at the right position without jarring PhysX spring problems dragging body parts all around the scene!
+        if (CGame.INSTANCE._bBodiesAreKinematic) {
+            if (_oConfJoint_Extremity != null && _oConfJoint_Extremity.connectedBody != null) {
+                //_oConfJoint_Extremity.connectedBody.isKinematic = true;           // Done body-wide before / after pose loading
+                _oConfJoint_Extremity.connectedBody.transform.position = transform.position;
+                _oConfJoint_Extremity.connectedBody.transform.rotation = transform.rotation;
+            }
+        }
+    }
+
 	public void OnPropSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.x = nValueNew; transform.localPosition = vecPos; }
 	public void OnPropSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.y = nValueNew; transform.localPosition = vecPos; }
-	public void OnPropSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.z = nValueNew; transform.localPosition = vecPos; }
-	public void OnPropSet_RotX(float nValueOld, float nValueNew) { _quatRotChanged.x = nValueNew; }		//###HACK!!!!: To enable setting of a quaternion from orthogonal 4 properties we store properties in x,y,z and only really set result when w is set
+	public void OnPropSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.z = nValueNew; transform.localPosition = vecPos; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
+    public void OnPropSet_RotX(float nValueOld, float nValueNew) { _quatRotChanged.x = nValueNew; }		//###HACK!!!!: To enable setting of a quaternion from orthogonal 4 properties we store properties in x,y,z and only really set result when w is set
 	public void OnPropSet_RotY(float nValueOld, float nValueNew) { _quatRotChanged.y = nValueNew; }
 	public void OnPropSet_RotZ(float nValueOld, float nValueNew) { _quatRotChanged.z = nValueNew; }
-	public void OnPropSet_RotW(float nValueOld, float nValueNew) { _quatRotChanged.w = nValueNew; transform.localRotation = _quatRotChanged; }
+	public void OnPropSet_RotW(float nValueOld, float nValueNew) { _quatRotChanged.w = nValueNew; transform.localRotation = _quatRotChanged; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
 	//public void OnPropSet_RotX(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.x = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
 	//public void OnPropSet_RotY(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.y = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
 	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.z = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
@@ -322,39 +333,41 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		oDrive.positionSpring = nDriveStrength;
 		oDrive.positionDamper = 0;							//###TODO!!!!!
 		oDrive.maximumForce = float.MaxValue;
-		oDrive.mode = JointDriveMode.Position;
+		//oDrive.mode = JointDriveMode.Position;
 		_oConfJoint.slerpDrive = oDrive;
 		_oConfJoint.rotationDriveMode = RotationDriveMode.Slerp;
 
-		//=== If we're a node on the right side, copy the collider defined on our twin node on the left side === //###WEAK: Bit of a hack.  //###MOVE??
-		//if (_oTransform.name[0] == 'r') {					//###WEAK: Reliable way to detect right bones??
-		if (_oActor._eBodySide == EBodySide.Right) {					//###WEAK: Reliable way to detect right bones??
+        //=== If we're a node on the right side, copy the collider defined on our twin node on the left side === //###WEAK: Bit of a hack.  //###MOVE??
+        if (_oActor._eBodySide == EBodySide.Right) {
 			Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(_oTransform.gameObject);
-			//Debug.Log("Collider copy " + oNodeSrc.name);
-			Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
-			if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
+            //Debug.Log("Collider copy " + oNodeSrc.name);
+            Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
+            Collider oColDstBase;
+            if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
 				CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
 				CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(CapsuleCollider));
 				oColDst.center 		= oColSrc.center;
 				oColDst.radius 		= oColSrc.radius;
 				oColDst.height 		= oColSrc.height;
 				oColDst.direction 	= oColSrc.direction;
-			} else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
+                oColDstBase = oColDst;
+            } else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
 				BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
 				BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(BoxCollider));
 				oColDst.center 		= oColSrc.center;
 				oColDst.size 		= oColSrc.size;
-			}
-		}
-	}
+                oColDstBase = oColDst;
+            }
+        }
+    }
 
 	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
 		// Joint becomes kinematic and reverts to starting position upon configure mode, becomes PhysX-simulated during gameplay
 		switch (eGameModeNew) {
 			case EGameModes.Configure:
 				_oRigidBody.isKinematic = true;
-				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
-				_oTransform.localRotation = _quatStartingRotation;
+//				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
+//				_oTransform.localRotation = _quatStartingRotation;
 				break;
 			case EGameModes.Play:
 				_oRigidBody.isKinematic = false;

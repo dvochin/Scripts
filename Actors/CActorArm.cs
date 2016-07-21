@@ -95,12 +95,12 @@ public class CActorArm : CActor {
 	//####OBS? float[]			_aFingerSpreadMultiplier = new float[] { 0, 1.3f, 0.3f, -0.5f, -1.1f };		// These multiply the Fingers_Spread to cause fingers Y to spread fingers away from each other in different ration (e.g. not all rotate in same direction!)
 
 	//--- Ray-pinning of hands variables ---
-	CMemAlloc<Vector3>	_memVecRayHitInfo;				// HandTarget of the last raycast hit as computed by DLL raycasting.  Used for arm pinning
+	//CMemAlloc<Vector3>	_memVecRayHitInfo;				// HandTarget of the last raycast hit as computed by DLL raycasting.  Used for arm pinning
 	CHandTarget			_oHandTarget_RaycastPin;		// Commonly used hand target used during commonly-used raycast to position hands.
-	int					_nArmPinBodyColVert;			// Body collider vert that pinned arm is following
+	//int					_nArmPinBodyColVert;			// Body collider vert that pinned arm is following
 	CBody				_oBodyArmPin;					// Body owning body collider vert _nArmPinBodyColVert
-	float				_nTimeStartPinSet;				// Time.time value when pin was set.  Used to gracefully slerp to new position to avoid sharp hand movements.
-	bool				_bPinByClosestVert;				// When true we pin to the closest body collider vert.  When false we pin by ray position (much more accurate)
+	//float				_nTimeStartPinSet;				// Time.time value when pin was set.  Used to gracefully slerp to new position to avoid sharp hand movements.
+	//bool				_bPinByClosestVert;				// When true we pin to the closest body collider vert.  When false we pin by ray position (much more accurate)
 
 
 	const float			C_TimeToMoveToNewPinPos = 9.0f;	// Time to slerp to new hand pin position		###TUNE
@@ -108,7 +108,7 @@ public class CActorArm : CActor {
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 	public override void OnStart_DefineLimb() {
 		_nDrivePos = 0.1f * C_DrivePos;				// Weaken the hand drive so hand doesn't fly from pin to pin		//###TUNE
-		_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
+		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
 
 		//=== Init Bones and Joints ===
 		_aJoints.Add(_oJointCollar	 = new CJointDriver(this, _oBody._oActor_Chest._oJointExtremity,	_sSidePrefixL+"Collar",	50.0f*C_DriveAng, 1.5f, -000f,  070f,  030f, -030f,  030f, -015f));		//###IMPROVE: Could go to -10 on x for getting hands lower still...  ####MOD: Stiffened, was 5*
@@ -190,34 +190,34 @@ public class CActorArm : CActor {
 		_oHandTarget.ConnectHandToHandTarget(this);
 		_oHandTarget.transform.position = _oJointExtremity._oTransform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
 		_oBodyArmPin = null;
-		_nArmPinBodyColVert = -1;
-		_nTimeStartPinSet = 0;			// Reset our start-of-slerp time to zero so it's initialize at first real pin position
-		_bPinByClosestVert = false;		// We start pinning by ray position as it's much more accurate.  When user releases pinning key we go to vert pinning which will handle changes in body orientation  ###IMPROVE: Always have 'ray precision' pinning by storing offset and rotating to closest vert normal?
+		//_nArmPinBodyColVert = -1;
+		//_nTimeStartPinSet = 0;			// Reset our start-of-slerp time to zero so it's initialize at first real pin position
+		//_bPinByClosestVert = false;		// We start pinning by ray position as it's much more accurate.  When user releases pinning key we go to vert pinning which will handle changes in body orientation  ###IMPROVE: Always have 'ray precision' pinning by storing offset and rotating to closest vert normal?
 		_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;	// We free rotation constraint so hand is just attraced by position (and repelled by colliders)  Greatly simplifies hand raycasting!!
 	}
 	public void ArmRaycastPin_Update() {
-		_oBodyArmPin = null;
-		_nArmPinBodyColVert = -1;
+		//_oBodyArmPin = null;          ###F ###OBS ###BROKEN
+		//_nArmPinBodyColVert = -1;
 
-		Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+		//Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
 
-		foreach (CBody oBody in CGame.INSTANCE._aBodies) {		//###OPT!!: Expensive call currently and we throwaway most of the precision work!  Rethink!!
-			if (oBody != null) {
-				_nArmPinBodyColVert = ErosEngine.BodyCol_RayCast(oBody._oBodyCol._hBodyCol, oRay.origin, oRay.direction, _memVecRayHitInfo.P);		//###SIMPLIFY  ###CLEANUP: Extra stuff!
-				if (_nArmPinBodyColVert != -1) {		// If a raycast vert was found pin this arm to the raycast-provided bodycol vert...
-					_oBodyArmPin = oBody;
-					//Debug.Log("Ray: " + _nArmPinBodyColVert + " = " + _memVecRayHitInfo.L[0] + _memVecRayHitInfo.L[1]);
-					//GameObject.Find("(CGame)/(JUNK)/PIN_RAY") .transform.position = _memVecRayHitInfo.L[0];
-					//GameObject.Find("(CGame)/(JUNK)/PIN_VERT").transform.position = _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert];
-					if (_nTimeStartPinSet == 0)			// Set the start-of-slerp time only once... the first time we have a valid position to pin to...
-						_nTimeStartPinSet = Time.time;
-					return;			//###WEAK!! This simple iteration will result in first body with valid raycast to be selected, even if further bodies are actually closer to camera
-				}
-			}
-		}
+		//foreach (CBody oBody in CGame.INSTANCE._aBodies) {		//###OPT!!: Expensive call currently and we throwaway most of the precision work!  Rethink!!
+		//	if (oBody != null) {
+		//		_nArmPinBodyColVert = ErosEngine.BodyCol_RayCast(oBody._oBodyCol._hBodyCol, oRay.origin, oRay.direction, _memVecRayHitInfo.P);		//###SIMPLIFY  ###CLEANUP: Extra stuff!
+		//		if (_nArmPinBodyColVert != -1) {		// If a raycast vert was found pin this arm to the raycast-provided bodycol vert...
+		//			_oBodyArmPin = oBody;
+		//			//Debug.Log("Ray: " + _nArmPinBodyColVert + " = " + _memVecRayHitInfo.L[0] + _memVecRayHitInfo.L[1]);
+		//			//GameObject.Find("(CGame)/(JUNK)/PIN_RAY") .transform.position = _memVecRayHitInfo.L[0];
+		//			//GameObject.Find("(CGame)/(JUNK)/PIN_VERT").transform.position = _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert];
+		//			if (_nTimeStartPinSet == 0)			// Set the start-of-slerp time only once... the first time we have a valid position to pin to...
+		//				_nTimeStartPinSet = Time.time;
+		//			return;			//###WEAK!! This simple iteration will result in first body with valid raycast to be selected, even if further bodies are actually closer to camera
+		//		}
+		//	}
+		//}
 	}
 	public void ArmRaycastPin_End() {						// Check at end of raycast procedure to unpin if nothing was found
-		_bPinByClosestVert = true;							// Go to vert-pinning mode now to finalize the pin (much less acurate but survives body movement)
+		//_bPinByClosestVert = true;							// Go to vert-pinning mode now to finalize the pin (much less acurate but survives body movement)
 		if (_oBodyArmPin == null) {							//###CHECK!! Correct cancellation??
 			_oHandTarget.ConnectHandToHandTarget(null);		// Destroy arm from pin at end of raycast search if we're not connected to anything
 			_oHandTarget = null;				//???
@@ -228,19 +228,20 @@ public class CActorArm : CActor {
 
 	//---------------------------------------------------------------------------	UPDATE
 	public void OnSimulatePre() {			// Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
-		if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
-			Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!
-			float nPercentSlerp = (Time.time - _nTimeStartPinSet) / C_TimeToMoveToNewPinPos;		//###LEARN: How to setup Vector.Slerp correctly... see E:\EG\Unity\Data\Documentation\Documentation\ScriptReference\Vector3.Slerp.html
-			_oHandTarget.transform.position = Vector3.Slerp(_oHandTarget.transform.position, vecPinPos, nPercentSlerp);	// Constantly set our pin position to the body collider vertex  found during ArmRaycastPin_Update()
-		}
+        //###F ###BROKEN (Body col!)
+		//if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
+		//	Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!
+		//	float nPercentSlerp = (Time.time - _nTimeStartPinSet) / C_TimeToMoveToNewPinPos;		//###LEARN: How to setup Vector.Slerp correctly... see E:\EG\Unity\Data\Documentation\Documentation\ScriptReference\Vector3.Slerp.html
+		//	_oHandTarget.transform.position = Vector3.Slerp(_oHandTarget.transform.position, vecPinPos, nPercentSlerp);	// Constantly set our pin position to the body collider vertex  found during ArmRaycastPin_Update()
+		//}
 
-		//=== Set hand position when some keys are pressed ===
-		if (_oBody.IsBodySelected()) {						//###TODO	###HACK!!!
-			if (Input.GetKeyDown(KeyCode.Alpha5))				//###IDEA: USE F1-F4?
-				_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Head_Side);
-			//if (Input.GetKeyDown(KeyCode.Alpha6))
-			//	_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Breast_Side);
-		}
+		////=== Set hand position when some keys are pressed ===
+		//if (_oBody.IsBodySelected()) {						//###TODO	###HACK!!!
+		//	if (Input.GetKeyDown(KeyCode.Alpha5))				//###IDEA: USE F1-F4?
+		//		_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Head_Side);
+		//	//if (Input.GetKeyDown(KeyCode.Alpha6))
+		//	//	_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Breast_Side);
+		//}
 	}
 
 

@@ -138,10 +138,10 @@ public class CCursor : MonoBehaviour {
 		uint nLayerTargetMask = (uint)1 << nLayerTarget;
 
 		//###WEAK?  The changes above to cursor mode operation are specific to the game and take away some of the generic behavior that may be useful for other purposes
-//####OBS?   if (Input.GetKeyDown(KeyCode.W))	SetEditMode(EEditMode.Move);		// W = Move
-//		else if (Input.GetKeyDown(KeyCode.R))	SetEditMode(EEditMode.Rotate);		// R = Rotate
-//		else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
-//		else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
+             if (Input.GetKeyDown(KeyCode.W))	SetEditMode(EEditMode.Move);		// W = Move
+		else if (Input.GetKeyDown(KeyCode.R))	SetEditMode(EEditMode.Rotate);		// R = Rotate
+		//else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
+		//else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
 	
 		//=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
 		//_oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(0xFFFFFFFF);

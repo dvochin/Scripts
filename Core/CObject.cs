@@ -1,10 +1,7 @@
-﻿using UnityEngine;
-using System;
+﻿using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.InteropServices;
 
 
 public class CObject {				// Centrally-important base class (with matching implementations in Unity & DLL) that forms the base to nearly every entity in our engine DLL... SoftBody, Cloth, Fluid, Scene, etc...  Store a group of abstract properties in _aPropsOnGUI that essentially controls most of the DLL code.

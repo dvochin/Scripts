@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 
 public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CPenis and tip or just one??			###DESIGN: Make IHostSpotMgr owned by CObject??
-	[HideInInspector] public CPenis		_oPenis;				// Our owning penis
+	[HideInInspector] public CPenis_OBS		_oPenis;				// Our owning penis
 	[HideInInspector] public CObject	_oObj;					// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
 	[HideInInspector] public CHotSpot	_oHotSpot;				// Hotspot at the penis tip.  Conventiently positioned at penis opening to be the emitter for fluid cum.
 
@@ -13,7 +13,7 @@ public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CP
 
 	//--------------------------------------------------------------------------	INIT
 
-	public void OnAwake(CPenis oPenis) {
+	public void OnAwake(CPenis_OBS oPenis) {
 		_oPenis = oPenis;
 		_oObj = new CObject(this, _oPenis._oBody._nBodyID, typeof(EPenisTip), "PenisTip");
 	}

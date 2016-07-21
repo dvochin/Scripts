@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : Simple node that user can move around to move / rotate all characters
+public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : Simple node that user can move around to move / rotate all characters ###OBS??
 
 	public CHotSpot	_oHotSpot;
 	public CObject	_oObj;

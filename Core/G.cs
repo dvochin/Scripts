@@ -30,8 +30,8 @@ public class G : MonoBehaviour {					// Global static class to store global cons
 	//###TODO!!! Update / sync these with Blender!		###OBS
 	public const string	C_NameSuffix_Morph      = "_Morph";			// Suffix applied to the mesh used as the source skinned mesh of the character.  It remains untouched
 	public const string	C_NameSuffix_BodySkin     	= "_BodySkin";			// Suffix applied to the mesh used as the skinned body during normal gameplay
-	public const string	C_NameSuffix_BodyCol        = "_BodyCol";           // Suffix applied to the coarsely-decimated body meshes that form the basis of collider speres for the creation of capsules used by PhysX to repel cloth and fluid
-	public const string C_NameSuffix_BodyColCloth   = "_BodyColCloth";		// Suffix applied to the coarse body collider optimized to repel cloth (e.g. torso made of about 50 triangles)
+	//public const string	C_NameSuffix_BodyCol        = "_BodyCol";           // Suffix applied to the coarsely-decimated body meshes that form the basis of collider speres for the creation of capsules used by PhysX to repel cloth and fluid
+	//public const string C_NameSuffix_BodyColCloth   = "_BodyColCloth";		// Suffix applied to the coarse body collider optimized to repel cloth (e.g. torso made of about 50 triangles)
 	public const string	C_NameSuffix_BodyRim		= "_BodyRim";			// Suffix applied to the 'reduced skinned mesh' that only have the 'rim polygons' to service fast skinning in Client with 'BakeMesh()'
 	//public const string	C_NameSuffix_ClothCut		= "_ClothCut";			// Suffix applied to the temporary cloth mesh object currently being processed for display by the game Morph mode
 	public const string	C_NameSuffix_ClothFit     	= "_ClothFit";			// Suffix applied to the mesh currently used for PhysX fitting in Cloth Fit game mode (has no border)

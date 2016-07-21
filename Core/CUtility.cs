@@ -1,3 +1,303 @@
+/*###DISCUSSION: CGame
+=== New 64 bit efforts ===
+- Fix Blender material paths
+- Fix Unity mat paths!
+- Sys now functional enough... test stuff for softbody on flex! ;)
+
+
+- Hanshake mechanism super crappy!  Blender will crash if sending twice!  Can peek?
+- Hacked blender path string... needed??
+- SoftBody now crap because of NxTetra!!  Really remove and go for Flex?
+- Could revisit PhysX3 samples to clean up only what we need.
+- Deactivated cuda for fluid... put back in?
+- Blender lost path to textures!
+
+
+
+
+
+
+
+
+
+
+
+=== STRATEGY ===
+- Play a bit with breast col density
+- Add more breast sliders
+- Add full body morph capacity for breasts up/down
+- Apply SlaveMesh functionality to cloth collider (half, separate, pair, fix after morph, etc)
+- Idea about source body storing its original verts in a layer of any use??
+
+- Work to have the two game modes go seamlessly from one to other
+	- Rethink the game mode enums and the flag in CBody
+	- Once fully working do we remove the old mode crap?
+
+=== REVIVE ===
+- Why are bones below hip copied twice at runtime??
+- Sleep of bones reoccuring?
+- Can enhance cloth reset with delta pos/rot
+
+
+
+
+
+
+
+
+=== TODO ===
+ * OpenCL out of resources after a while...  FUCK!!
+   * Looks like a complete re-init needed FUCK!!
+ * Stop fluid when loading pose
+ * ++ Have to implement event notification for client... with color codes for common errors such as overstretch, opencl error, low perf, etc
+   * ADD TOOLTIPS to explain
+ * Change in hand keys???
+ * Multiple panels!
+ * Redo hand implementation
+ * Reset pins not really working!  Torso == Chest??
+ * Need stronger pins when pinning arms?
+ * +++ Pose should store arm target!  (Pinned currently a nightmare!)
+ * Arms damped too much (undamp during load only?)
+ * New hand keys?
+ * Stop cum when init body
+ * Place hands on head would be really nice
+ * Save blender when a body is created? (or before closing game??)
+ * Get rid of penis tip menu and reroute to sex?  (same with vagina?)
+ * Tooltips on all properties
+ * ++ Properties don't change for man/woman
+ * Have split bone tree... right decision?  Trim extra junk, revisit colliders 
+ * Color and shape code hotpots soon!
+ * New combo box settings for CProp GUI
+ *? Have early blender float properties... convert to string for the clothing?
+   * Better would be an enum for the clothes from directory.
+ * Improve female ejaculation... set set properties like gravity, emitter size?
+ * PhysX33
+ * Should we move torso hotspot to neck??  (hard to pick)
+ * Auto number precision from bounds
+ * Have single property change from holding key
+ * Need to square up the many panels!  Dock or keys!
+ * Breast collision with arms and rough colliders
+ * Blend in fixed animations with slerp
+   * Need limiting angles for fixed pins and not for raycast?
+ * Will need hand on head, hand brace on bed
+   * Raycast on PhysX3 scene?
+
+=== PROBLEMS ===
+ * Cum collider still to be disabled if penis in vagina??
+ * Two dicks in scene all influenced by keys!
+ * Problem with dick init if pleasure event never occurs
+ * Scene reload during body init forgets 'inverted'
+ * WTF log file in Unity folder????
+ * HandleD3DDeviceLost upon cum and game crash in built game!
+ * Sex bone super low now!
+ * Problem with hand pins loading a new pose if hands were pinned 
+ *???? Hand position corrupted on load!!
+ * Gizmo hard to select on 2nd time an issue
+ * Hand default position way off: Init?
+ * Face deleted during body init!
+ * Pose loader can be 180 rotated and appear confusing... store rotation in char pose??? (Disabled button)
+ * Reload body can cause hotspot exception... last hovered one?
+ * Penis tip poke through!
+ * Crash entering PhysX2, improve logging
+   * Add regular flushes to logging
+ * //###BUG: Cursor text size grow up / down with zoom
+ * //###BUG!!!!! Problem with CActor and rotation. Euler conversion can't take all angles!!
+ * +++ Dlg action click through a big problem!
+ * PoseLoad and Save: Watch out for man / woman diff!!
+ * Why offset when reset pins???
+ * PenisScaleDampCenter off
+ * During rebuild hovering hotspots cause trouble.
+ *+++ Why is Woman_Face or Woman top node getting deleted???
+ * Vagina SB not destroying during rebuild!!
+ * ERROR PhysX2: CUDA not available   File(D:\sw\physx\PhysXSDK\2.8.4\trunk\SDKs\Core\Device\RegistryHardwareSelection.cpp) Line(71)
+ * BUG: pin cube shows an orientation different than hotspot!
+ * Have seen bug not being able to right click on a hotspot... lost in some mode in pose mode??
+ * Extra hotspots for obsolete hand targets annoying... remove or fix??
+ * Penis softbody appears out of sync with penis... tip goes into body?
+ * Single intances of windows!!!
+ * Stats dont go to zero when not used over time
+ * GUI message will not all show in some res
+ * Missing stats
+ * PhysX complains about shape set to invalid geometry... Body colliders when idle??
+ * Top of breasts for softbody getting an issue... adjust sphere??
+ *++++ Penis shake on close to self body a showstopper
+ * 888-771-5803 Catherine
+
+=== PROBLEMS: ASSETS ===
+ * Man texture too 'yellow'
+ * Improve penis texture blend on man
+ * Man head texture problem?
+ * Chest up/down on man flawed!
+ * Problems with man colliders running into each other... really need layers!
+ * Improve room with black roof
+ * Man and women bone trees have chest collider colliding against arms... need to set to own layer?
+
+=== PROBLEMS??? ===
+ * Test sex change with blender init.  that flag still of use???
+ * Blender script protection a problem for install??
+ * Vagina track not hidden at start?
+ * Guide catching cum?
+
+=== IDEAS ===
+ * Add pose categories and ordering??
+ * Add 'flip' hotkey!
+ * A 'special mode' to move some hard-to-get-at hotspots (with them drawn in x-ray)
+   * Hide them most of the time (in non pose mode?)
+ * Add frame stamp to log entries
+ * Hand pose load position... should be remembered so user can load it back!
+ * F1-F4 for hand control, F5-F12 for poses
+ * Save log files in diff folder?
+ * Screen capture feature with output folder... with contest!
+ * When cumming in pussy cap cum near entrance!
+ * Map mouse button 4-5??
+ * sw = Stopwatch.StartNew();
+ * Do some body bends with a hotkey pressed!
+ * Add additional keys for 1st person cameras!
+ * iGUI supports tooltips per combo box entry!
+ * Move torso with a quick key?? (Or raise hotspot of chest?
+ * ++++ Add extra props from scene options!  And move them with hotspots!!
+ * Have Shift+F spread all thighs??
+ * Have a 'randomizer' key to enable user to dicate how 'free' character is
+ * Feet separation key?
+ * Cum guide in vagina & vagina cum?
+ * A 'pleasure indicator' when caressing like in the meet & fuck games
+ * 'Skip frame' functionality for cum!!
+ * Vagina should have 'inverse cum funnel' to guide cum out of opening (doesn't collide with penis) Also put cap
+ * Adjust separation between the bodies with one easy value (like penis angle?)
+ * Reset pin positions to current with a hotkey (to solve 'stretching problem')
+ * Move both legs in one go in 2D (pinned to floor?)
+
+=== INVESTIGATE FEATURES ===
+ * Usage for Mesh.Optimize()?
+ * Usage for Mesh.Clear()? http://docs.unity3d.com/Documentation/ScriptReference/Mesh.html
+ * Mesh.Topology has quads, lines, linestrip, points!
+ * Mesh.MarkDynamic http://docs.unity3d.com/Documentation/ScriptReference/Mesh.MarkDynamic.html
++++ http://www.starscenesoftware.com/vectrosity.html for drawing lines!  Has awesome beziers!!
+
+=== WISHLIST ===
+ * User lighting control multiplier?
+ * Cum in vagina!
+ *? Usable full menu for both hands / both bodies, avoid trapping pins, smooth?
+ *
+=== NexT: Body Col ===
+ * Breast collider oriented 90 degrees out???
+ * Fluid grid size out of wack critical issue???  (Why stiffness all broken now??)
+ * Good stats will become critical going forward... create a new super class on top of CProp & new GUI with link to profiler
+ * 
+=== PROBLEMS ===
+ * FPS appears at start in player
+ * WTF is fucking size of box in PhysX2/3!!!
+ * When cum falls on penis base colliders make penis shake!
+ * Exit when Blender is not there!
+ * Gizmo mostly broken: Move will move toward camera!  (Bad rotation at init?)
+ * Penis collision exposions... 
+
+ * === TODO ===
+ * Very quickly set colliders owned by cloth for faster OnUpdate... check again!!
+ * Breasts not skinned!
+ * Can't anim at start because cloth flies off!!  Reposition root higher??
+ * Bad latency problem... gone with reposition of colliders???
+ * 
+ * 
+ * === JUNK? ===
+ * POSING FAST TRACK 
+	 * DETERMINE IF WE GROUP PINS!!!
+	 * How about this idea with anim curves????  Should it save our info???
+	-URGENT!: Now having to photonize CBody but can't have multiple base classes!  what to do?
+
+ * Posing load and save...
+	 * Do we have any hierarchy with the pins??  (like ArmL/R belonging to Arm and it to torso...) so we save relative positions... important!!  TEST
+	 * We'll need the ability to load a single character... takes quite a bit of time to do one right!
+	 * OR... do we store poses as individuals and rely on the pose designer posing the couple / threesome / quad to load and place posed individuals??  BETTER!!
+		 * Then the 'point of insertion (3d position where genital goes (
+ * Raising body so feet are on the ground...
+	 * Is that even an issue?  Do we just snap to pins and everything ok like our pose?
+ * Revise decisions on posing:
+	 * For first demo, do we create anims from Unity editor or with our gizmos???
+	 * Collision groups ok?
+	 * Weight of feet?
+	 * Soften drive of pins... appear stiff
+	 * Drive on thigh open not enough
+	 * Knee folding?  Is that to autocrouch?
+	 * Need to allow arms to drop...
+ * Finger bones might cause more trouble than worth for now...  Just drive finger bones directly?
+	 * Or do we abstract all four fingers as two boxes and thumb as one capsule?
+	 * 'doing cool things with hands' is going to be difficult... pick first poses where they are tied up.
+ * Arm behind head can be achieved with existing hand driving!!
+ * Bad bending around the thighs might make cool poses impossible for now!
+	 * Possible to iterate through those verts to smooth them out?
+		 * Or is it better to add a bone to push them out?
+ * Add show/hide pins again.
+
+=== TODO ===
+ * Have to harmonize PhysX properties for SoftBody & cloth soon...
+	 * Gravity should be applied to some and not others...
+	 * Reconnect a GUI to send these properties via reflection like before??
+		 * Use our previous GUI slider or adopt iGUI?
+
+=== LATER ===
+ * Morphing now much simpler and more powerful with the rewrite for breast needed...
+
+=== CURRENT PLAN TO REVENUE ===
+ * Quick load and save of poses: in files through photon or anim curves???
+ * Design a few ultra-hot poses by placing pins in Unity editor and saving them.
+ * Implement hot animations from them... in anim curves???
+ * PENETRATION!!!!
+
+=== DESIGN ===
+ * Max allowed time changed to 0.04 from .3333!!!
+
+=== IDEAS ===
+ * blendShapes and http://www.faceshift.com/unity/  Better then our solution??  How to import tho? (http://answers.unity3d.com/questions/574775/how-do-i-get-started-with-blend-shapes.html)
+ * Properties really working well with client/server, GUI and scripting... worth enhancing with randomization, smooth adjust, animation, GUI control, etc.
+ * Reducing density of penis softbody might make it stay in its cage more...
++++ Autofit of what pose is compatible with what other: have pose designer identify vagina angle at idle and range of motion and height...
+	+ When user places a dick somewhere, code attempts to find woman poses made for that angle!  Like placing two a capsule in a sort of cone
+		+ What to do about the feet tho... place invisible body first and see what collides?
+ * Profiler can output to log file and accept external data (hint: C++ timing stats!)
+ * IDEA: Constantly sending verts, tris and counts from different contexts... create a 'CMesh' in c++??
+ * //Profiler.BeginSample("StatName");		//###LEARN: Custom stats!
+ * ++++ Placing all our important objects as 'Update When Offscreen' prevents having to recalc bounds!!
+
+=== LEARNED ===
+ * Setting Unity time setting to .01 from .04 makes strobing effect of Fluid much less noticeable!  (But really slows down system!)
+	 * However... setting corresponding number in C++ dll had terrible effects... what gives??
+
+=== PROBLEMS ===
++++++ WTF body disapearing after 20 sec sometimes?? (PhysX window frozen when it happens)
+	 * Log says CBSkinBaked lost its skinned mesh, but entire body node is gone!!
+	 * Probably related to fluid crash... (was with SPH @ 10K)
+	 * Seems to happen after 30 sec always!
+	 * Could trap on destroy!
++ PhysX screwed up when we exit game and restart: Game doesn't cleanup!!
++++ Remember hack in PhotonHandler!!
+ * Weird bug now with right breast more resistant to gravity???
+++++ TRY to not scale penis at all frame... what happens?  Can do once in a while??
+++++ Bones were all fucked...  reset sex to be less shitty but not exact...  rethink its 15 deg-off ownership of rest of bones!!
+ * WTF happened with breasts & vagina being so soft now??
+ * BodyA/BodyB getting a bit of pain in the ass in args everywhere... see if we can simplify?
+ * Non-full game init missing meshes!
++ Unity needs to know what meshes Blender creates!  (Like panties, etc) for body to build with proper meshes!
+
+=== PROBLEMS: ASSETS ===
+ * Seam appears between breasts and armpits now
+
+=== PROBLEMS??? ===
+ * Once I saw performance drop to 23fps while the camera movement looked more like 5fps.   Checking profiler, things like CPinSkinned started taking 14ms and skin rim baked 11ms!
+	 * After much testing I did a full rebuild all of the C++ dll and performance got back to 84fps?  WTF??  Why would a bad compile of DLL make C# code run much slower????
+ * I think physx clock is ticking while game initializes... verify!
+ * Massive rename / reorg around "BodyA' has broken tons of stuff... Many gBL calls now require full qualification!
+ * Note that PhysX PVD viewer has X inverted!!!
+
+=== WISHLIST ===
+ *-- Disable gravity on some softbodies (to increase performance??)
+=== WISHLIST ===
+ * Desirability of a 'coarse body collider' concept (with legs, arms, etc being approximated with large capsules...
+	 * Implications for accurate breasts & penis collisions
+	 * 700 capsule collider limit... on any machine??  (Test on laptop)
+*/
+
+
 using UnityEngine;
 using System;
 using System.IO;
@@ -59,6 +359,12 @@ public class CUtility {			// Collection of static utility functions
 			throw new CException("FindComponentInParents() could not find component " + oTypeComponent + " in " + sCallingCodeName);
 		return null;
 	}
+
+    public static void DestroyComponent(Component oComponent) {
+        if (oComponent == null)
+            return;
+        UnityEngine.Object.Destroy(oComponent);
+    }
 	#endregion
 
 	#region === Find ===
@@ -471,14 +777,14 @@ public class CUtility {			// Collection of static utility functions
     #region === UI ===
     public static void WndPopup_Create(EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1)
     {
-        //=== Construct the moveable dialog's content dependent on what type of dialog it is ===
+        //=== Construct the dialog's content dependent on what type of dialog it is ===
         CUICanvas oUICanvas = CUICanvas.Create();           //####DESIGN!  ####SOON ####CLEANUP?
         int nRows = 0;
         int nPropGrps = 0;
         foreach (CObject oObj in aObjects) {
             foreach (CPropGroup oPropGrp in oObj._aPropGroups) {   //###BUG!: Inserts one extra!  Why??
                 oPropGrp._oUICanvas = oUICanvas;                    //####IMPROVE ####MOVE??
-                                                                    //////////oPropGrp.CreateWidget(oListBoxContent);
+                //////////oPropGrp.CreateWidget(oListBoxContent);
                 foreach (int nPropID in oPropGrp._aPropIDs) {
                     CProp oProp = oObj.PropFind(nPropID);
                     nRows += oProp.CreateWidget(oPropGrp);

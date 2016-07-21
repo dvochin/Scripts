@@ -142,3 +142,14 @@ public enum EChoice_EmitShape {
 	_Ellipse,				// Equivalent to ParticleEmitter::Shape::eELLIPSE   = 0
 	_Rectangle				// Equivalent to ParticleEmitter::Shape::eRECTANGLE = 1
 };
+
+public enum EFlexCloth {
+    Tightness,
+    Length,
+    Mass
+};
+
+public enum EFlexSoftBody{
+    Stiffness,
+    Mass
+};

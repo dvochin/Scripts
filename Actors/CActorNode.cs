@@ -5,9 +5,9 @@ using System.Collections;
 public class CActorNode : CActor {			// CActorNode: Simple 'node based' actor without joints to enable user to move / rotate other real actors... Currently used for base and torso
 	//###DESIGN: Really keep design based on CActor???  Just needs to move a simple node!
 
-	public override void OnStart_DefineLimb() {
-		//=== Init Bones and Joints ===
-		_oHotSpot = CHotSpot.CreateHotspot(this, transform, transform.name, true, Vector3.zero, C_SizeHotSpot_BodyNodes);		//###DESIGN!!!!: How can user move actors apart that get too close??
+    public override void OnStart_DefineLimb() {
+        //=== Init Bones and Joints ===
+        _oHotSpot = CHotSpot.CreateHotspot(this, transform, transform.name, true, Vector3.zero, C_SizeHotSpot_BodyNodes);		//###DESIGN!!!!: How can user move actors apart that get too close??
 
 		//=== Init CObject ===
 		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorNode), transform.name, transform.name);	//###DESIGN: Keep???

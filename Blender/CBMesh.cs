@@ -24,6 +24,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	[HideInInspector]	public	List<ushort>	_aMapSharedNormals_BROKEN;
 	[HideInInspector]	public	Material[]		_aMats;							// Array of materials deserialized from Blender
 
+	[HideInInspector]	public	Boolean		    _bSharedFromBlender;    		// Blender is exporting us this mesh.  (We can update its verts and get vert updates)
+	[HideInInspector]	public	Boolean		    _bKeepBlenderShare;    		    // Link to Blender mesh won't be closed once mesh is loaded
+
 	//---------------------------------------------------------------------------	MESH ARRAYS
 	[HideInInspector]	public 	CMemAlloc<Vector3> 	_memVerts			= new CMemAlloc<Vector3>();	// The vertices we send and receive to/from PhysX
 	[HideInInspector]	public 	CMemAlloc<Vector3> 	_memVertsStart		= new CMemAlloc<Vector3>();	// The vertices at creation time.  Can be used to 'restore' mesh at start position (e.g. softbodies)
@@ -34,7 +37,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	
 	//---------------------------------------------------------------------------	INIT
 
-	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyInstanceMember, Type oTypeBMesh) {
+	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyInstanceMember, Type oTypeBMesh, Boolean bKeepBlenderShare = false) {
 		//===== Important static function that reads a Blender mesh definition stream and create the requested CBMesh-derived entity on the provided gameObject node =====
 
 		//=== Create the game object that will host our component ===
@@ -48,9 +51,10 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		oBMesh._oBody = oBody;									// Push-in some important args manually (so we don't have to push them in OnDeserializeFromBlender()
 		oBMesh._sNameCBodyInstanceMember = sNameCBodyInstanceMember;
 		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			// Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
+        oBMesh._bKeepBlenderShare = bKeepBlenderShare;
 
-		//=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
-		string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
+        //=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
+        string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
 		oBMesh._sNameBlenderMesh = CGame.gBL_SendCmd("CBody", sCBodyDataMember + ".GetName()");                              // Store the name of the Blender object holding the mesh so we can directly access.
 		oBMesh.OnDeserializeFromBlender();				// Fully deserialize the mesh from Blender.  (Virtual call that cascades accross several classes in order)
 
@@ -60,8 +64,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	public virtual void OnDeserializeFromBlender() {		//===== Very important top-level call to begin the process of deserializing a mesh from Blender.  Central to all our meshes! =====
 		//=== Send blender command to obtain the mesh header.  This will return a large stream containing material names, bones, bone weight, etc ===
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh('" + _sNameBlenderMesh + "')", ref memBA);	
-		byte[] oBA = (byte[])memBA.L;			// Setup the deserialization arrays and deserialize the body from Blender
+		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh('" + _sNameBlenderMesh + "')", ref memBA);
+        _bSharedFromBlender = true;
+        byte[] oBA = (byte[])memBA.L;			// Setup the deserialization arrays and deserialize the body from Blender
 		int nPosBA = 0;
 
 		//=== Create various casts to subclasses to facilitate deserializing info into the proper subclasses ===
@@ -83,6 +88,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		if (bCreatingSkinnedMesh == false) {
 			oMeshFilter 	= (MeshFilter)  CUtility.FindOrCreateComponent(transform, typeof(MeshFilter));
 			oMeshRenderer	= (MeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(MeshRenderer));
+            //oMeshRenderer.enabled = true;
 			//oMeshRenderer.updateWhenOffscreen = true;		//###LEARN: How to avoid recalc bounds???
 		}
 		_oMeshNow = new Mesh();				// Create the actual mesh the object will use.  Will persist throughout...
@@ -193,10 +199,14 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		_memNormals		.AssignAndPin(_oMeshNow.normals);
 		_memTris		.AssignAndPin(_oMeshNow.triangles);
 
-		//####BROKEN!  Still relevant??
-		//string sAccessString_CBody = "CBody_GetBody(" + _oBody._nBodyID.ToString() + ")";					// Simplify access to Blender CBody instance			####MOVE??
-		//CUtility.BlenderSerialize_GetSerializableCollection("CBody", sAccessString_CBody + ".aMapSharedNormals.tobytes()", ref _aMapSharedNormals_BROKEN);				// Read the 'shared normals' flattened map
-	}
+        //####BROKEN!  Still relevant??
+        //string sAccessString_CBody = "CBody_GetBody(" + _oBody._nBodyID.ToString() + ")";					// Simplify access to Blender CBody instance			####MOVE??
+        //CUtility.BlenderSerialize_GetSerializableCollection("CBody", sAccessString_CBody + ".aMapSharedNormals.tobytes()", ref _aMapSharedNormals_BROKEN);				// Read the 'shared normals' flattened map
+
+        //=== Mesh is loaded in Unity.  Close link to Blender to save memory unless maintaining the link is requested by base class ===
+        if (_bKeepBlenderShare == false)
+            ReleaseBlenderMesh();
+    }
 
 	//public void GetBlenderSerializableCollection(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
 	//	CMemAlloc<byte> memBA = new CMemAlloc<byte>();
@@ -219,11 +229,19 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 	public virtual void OnDestroy() {
 		Debug.Log("OnDestroy CBMesh " + gameObject.name);
-		CGame.gBL_SendCmd("Client", "gBL_ReleaseMesh('" + _sNameBlenderMesh + "')");		// Tell Blender to stop sharing this mesh to free shared memory.
+        ReleaseBlenderMesh();
 	}			
-	
-	public virtual void UpdateVertsFromBlenderMesh(bool bUpdateNormals) {		// Ask Blender to update our copy of the verts.  Assumes the topology of the mesh hasn't changed!
-		CGame.gBL_SendCmd("Client", "gBL_UpdateClientVerts('" + _sNameBlenderMesh + "')");
+    public virtual void ReleaseBlenderMesh() {
+        if (_bSharedFromBlender) {
+            Debug.Log("CBMesh.ReleaseBlenderMesh() on " + gameObject.name);
+            CGame.gBL_SendCmd("Client", "gBL_ReleaseMesh('" + _sNameBlenderMesh + "')");        // Tell Blender to stop sharing this mesh to free shared memory.
+            _bSharedFromBlender = false;
+        }
+    }
+    public virtual void UpdateVertsFromBlenderMesh(bool bUpdateNormals) {       // Ask Blender to update our copy of the verts.  Assumes the topology of the mesh hasn't changed!
+        if (_bSharedFromBlender == false)
+            throw new CException("Exception in CBMesh.UpdateVertsFromBlenderMesh().  Mesh is not exported / shared from Blender!");
+        CGame.gBL_SendCmd("Client", "gBL_UpdateClientVerts('" + _sNameBlenderMesh + "')");
 		int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, _memVerts.P);
 		if (nError != 0)
 			throw new CException("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
@@ -236,7 +254,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	}	
 
 	public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
-		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
+        if (_bSharedFromBlender == false)
+            throw new CException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
+        int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
 		if (nError != 0)
 			throw new CException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
 	}	

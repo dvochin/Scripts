@@ -75,15 +75,16 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public  GameObject			_oBodyRootGO;			// The root game object of every Unity object for this body.  (Created from prefab)
 	public 	CObject				_oObj;					// The user-configurable object representing this body.
 	public 	CBSkin				_oBodySkinnedMesh;		// The main skinned mesh representing most of the body (e.g. everything except detached soft body parts, head, hair, clothing, etc)
-	public 	CBMesh				_oBodySource;			// The source body unmodified in any way.  (Currently used to extract normals for softbody rims)
-	public 	CHeadLook			_oHeadLook;             // Object in charge of moving head toward points of interest
+	public 	CBMesh				_oBodySource;           // The source body unmodified in any way.  (Currently used to extract normals for softbody rims)
+    public  CBSkin              _oBodyFlexCldr_HACK;
+    public  CHeadLook			_oHeadLook;             // Object in charge of moving head toward points of interest
 	public 	EBodySex			_eBodySex;				// The body's sex (man, woman, shemale)
 	public 	bool				_bIsCumming;			// Character is currently cumming.  Set globally
 
 	//---------------------------------------------------------------------------	IMPLEMENTATION MEMBERS
 	public 	CHotSpot			_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
 	public 	CBSkinBaked 		_oBSkinRim;				//###DESIGN!!!! Rename the old 'rim'?
-	public 	CBBodyCol			_oBodyCol;				// The full 'Body Collider' that repells fluid, hands, softbody breasts, etc from this human body.	###OPT!!!: Cut into 'body parts' that activate/deactivate when something is near
+	///public 	CBBodyCol			_oBodyCol;				// The full 'Body Collider' that repells fluid, hands, softbody breasts, etc from this human body.	###OPT!!!: Cut into 'body parts' that activate/deactivate when something is near
 	public 	Transform			_oBonesT;				// The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
 	public 	Transform			_oBaseT;				// The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
 	public 	CScriptPlay			_oScriptPlay;			// Scripting interpreter in charge of loading user scripts that programmatically control this body (poses also load this way)
@@ -91,10 +92,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	string				_sNamePose;				// The name of the current loaded pose (Same as filename in /Poses directory)
 
 	//---------------------------------------------------------------------------	SOFT BODY PARTS
-	public	CBreastBase 			_oBreastL;					// The left and right breasts as softbodies
-	public	CBreastR 			_oBreastR;					
+	public	CBreastL 		    _oBreastL;					// The left and right breasts as softbodies
+	public	CBreastR 		    _oBreastR;
 	public	CPenis				_oPenis;
-	public	CVagina				_oVagina;
+    public  CVagina				_oVagina;
 	public	List<CBSoft>		_aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
@@ -124,20 +125,21 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public 	CObject				 Penis;
 
 	//---------------------------------------------------------------------------	KEYBOARD HOOKS
-	CKeyHook _oKeyHook_PenisBaseUpDown;
-	CKeyHook _oKeyHook_PenisShaftUpDown;
-	CKeyHook _oKeyHook_PenisDriveStrengthMax;
+	//CKeyHook _oKeyHook_PenisBaseUpDown;
+	//CKeyHook _oKeyHook_PenisShaftUpDown;
+	//CKeyHook _oKeyHook_PenisDriveStrengthMax;
 	CKeyHook _oKeyHook_ChestUpDown;
 
 	//---------------------------------------------------------------------------	MISC
 	CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
-	CClothEdit _oClothEdit_HACK;	
+	//CClothEdit _oClothEdit_HACK;
+    //CFlexCloth_OBS _oFlexCloth_HACK;
 
-	//---------------------------------------------------------------------------
-	public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
+    //---------------------------------------------------------------------------
+    public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
 
-	public const int C_Unity2Blender_MaxVerts = 5000;			// Maximum number of verts for Unity2Blender mesh
+	public const int C_Unity2Blender_MaxVerts = 5000;			// Maximum number of verts for Unity2Blender mesh       ###OBS ###TUNE ###IMPROVE: Create damn mesh on demand!!
 
 
 
@@ -145,7 +147,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_nBodyID = nBodyID;
 		_sBlenderInstancePath_CBody = "CBody_GetBody(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBody instance			####MOVE??
 
-		bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
+		//bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _nBodyID));
 
 
@@ -170,7 +172,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 //			oObj.PropFind(EBodyDef.Hair)._nPropFlags |= CProp.Hide;
 		} else {
 			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Man);		####REVB
-			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Shemale);
 			//oObj.PropSet(EBodyDef.ClothingTop, (int)EBodyClothingTop_HACK.TiedTop);
 			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
 			//if (CGame.INSTANCE._bRunningInEditor)		//###TEMP! :)
@@ -207,61 +209,85 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//===== CREATE THE BODY IN BLENDER =====  
 		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "', " + C_Unity2Blender_MaxVerts.ToString() + ")");		// This new instance is an extension of this Unity CBody instance and contains most instance members
-		
-		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
-		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
+
+        //=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
+        GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
 
-		//=== Obtain references to needed sub-objects of our prefab ===
-		_oBonesT	= _oBodyRootGO.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
+        //if (_nBodyID == 1) 
+        //    _oBodyRootGO.transform.position = new Vector3(0, 0, 1.5f);      //###F ###HACK!!!!!!
+
+        //=== Obtain references to needed sub-objects of our prefab ===
+        _oBonesT	= _oBodyRootGO.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
 		_oBaseT		= _oBodyRootGO.transform.FindChild("Base");
 
-		
-		//===== DETACHED SOFTBODY PARTS PROCESSING =====
-		_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL)));
-		_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR)));
-		_oBreastL.FinishColliderCreation();			// Breasts require a late-init call to properly setup colliders
-		_oBreastR.FinishColliderCreation();
-
-		////=== Create the various soft-body mesh parts that are dependant on the body sex ===
-		////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
-		//if (_bForMorphingOnly == false) {
-		//	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
-		//		_aSoftBodies.Add(_oBreastL = (CBreastBase)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreastBase)));           //###WEAK: Create utility function like before???
-		//	}
-		//	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
-		//		_aSoftBodies.Add(_oPenis = (CPenis)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Penis", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CPenis)));
-		//	if (_eBodySex == EBodySex.Woman)
-		//		_oVagina = new CVagina(this);
-
-		//	//=== Create the important body collider that will repel fluid in the scene ===
-		//	_oBodyCol = (CBBodyCol)CBBodyCol.Create(null, this, _sNameGameBody);
-		//}
 
 
-		//=== Obtain the source mesh body for normal extraction ===
-		_oBodySource = CBMesh.Create(null, this, "oMeshSource", typeof(CBMesh));
-		_oBodySource.GetComponent<MeshRenderer>().enabled = false;					// This mesh is to pull normals only.  Not visible at runtime!
-
-		//===== MAIN SKINNED BODY PROCESSING =====
-		//=== Get the main body skinned mesh (has to be done once all softbody parts have been detached) ===
-		_oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodyRootGO, this, "oMeshBody", typeof(CBSkin));
-
-		//=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
-		Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
-		_oHotSpot = CHotSpot.CreateHotspot(this, oHeadT, this._sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);		//###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
 
 
-		////####TEMP ####DESIGN ####TEMP ####MOVE
-		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top2"));
-		////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
-		////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
-		////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
-		////////////###DEV _aCloths.Add(CBCloth.Create(this, "FullShirt"));
 
-		////=== Create the head look controller to look at parts of the other body ===
-		_oHeadLook = _oBodyRootGO.gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
+
+        //===== DETACHED SOFTBODY PARTS PROCESSING =====
+        //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+        //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+		if (eBodySex == EBodySex.Woman) {
+            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
+        } else {
+            _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
+        }
+
+        ////####TEMP ####DESIGN ####TEMP ####MOVE
+        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
+        ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
+        ////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
+        ////////////###DEV _aCloths.Add(CBCloth.Create(this, "FullShirt"));
+
+
+        
+        
+        
+        
+        
+        
+        ////=== Create the various soft-body mesh parts that are dependant on the body sex ===
+        ////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
+        //if (_bForMorphingOnly == false) {
+        //	if (_eBodySex == EBodySex.Woman || _eBodySex == EBodySex.Shemale) {
+        //		_aSoftBodies.Add(_oBreastL = (CBreastBase)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Breasts", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBreastBase)));           //###WEAK: Create utility function like before???
+        //	}
+        //	if (_eBodySex == EBodySex.Shemale || _eBodySex == EBodySex.Man)
+        //		_aSoftBodies.Add(_oPenis = (CPenis)CBMesh.Create(null, this, _sNameGameBody, "_Detach_Penis", "Client", "gBL_GetMesh", "'NoSkinInfo'", typeof(CPenis)));
+        //	if (_eBodySex == EBodySex.Woman)
+        //		_oVagina = new CVagina(this);
+
+        //	//=== Create the important body collider that will repel fluid in the scene ===
+        //	_oBodyCol = (CBBodyCol)CBBodyCol.Create(null, this, _sNameGameBody);
+        //}
+
+        //=== Obtain the source mesh body for normal extraction ===
+        ///_oBodySource = CBMesh.Create(null, this, "oMeshSource", typeof(CBMesh));
+		///_oBodySource.GetComponent<MeshRenderer>().enabled = false;					// This mesh is to pull normals only.  Not visible at runtime!
+
+
+        //===== MAIN SKINNED BODY PROCESSING =====
+        //=== Get the main body skinned mesh (has to be done once all softbody parts have been detached) ===
+        _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodyRootGO, this, "oMeshBody", typeof(CBSkin));
+        //_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
+
+        //###F
+        _oBodyFlexCldr_HACK = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
+        _oBodyFlexCldr_HACK.gameObject.AddComponent<CFlexSkinned>();
+        _oBodyFlexCldr_HACK.GetComponent<SkinnedMeshRenderer>().enabled = false;
+
+        //=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
+        Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
+		_oHotSpot = CHotSpot.CreateHotspot(this, oHeadT, this._sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);     //###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
+
+        ////=== Create the head look controller to look at parts of the other body ===
+        _oHeadLook = _oBodyRootGO.gameObject.AddComponent<CHeadLook>();			//####DESIGN: Keep for morph mode??
 		_oHeadLook.OnStart(this);
 
 
@@ -281,20 +307,17 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			}
 		}
 
-		//###HACK???  ####MOVE?
-		_oBodySkinnedMesh._oSkinMeshRendNow.updateWhenOffscreen = true;           //###NOTE: Prevents from having to do expensive recalc bounds as pins move body far away from starting point...
-		//####DEV
-		Body_InitActors();
+        Body_InitActors();
 
 		////=== Setup the keys to handle penis control on non-woman bodies ===
-		if (_eBodySex != EBodySex.Woman) {      //###MOVE?
-			bool bSelectedBodyOnly = (CGame.INSTANCE._nNumPenisInScene_BROKEN > 1);    // Keys below are active if this body is the selected body ONLY if we have more than one man in the scene
-			if (_oPenis != null) {
-				_oKeyHook_PenisBaseUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.BaseUpDown), KeyCode.Q, EKeyHookType.QuickMouseEdit, "Penis up/down", 1, bSelectedBodyOnly);
-				_oKeyHook_PenisShaftUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.ShaftUpDown), KeyCode.E, EKeyHookType.QuickMouseEdit, "Penis bend up/down", 1, bSelectedBodyOnly);
-				_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
-			}
-		}
+		//if (_eBodySex != EBodySex.Woman) {      //###MOVE?        ###OBS ###F
+		//	bool bSelectedBodyOnly = (CGame.INSTANCE._nNumPenisInScene_BROKEN > 1);    // Keys below are active if this body is the selected body ONLY if we have more than one man in the scene
+		//	if (_oPenis != null) {
+		//		_oKeyHook_PenisBaseUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.BaseUpDown), KeyCode.Q, EKeyHookType.QuickMouseEdit, "Penis up/down", 1, bSelectedBodyOnly);
+		//		_oKeyHook_PenisShaftUpDown = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.ShaftUpDown), KeyCode.E, EKeyHookType.QuickMouseEdit, "Penis bend up/down", 1, bSelectedBodyOnly);
+		//		_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
+		//	}
+		//}
 		_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Chest_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Create the face and its associated morph channels ===
@@ -305,16 +328,16 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_oActor_Base.gameObject.name = _sBodyPrefix + "_Base";
 
 		//=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
-		Base = _oActor_Base._oObj;              // CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
-		Chest = _oActor_Chest._oObj;
-		Torso = _oActor_Torso._oObj;
-		Pelvis = _oActor_Pelvis._oObj;
-		ArmL = _oActor_ArmL._oObj;
-		ArmR = _oActor_ArmR._oObj;
-		LegL = _oActor_LegL._oObj;
-		LegR = _oActor_LegR._oObj;
-		Face = _oFace._oObj;
-		Penis = (_oPenis == null) ? null : _oPenis._oObjDriver;
+		Base    = _oActor_Base._oObj;              // CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
+		Chest   = _oActor_Chest._oObj;
+		Torso   = _oActor_Torso._oObj;
+		Pelvis  = _oActor_Pelvis._oObj;
+		ArmL    = _oActor_ArmL._oObj;
+		ArmR    = _oActor_ArmR._oObj;
+		LegL    = _oActor_LegL._oObj;
+		LegR    = _oActor_LegR._oObj;
+		Face    = _oFace._oObj;
+		///###BROKEN ###DEVO Penis = (_oPenis == null) ? null : _oPenis._oObjDriver;
 
 		_oScriptPlay = CUtility.FindOrCreateComponent(_oBodyRootGO.transform, typeof(CScriptPlay)) as CScriptPlay;
 		_oScriptPlay.OnStart(this);
@@ -328,11 +351,14 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
 		}
 
-		_oClothEdit_HACK = new CClothEdit(this, "Shirt");
-	}
+        ///_oClothEdit_HACK = new CClothEdit(this, "Shirt");
+
+        ///CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + _nBodyID.ToString() + ").Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (1.6, 1.6, 1.6, 0), None)");       //###F ###HACK!!!
+
+    }
 
 
-	public void Body_InitActors() {
+    public void Body_InitActors() {
 		//=== Fetch the body part components, assign them to easy-to-access variables (and a collection for easy iteration) and initialize them by telling them their 'side' ===
 		_aActors.Add(_oActor_Base	= _oBodyRootGO.transform.FindChild("Base")				.GetComponent<CActorNode>());
 		_aActors.Add(_oActor_Torso	= _oBodyRootGO.transform.FindChild("Base/Torso")		.GetComponent<CActorNode>());
@@ -354,9 +380,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		GameObject.DestroyImmediate(_oActor_Base.gameObject);          // Destroy our body's entry in top-level CPoseRoot
 
-		if (_oKeyHook_PenisBaseUpDown != null) _oKeyHook_PenisBaseUpDown.Dispose();     //###WEAK!!! Try to enable auto-dispose!!
-		if (_oKeyHook_PenisShaftUpDown != null) _oKeyHook_PenisShaftUpDown.Dispose();
-		if (_oKeyHook_PenisDriveStrengthMax != null) _oKeyHook_PenisDriveStrengthMax.Dispose();
+		//if (_oKeyHook_PenisBaseUpDown != null) _oKeyHook_PenisBaseUpDown.Dispose();     //###WEAK!!! Try to enable auto-dispose!!
+		//if (_oKeyHook_PenisShaftUpDown != null) _oKeyHook_PenisShaftUpDown.Dispose();
+		//if (_oKeyHook_PenisDriveStrengthMax != null) _oKeyHook_PenisDriveStrengthMax.Dispose();
 		if (_oKeyHook_ChestUpDown != null) _oKeyHook_ChestUpDown.Dispose();
 
 		foreach (CBCloth oBCloth in _aCloths)
@@ -369,14 +395,11 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//---------------------------------------------------------------------------	UPDATE
 
 	public void OnSimulatePre() {
-		//		if (Input.GetKeyDown(KeyCode.F12))			//####TEMP
-		//			gBL_UpdateClientVerts();
-
-		if (_oBSkinRim != null)
+        if (_oBSkinRim != null)
 			_oBSkinRim.OnSimulatePre();					// The very first thing we do is to get our rim to update itself so all pin positions for this frame will be refreshed...
 
-		if (_oVagina != null)
-			_oVagina.OnSimulatePre();
+		//if (_oVagina != null)
+		//	_oVagina.OnSimulatePre();
 	
 		foreach (CBSoft oBSoft in _aSoftBodies)
 			oBSoft.OnSimulatePre();
@@ -400,56 +423,72 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			_oArm_SettingRaycastPin = null;
 		}
 
-		_oActor_ArmL.OnSimulatePre();		// Arms need per-frame update to handle pinning to bodycol verts
+		_oActor_ArmL.OnSimulatePre();		//###OBS? Arms need per-frame update to handle pinning to bodycol verts
 		_oActor_ArmR.OnSimulatePre();
 
 		//=== Execute ejaculation if selected body and the pertinent global property is set ===//###BUG!!!!: Won't correctly process two of the same sex!!!
-		if (_bIsCumming) {
-			if (_eBodySex == EBodySex.Woman) {		//###IMPROVE!!!!!: Woman cum can be a lot better!
+		//if (_bIsCumming) {        ###DEVO ###OBS: Old Fluid
+		//	if (_eBodySex == EBodySex.Woman) {		//###IMPROVE!!!!!: Woman cum can be a lot better!
 
-				//=== Set the position of the one fluid emitter instance to transform position of vagina entrance bone ===
-				ErosEngine.Object_SetPositionOrientation(CGame.INSTANCE._oFluid._oObj._hObject, 0, _oVagina._oVaginaCumEmitterT.position, _oVagina._oVaginaCumEmitterT.rotation);	// Update the position of our fluid.  Penis tip controls the location of this global object // If woman body is selected and we're cumming place the one fluid emitter at the 'Vagina-CumEmitter' bone
+		//		//=== Set the position of the one fluid emitter instance to transform position of vagina entrance bone ===
+		//		ErosEngine.Object_SetPositionOrientation(CGame.INSTANCE._oFluid._oObj._hObject, 0, _oVagina._oVaginaCumEmitterT.position, _oVagina._oVaginaCumEmitterT.rotation);	// Update the position of our fluid.  Penis tip controls the location of this global object // If woman body is selected and we're cumming place the one fluid emitter at the 'Vagina-CumEmitter' bone
 
-				float nCycleTime = 8;		//###TUNE	###IMPROVE: Give user GUI access to these??
-				float nMaxRate = 300;		//###TUNE!!!
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, 0.00f);		//###TUNE
+		//		float nCycleTime = 8;		//###TUNE	###IMPROVE: Give user GUI access to these??
+		//		float nMaxRate = 300;		//###TUNE!!!
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, 0.00f);		//###TUNE
 
-				//=== Set the emit velocity & rate from the pertinent configuration curve ===
-				float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % nCycleTime;
-				float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
-				float nEmitRate = nMaxRate * Mathf.Max(CGame.INSTANCE.CurveEjaculateWoman.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
+		//		//=== Set the emit velocity & rate from the pertinent configuration curve ===
+		//		float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % nCycleTime;
+		//		float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
+		//		float nEmitRate = nMaxRate * Mathf.Max(CGame.INSTANCE.CurveEjaculateWoman.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
 
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);		// Woman ejaculation is a rate-based emitter where we control the rate over time	###DESIGN: Would going pressure-base like man have any sense here??
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);		// Woman ejaculation is a rate-based emitter where we control the rate over time	###DESIGN: Would going pressure-base like man have any sense here??
 
-			} else {
+		//	} else {
 
-				//=== Set the position of the one fluid emitter instance to transform position of penis tip ===
-				ErosEngine.Object_SetPositionOrientation(CGame.INSTANCE._oFluid._oObj._hObject, 0, _oPenis._oPenisTip._oHotSpot.transform.position, _oPenis._oPenisTip._oHotSpot.transform.rotation);	// Update the position of our fluid.  Penis tip controls the location of this global object	// If man's body is selected place at hotspot of penis tip conveniently located at uretra.
+		//		//=== Set the position of the one fluid emitter instance to transform position of penis tip ===
+		//		ErosEngine.Object_SetPositionOrientation(CGame.INSTANCE._oFluid._oObj._hObject, 0, _oPenis._oPenisTip._oHotSpot.transform.position, _oPenis._oPenisTip._oHotSpot.transform.rotation);	// Update the position of our fluid.  Penis tip controls the location of this global object	// If man's body is selected place at hotspot of penis tip conveniently located at uretra.
 
-				float nCycleTime	= _oPenis._oPenisTip._oObj.PropGet(EPenisTip.CycleTime);
-				float nMaxVelocity	= _oPenis._oPenisTip._oObj.PropGet(EPenisTip.MaxVelocity);
+		//		float nCycleTime	= _oPenis._oPenisTip._oObj.PropGet(EPenisTip.CycleTime);
+		//		float nMaxVelocity	= _oPenis._oPenisTip._oObj.PropGet(EPenisTip.MaxVelocity);
 
-				//=== Set the emit velocity & rate from the pertinent configuration curve ===
-				float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % nCycleTime;
-				float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
-				float nEmitVelocity = nMaxVelocity * Mathf.Max(CGame.INSTANCE.CurveEjaculateMan.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
+		//		//=== Set the emit velocity & rate from the pertinent configuration curve ===
+		//		float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % nCycleTime;
+		//		float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
+		//		float nEmitVelocity = nMaxVelocity * Mathf.Max(CGame.INSTANCE.CurveEjaculateMan.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
 
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, nEmitVelocity);	// Man ejaculation is a pressure-based emitter where we control the emit velocity over time
-				float nEmitRate = (nEmitVelocity != 0) ? 10000 : 0;		//###WEAK: What max??  ramp up??  threshold point??	// Set a very large rate as we're a pressure-based emitter... (we are limited by neighborhood particles)
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);
-			}
-		}
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, nEmitVelocity);	// Man ejaculation is a pressure-based emitter where we control the emit velocity over time
+		//		float nEmitRate = (nEmitVelocity != 0) ? 10000 : 0;		//###WEAK: What max??  ramp up??  threshold point??	// Set a very large rate as we're a pressure-based emitter... (we are limited by neighborhood particles)
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);
+		//	}
+		//}
 		if (Input.GetKeyDown(KeyCode.R))		//###DESIGN: Selected only??
 			ResetPinsToBones();
-	}
+    }
 
-	public void OnSimulateBetweenPhysX23() {
-		foreach (CBSoft oBSoft in _aSoftBodies)					// First simulate the PhysX2 soft bodies
-			oBSoft.OnSimulateBetweenPhysX23();
+    public void SetBodiesAsKinematic(bool bBodiesAreKinematic) {       // Set body as kinematic or not (used for pose loading / teleportation)
+        EGameModes eGameModeSrc = EGameModes.Configure;
+        EGameModes eGameModeDst = EGameModes.Play;
+        if (bBodiesAreKinematic) {
+            eGameModeSrc = EGameModes.Play;
+            eGameModeDst = EGameModes.Configure;
+        }
+        foreach (CActor oActor in _aActors)
+            oActor.OnChangeGameMode(eGameModeDst, eGameModeSrc);        //###DESIGN Closely related to game mode... merge in within a new game mode??
+    }
+
+    public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
+        foreach (CBSoft oBody in _aSoftBodies)
+            oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
+    }
+
+    public void OnSimulateBetweenPhysX23() {
+		//foreach (CBSoft oBSoft in _aSoftBodies)					// First simulate the PhysX2 soft bodies
+		//	oBSoft.OnSimulateBetweenPhysX23();
 		foreach (CBCloth oBCloth in _aCloths)					// Simulate the PhysX3 cloths from the just-updated colliders above
 			oBCloth.OnSimulateBetweenPhysX23();
-		if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
-			_oBodyCol.OnSimulatePre();		//###CHECK: Move to later breaks anything??
+		//if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
+		//	_oBodyCol.OnSimulatePre();		//###CHECK: Move to later breaks anything??
 	}
 
 	public void OnSimulatePost() {
@@ -517,9 +556,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	}
 	public void ResetPinToBone(string sPathPin, string sPathBone) {		//###IMPROVE: Fix to run during play-time... Have to re-root from CPoseRoot
 		Transform oRootPinT = (_oActor_Base != null) ? _oActor_Base.transform : _oBodyRootGO.transform.FindChild("Base");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
-		Transform oRootBontT = _oBodyRootGO.transform.FindChild("Bones");
+		Transform oRootBoneT = _oBodyRootGO.transform.FindChild("Bones");
 		Transform oPinT = oRootPinT.FindChild(sPathPin);
-		Transform oBoneT = oRootBontT.FindChild(sPathBone);
+		Transform oBoneT = oRootBoneT.FindChild(sPathBone);
 		oPinT.position = oBoneT.position;
 	}
 	public Transform FindBone(string sBonePath) {
@@ -567,14 +606,14 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		if (_bIsCumming) {
 			if (_eBodySex == EBodySex.Woman) {
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitType, (int)EChoice_EmitType.Rate);
+				//CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitType, (int)EChoice_EmitType.Rate);
 				//_oObj.PropSet(EFluid.Fluid_Gravity, 0.2f);
 				//_oObj.PropSet(EFluid.EmitHeightRatio, 4);			//###TODO: Much greater randomness, etc
 
 			} else {
-				CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitType, (int)EChoice_EmitType.Pressure);
-			}
-		}
+                //CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitType, (int)EChoice_EmitType.Pressure);
+            }
+        }
 	}
 
 	//---------------------------------------------------------------------------	LOAD / SAVE
@@ -629,7 +668,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBody + ".Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (" + nValueNew.ToString() + "," + nValueNew.ToString() + "," + nValueNew.ToString() + ",0), None)");
 		//UpdateVertsFromBlenderMesh(false);						// Update Unity's copy of the morphing body's verts.
 		_oBreastL.UpdateVertsFromBlenderMesh(false);		//####DEV ###TEMP
-		_oBreastR.UpdateVertsFromBlenderMesh(false);
 		//_oBodyColBreast.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 

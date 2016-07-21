@@ -6,10 +6,10 @@ using System.Collections;
 public class CCamMagnet : MonoBehaviour {
 
 	SpringJoint			_oJointSpring;
-	ECamMagnetType		_eCamMagnetType;
+	//ECamMagnetType		_eCamMagnetType;
 
 	void Start() {
-		_eCamMagnetType = (ECamMagnetType)Enum.Parse(typeof(ECamMagnetType), gameObject.name.Substring("CCamMagnet-".Length));		// Obtain our type from the last part of our node name
+		//_eCamMagnetType = (ECamMagnetType)Enum.Parse(typeof(ECamMagnetType), gameObject.name.Substring("CCamMagnet-".Length));		// Obtain our type from the last part of our node name
 
 		_oJointSpring = CUtility.FindOrCreateComponent(gameObject, typeof(SpringJoint)) as SpringJoint;
 		_oJointSpring.maxDistance = 0;
@@ -25,11 +25,11 @@ public class CCamMagnet : MonoBehaviour {
 	void Update() {			//###OPT: Can find a cheaper way?
 		// Keys 1-4 run on all CCamMagnets on all bodies.  1 is 'all pull equals', 2 is sex focus, 3 is breast focus, 4 is head focus
 		//###IMPROVE?: Take the rest of the numbers for only body 1 & 2?
-
-		if      (Input.GetKeyDown(KeyCode.Alpha1))	_oJointSpring.spring = CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
-		else if (Input.GetKeyDown(KeyCode.Alpha2))	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Pelvis)	? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
-		else if (Input.GetKeyDown(KeyCode.Alpha3)) 	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Breasts)	? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
-		else if (Input.GetKeyDown(KeyCode.Alpha4)) 	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Head)		? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
+        //###P: Revive?
+		//if      (Input.GetKeyDown(KeyCode.Alpha1))	_oJointSpring.spring = CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
+		//else if (Input.GetKeyDown(KeyCode.Alpha2))	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Pelvis)	? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
+		//else if (Input.GetKeyDown(KeyCode.Alpha3)) 	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Breasts)	? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
+		//else if (Input.GetKeyDown(KeyCode.Alpha4)) 	_oJointSpring.spring = (_eCamMagnetType == ECamMagnetType.Head)		? CGame.INSTANCE._oCamTarget.CamMagnetPull_Selected : CGame.INSTANCE._oCamTarget.CamMagnetPull_Unselected;
 	}
 }
 

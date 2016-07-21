@@ -63,8 +63,12 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		for (int nVert = 0; nVert < nVerts; nVert++) {
 			byte nVertGroups = oBA[nPosBA]; nPosBA++;
 			float nBoneWeightSum = 0;
-				
-			for (byte nVertGroup = 0; nVertGroup < nVertGroups; nVertGroup++) {		//###IMPROVE: It might be more elegant to shift this code to Blender Python?
+            if (nVertGroups >= 5) { 
+                Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has {2} vert groups!", _sNameBlenderMesh, nVert, nVertGroups);
+                throw new CException("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
+            }
+    
+            for (byte nVertGroup = 0; nVertGroup < nVertGroups; nVertGroup++) {		//###IMPROVE: It might be more elegant to shift this code to Blender Python?
 				aBoneIndex[nVertGroup]  = oBA[nPosBA]; nPosBA++;
 				float nBoneWeight = BitConverter.ToSingle(oBA, nPosBA); nPosBA+=4;
 				if (nBoneWeight < 0)
@@ -77,11 +81,8 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 				nBoneWeightSum += nBoneWeight;
 			}
 	
-			if (nVertGroups >= 5) 
-				Debug.LogError("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
-				//throw new CException("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
 			if (nBoneWeightSum < 0.999 || nBoneWeightSum > 1.001) {
-				///Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
+				Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
 				nErrSumOutOfRange++;
 			}
 			BoneWeight oBoneWeight = new BoneWeight();
