@@ -88,11 +88,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		if (bCreatingSkinnedMesh == false) {
 			oMeshFilter 	= (MeshFilter)  CUtility.FindOrCreateComponent(transform, typeof(MeshFilter));
 			oMeshRenderer	= (MeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(MeshRenderer));
-            //oMeshRenderer.enabled = true;
-			//oMeshRenderer.updateWhenOffscreen = true;		//###LEARN: How to avoid recalc bounds???
 		}
 		_oMeshNow = new Mesh();				// Create the actual mesh the object will use.  Will persist throughout...
-		//_oMeshNow.MarkDynamic();			//###CHECK: Use by default or case-by-case basis in subclasses??
+		//_oMeshNow.MarkDynamic();			//###CHECK: Use by default or case-by-case basis in subclasses??    ###OPT!
 
 
 		//===== READ THE MATERIALS =====

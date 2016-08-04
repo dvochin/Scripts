@@ -1,3 +1,54 @@
+/*###DISCUSSION: Panels
+
+
+=== LAST ===
+- Would be nice to have SB auto-reset during teleports!
+
+
+- Problem with depth of cursor and GUI... when far we get greater depth... Is this a problem between the overlay cam and main one?  (Or just for VR / Space Navigator??)
+-###IMPROVE: Add various 'cursor depth traps' around major body parts so cursor has a max depth?
+    - Or... use body PhysX colliders?  BETTER! -> map to cursors??
+
+
+- Rethink anchor points now that we can clip a little bit.
+- Can't select a widget without unselecting first one
+- Move canvas center or owning pin?
+    - Finalize pin
+- Cleanup panel creation
+- Panel center mesh
+- Panel divider sucks
+- Slider grabber bigger
+
+
+- Mesh show / hide shows extra softbodies, rim, collider body, sb skinned, etc
+- Why are pins so small now?
+- Cursor hit buggy as shit... redo!
+
+=== NEXT ===
+
+=== TODO ===
+
+=== LATER ===
+
+=== IMPROVE ===
+
+=== DESIGN ===
+
+=== IDEAS ===
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+
+=== PROBLEMS??? ===
+
+=== WISHLIST ===
+- Have button to zero VR camera
+- Panel auto-stacking is 'slots'
+
+*/
+
+
 using UnityEngine;
 using System;
 using System.IO;
@@ -12,9 +63,16 @@ using UnityEngine.UI;
 public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game object.  Accessable via anywhere via 'INSTANCE'.  Provides top-level game init/shutdown and initiates the 'heartbeat' calls that make the game progres frame by frame
 
     //---------------------------------------------------------------------------	TEMP Flex
-    public bool _ShowBodies = true;
+    //public bool _ShowBodies = true;
+    public bool ShowPresentation = true;
+    public bool ShowPhysxColliders = false;
+    public bool ShowMeshStartup = false;
+    public bool ShowPinningRims = false;
+    public bool ShowFlexSkinned = false;
+    public bool ShowFlexColliders = false;
+    public bool ShowFlexParticles = false;
 
-    public bool showFlexParticles = true;
+    //public bool showFlexParticles = true;
     public float particleSpacing = 0.02f;
     public float volumeSampling = 1;                    // 1 = Volume spacing at particle spacing, 2 = rich inner volume defintion, 0.01 = very sparse inner definition.  Huge influence!
     public float surfaceSampling = 1;                   // Not muh effect on surface defintion.  .001 = 132 par 5 = 183 par
@@ -134,7 +192,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
     }
     public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
-		UnityEngine.Debug.Log("=== CGame.StartGame() ===");
+		Debug.Log("=== CGame.StartGame() ===");
         INSTANCE = this;
         _oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
         GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
@@ -180,35 +238,35 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 //				string sMachineID = CGame.GetMachineID();		//###CHECK Can cause problems if switching adaptors frequently?
 //				oWWW = new WWW("http://www.erotic9.net/cgi-bin/CheckUser.py?Action=Authenticate&MachineID=" + sMachineID);
 //			} else {
-//				UnityEngine.Debug.LogError("Warning: Could not authenticate because of Internet unreacheability.");
+//				Debug.LogError("Warning: Could not authenticate because of Internet unreacheability.");
 //			}
 //		} else {
-//			UnityEngine.Debug.LogError("Warning: Could not authenticate because of executable image corruption.");
+//			Debug.LogError("Warning: Could not authenticate because of executable image corruption.");
 //		}
 
 		//=== Try to load our dll to extract helpful error message if it fails, then release it ===
-		//UnityEngine.Debug.Log("INIT: Attempting to load ErosEngine.dll");         //###BROKEN!  WTF No longer works loading 64 bit dll??
+		//Debug.Log("INIT: Attempting to load ErosEngine.dll");         //###BROKEN!  WTF No longer works loading 64 bit dll??
 		//int hLoadLibResult = LoadLibraryEx("ErosEngine.dll", 0, 2);
 		//if (hLoadLibResult > 32)
 		//	FreeLibrary(hLoadLibResult);			// Free our dll so Unity can load it its way.  Based on code sample at http://support.microsoft.com/kb/142814
 		//else 			
 		//	throw new CException("ERROR: Failure to load ErosEngine.dll.  Error code = " + hLoadLibResult);		// App unusable.  Study return code to find out what is wrong.
-		//UnityEngine.Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
+		//Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
 				
 		//####OBS? GameObject oGuiGO = GameObject.Find("iGUI");			//###TODO!!! Update game load status... ###IMPROVE: Async load so OnGUI gets called???  (Big hassle for that!)
-		UnityEngine.Debug.Log("0. Game Awake");	yield return new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("0. Game Awake");	yield return new WaitForSeconds(nDelayForGuiCatchup);
 		int n123 = ErosEngine.Utility_Test_Return123_HACK();			// Dummy call just to see if DLL will load with Unity
         if (n123 != 123)
             throw new CException("ERROR: Failure to get 123 from ErosEngine.dll call to Utility_Test_Return123_HACK.");
-        UnityEngine.Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
+        Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
 
         //=== Initialize our gBlender direct-memory buffers ===
-        UnityEngine.Debug.Log("1. Shared Memory Creation.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+        Debug.Log("1. Shared Memory Creation.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		if (ErosEngine.gBL_Init(CGame.GetFolderPathRuntime()) == false)
 			throw new CException("ERROR: Could not start gBlender library!  Game unusable.");
 		
 		//=== Spawn Blender process ===
-		UnityEngine.Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
+		Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
 		_hWnd_Unity = (IntPtr)GetActiveWindow();			// Just before we start Blender obtain the HWND of our Unity editor / player window.  We will need this to re-activate our window.  (Starting blender causes it to activate and would require user to alt-tab back to game!!)
 		_oProcessBlender = CGame.LaunchProcessBlender();
 		if (_oProcessBlender == null)
@@ -216,27 +274,27 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //_nWnd_Blender_HACK = (IntPtr)GetActiveWindow();
 
         //=== Start Blender (and our gBlender scripts).  Game cannot run without them ===
-        UnityEngine.Debug.Log("3. Client / Server Handshake.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+        Debug.Log("3. Client / Server Handshake.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		if (ErosEngine.gBL_HandshakeBlender() == false)
 			throw new CException("ERROR: Could not handshake with Blender!  Game unusable.");
 
         SetForegroundWindow(_hWnd_Unity);			// Set our editor / player back into focus (away from just-spawned Blender)
 		
 		//=== Start PhysX ===
-		UnityEngine.Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
 
-		UnityEngine.Debug.Log("5. PhysX2 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("5. PhysX2 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		ErosEngine.PhysX2_Create();						//###IMPROVE!!! Return argument ###NOTROBUST
 
-		UnityEngine.Debug.Log("6. OpenCL Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("6. OpenCL Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 //		if (System.Environment.CommandLine.Contains("-DisableOpenCL") == false)	//###TODO More / better command line processing?		//###SOON ####BROKEN!!!!! OpenCL breaks cloth GPU!
 //			ErosEngine.MCube_Init();		//###IMPROVE: Log message to user!
 
 		SetForegroundWindow(_hWnd_Unity);			//###WEAK: Can get rid of??
 
 		//=== Start misc stuff ===
-		UnityEngine.Debug.Log("7. CGame globals.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("7. CGame globals.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		_oSceneMeshesGO = GameObject.Find("SceneMeshes");			// Remember our scene game object so we can hide/show
 
 		_aGuiMessages = new string[(int)EGameGuiMsg.COUNT];
@@ -258,14 +316,14 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		_oCamTarget = GameObject.Find("CCamTarget").GetComponent<CCamTarget>();		//###WEAK!!!
 		_oCamTarget.OnStart();
 
-		UnityEngine.Debug.Log("8. Body Assembly.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);		//###WEAK!!!
+		Debug.Log("8. Body Assembly.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);		//###WEAK!!!
 
 		//_oFluid.OnStart();								//###CHECK: Keep interleave
 
 		SetGameModeBasicInteractions(true);
 
 		//=== Find the static scene colliders in 'SceneColliders' node and initialize them ===
-		//UnityEngine.Debug.Log("CGame.StartGame() Registering Static Colliders: " + s_aColliders_Scene.Length);
+		//Debug.Log("CGame.StartGame() Registering Static Colliders: " + s_aColliders_Scene.Length);
         if (s_aColliders_Scene != null)
 		    foreach (CCollider oColStatic in s_aColliders_Scene)		// Colliders that are marked as static registered themselves to us in their Awake() so we can start and destroy them
 			    oColStatic.OnStart();
@@ -275,9 +333,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		_GameIsRunning = true;
 		enabled = true;
-		UnityEngine.Debug.Log("+++ GameIsRunning ++");
+		Debug.Log("+++ GameIsRunning ++");
 
-		UnityEngine.Debug.Log("7. Scene settling time.");  //###???  new WaitForSeconds(2.0f);		//###DESIGN??  ###TUNE??
+		Debug.Log("7. Scene settling time.");  //###???  new WaitForSeconds(2.0f);		//###DESIGN??  ###TUNE??
 		///_oGui.ShowSceneBlanker(false);
 		///_oGui.ShowPanelGameLoad(false);
 
@@ -287,13 +345,13 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			yield return oWWW;
 			string sResultAuth = oWWW.text;
 			_DemoVersion = sResultAuth.Contains("Result=OK") == false;		//###IMPROVE: Create parse routine and return server errors
-			UnityEngine.Debug.Log("Auth Results = " + sResultAuth);
+			Debug.Log("Auth Results = " + sResultAuth);
 			if (_DemoVersion == false)
-				UnityEngine.Debug.Log("Starting game in non-demo mode.");
+				Debug.Log("Starting game in non-demo mode.");
 		}*/
 		//_DemoVersion = false;
 		//if (_DemoVersion)
-		//	UnityEngine.Debug.Log("Starting game in demo mode.");		//###TODO: Temp caption!
+		//	Debug.Log("Starting game in demo mode.");		//###TODO: Temp caption!
 
 ///		if (_bRunningInEditor == false)
 ///			CUtility.WndPopup_Create(EWndPopupType.LearnToPlay, null, "Online Help", 50, 50);	// Show the help dialog at start... ###BUG: Does not change the combo box at top!
@@ -335,7 +393,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 
     public void OnDestroy() {			//####REV
-		UnityEngine.Debug.Log("--- CGame.OnDestroy() ---");
+		Debug.Log("--- CGame.OnDestroy() ---");
 		if (INSTANCE != null)					//####CHECK ###TEMP???  ###DESIGN!!!! W
 			DestroyGame();
 		//Application.Quit();				//###CHECK
@@ -343,7 +401,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 
 	public void DestroyGame() {
-		UnityEngine.Debug.Log("--- CGame.DestroyGame() ---");
+		Debug.Log("--- CGame.DestroyGame() ---");
 
 		_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
 
@@ -361,7 +419,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		    try {
 			    _oProcessBlender.Kill();				//###HACK!!
 		    } catch (Exception e) {
-			    UnityEngine.Debug.LogException(e);
+			    Debug.LogException(e);
 		    }
 		    _oProcessBlender = null;		//###IMPROVE: Save Blender file before exit!  Tell blender to close itself intead of killing it!!!  Wait for its termination??
         }
@@ -404,8 +462,15 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         if (Input.GetKeyDown(KeyCode.F12))
             HoldSoftBodiesInReset(true);
 
-        //=== Process standard keys === ###IMPROVE: Switch them to CKeyHook???
-        if (Input.GetKeyDown(KeyCode.CapsLock)) //###IMPROVE?
+        if (Input.GetKeyDown(KeyCode.LeftBracket))      //###TEMP
+            HideShowMeshes(false);
+        if (Input.GetKeyDown(KeyCode.RightBracket))
+            HideShowMeshes(true);
+        if (Input.GetKeyDown(KeyCode.Backslash))
+            HideShowMeshes();
+
+            //=== Process standard keys === ###IMPROVE: Switch them to CKeyHook???
+            if (Input.GetKeyDown(KeyCode.CapsLock)) //###IMPROVE?
             SetGameModeBasicInteractions(!_bGameModeBasicInteractions);
 
         if (Input.GetKeyDown(KeyCode.Alpha1))
@@ -422,12 +487,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
             ScenePose_Load("Spreading on bed", false);
 
 
-        if (Input.GetKeyDown(KeyCode.Minus)) {
-            ShowBodies(false);
-        }
-        if (Input.GetKeyDown(KeyCode.Equals)) {
-            ShowBodies(true);
-        }
+
 
 
         if (Input.GetKeyDown(KeyCode.Backslash)) {
@@ -446,7 +506,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
             sDateTime = sDateTime.Replace('/', '-');
             sDateTime = sDateTime.Replace(':', '.');
             string sPathFileCapture = GetPathScreenCaptures() + _sNameScenePose + " - " + sDateTime;
-            UnityEngine.Debug.Log("Saved screen capture file to " + sPathFileCapture);  //###IMPROVE: Save a .jpg
+            Debug.Log("Saved screen capture file to " + sPathFileCapture);  //###IMPROVE: Save a .jpg
             Application.CaptureScreenshot(sPathFileCapture);
         }
 
@@ -662,7 +722,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 				//	//if (_oProcessBlender != null) {		//###IMPROVE: Find a way to extract stdout from Blender console!!
 				//	//	string sOut = _oProcessBlender.StandardOutput.ReadLine();
 				//	//	if (sOut.Length > 0)
-				//	//		UnityEngine.Debug.Log("B: " + sOut);
+				//	//		Debug.Log("B: " + sOut);
 				//	//}
 				//}
 			}
@@ -685,7 +745,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	public delegate IntPtr Phys_OnPhys_Delegate(EPhysDest eDest, EPhysReq eRequest, EPhysType eType, int nID, int nArg, string sMsg);
 	public IntPtr Phys_OnPhys(EPhysDest eDest, EPhysReq eRequest, EPhysType eType, int nID, int nArg, string sMsg) {						//###DESIGN!!!!: Callback can have huge problems being called out of context with null or wrong 'this'!!!  Make static???
 		//###*OBS??
-		UnityEngine.Debug.LogError(">OnPhys Req:" + eRequest + "  Type:" + eType + "  ID:" + nID + "  Arg:" + nArg + " for '" + sMsg + "'");		//###TODO: Add 'verbose' debug flag
+		Debug.LogError(">OnPhys Req:" + eRequest + "  Type:" + eType + "  ID:" + nID + "  Arg:" + nArg + " for '" + sMsg + "'");		//###TODO: Add 'verbose' debug flag
 		
 		IntPtr pOut = IntPtr.Zero;
 
@@ -696,7 +756,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 						OnPhys_Message(sMsg);
 						break;
 					case EPhysReq.Dump:
-						UnityEngine.Debug.Log("[PhysMsg: '" + sMsg + "']");
+						Debug.Log("[PhysMsg: '" + sMsg + "']");
 						break;
 				}
 				break;
@@ -706,7 +766,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 	
 	void OnPhys_Message(string sMsg) {		//###DESIGN!!: Rethink needs for these messages
-		UnityEngine.Debug.LogWarning(">OnPhys Msg:" + sMsg);
+		Debug.LogWarning(">OnPhys Msg:" + sMsg);
 	}
 
 
@@ -714,35 +774,37 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     //---------------------------------------------------------------------------	HIDE / SHOW
 
-    void HideOrShowBodyMeshes(bool bShow) {     //###MOVE
-        foreach (CBody oBody in _aBodies) {
-            if (oBody == null)
-                continue;
-            MeshRenderer[] aMR = oBody._oBodyRootGO.GetComponentsInChildren<MeshRenderer>();
-            foreach (MeshRenderer oMR in aMR) {
-                if (oMR.gameObject.name.StartsWith("Hotspot-"))
-                    continue;
-                if (oMR.gameObject.name.StartsWith("CHandTarget-"))
-                    continue;
-                oMR.enabled = bShow;
-            }
-            SkinnedMeshRenderer[] aSMR = oBody._oBodyRootGO.GetComponentsInChildren<SkinnedMeshRenderer>();
-            foreach (SkinnedMeshRenderer oSMR in aSMR) {
-                oSMR.enabled = bShow;
-            }
-        }
-    }
+    //void HideOrShowBodyMeshes(bool bShow) {     //###MOVE
+    //    foreach (CBody oBody in _aBodies) {
+    //        if (oBody == null)
+    //            continue;
+    //        MeshRenderer[] aMR = oBody._oBodyRootGO.GetComponentsInChildren<MeshRenderer>();
+    //        foreach (MeshRenderer oMR in aMR) {
+    //            if (oMR.gameObject.name.StartsWith("Hotspot-"))
+    //                continue;
+    //            if (oMR.gameObject.name.StartsWith("CHandTarget-"))
+    //                continue;
+    //            oMR.enabled = bShow;
+    //        }
+    //        SkinnedMeshRenderer[] aSMR = oBody._oBodyRootGO.GetComponentsInChildren<SkinnedMeshRenderer>();
+    //        foreach (SkinnedMeshRenderer oSMR in aSMR) {
+    //            oSMR.enabled = bShow;
+    //        }
+    //    }
+    //}
 
-    void HideOrShowBoneRenderers(bool bShow) {      //###MOVE
+    void HideOrShowPhysxColliders(bool bShowPhysxColliders) {      //###MOVE
+        ShowPhysxColliders = bShowPhysxColliders;
+
         foreach (CBody oBody in _aBodies) {
             if (oBody == null)
                 continue;
-            if (bShow) {
+            if (bShowPhysxColliders) {
                 Collider[] aCollidersInBody = oBody._oBodyRootGO.GetComponentsInChildren<Collider>();
                 foreach (Collider oCollider in aCollidersInBody) {
                     if (oCollider.gameObject.name.StartsWith("Hotspot-"))         //###DUPLICATE ###IMPROVE: To function call or other means?
                         continue;
-                    if (oCollider.gameObject.name.StartsWith("CHandTarget-"))
+                    if (oCollider.gameObject.name.StartsWith("CHandTarget-"))       //###IMPROVE: Add another flag for this stuff?
                         continue;
                     if (oCollider.GetType() == typeof(CapsuleCollider)) {
                         CapsuleCollider oColliderCapsule = (CapsuleCollider)oCollider;
@@ -795,11 +857,25 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         }
     }
 
-    void ShowBodies(bool bShow) {
-        HideOrShowBodyMeshes(bShow);
-        HideOrShowBoneRenderers(bShow == false);
+    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
+        foreach (CBody oBody in _aBodies)
+            if (oBody != null)
+                oBody.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
+        HideOrShowPhysxColliders(bShowPhysxColliders);
     }
 
+    public void HideShowMeshes() {
+        HideShowMeshes(ShowPresentation, ShowPhysxColliders, ShowMeshStartup, ShowPinningRims, ShowFlexSkinned, ShowFlexColliders, ShowFlexParticles);
+    }
+
+
+    void HideShowMeshes(bool bShowPresentationMeshes) {
+        ShowPresentation = bShowPresentationMeshes;
+        ShowPhysxColliders = !bShowPresentationMeshes;
+        if (bShowPresentationMeshes)        // Quickly set all the debug rendering off if we want presentation meshes.
+            ShowMeshStartup = ShowPinningRims = ShowFlexSkinned = ShowFlexColliders = ShowFlexParticles = false;
+        HideShowMeshes();
+    }
 
 
     //---------------------------------------------------------------------------	GAME MODES
@@ -822,7 +898,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         	case EGameModes.Configure:
         		break;
         }
-        ShowBodies(_ShowBodies);
+        HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
         foreach (CBody oBody in _aBodies)
@@ -864,8 +940,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		IntPtr hStringIntPtr = ErosEngine.gBL_Cmd(sCmdFull, false);		//###LEARN: Non-crash & non-leak way to obtain strings from C++ is at http://www.mono-project.com/Interop_with_Native_Libraries#Strings_as_Return_Values
 		string sResults = Marshal.PtrToStringAnsi(hStringIntPtr);
 		if (sResults.StartsWith("ERROR:"))		//###IMPROVE: Internal C code also has numeric error values not exported to Unity... Error strings enough?
-			UnityEngine.Debug.LogError("ERROR: Cmd_Wrapper error results.  OUT='" + sCmdFull + "'  IN='" + sResults + "'");		//###WEAK: Assume all error strings start with this!  ####DEV!!!!
-		//UnityEngine.Debug.Log("-Cmd_Wrapper OUT='" + sCmd + "'  IN='" + sResults + "'");
+			Debug.LogError("ERROR: Cmd_Wrapper error results.  OUT='" + sCmdFull + "'  IN='" + sResults + "'");		//###WEAK: Assume all error strings start with this!  ####DEV!!!!
+		//Debug.Log("-Cmd_Wrapper OUT='" + sCmd + "'  IN='" + sResults + "'");
 		return sResults;
 	}
 
@@ -916,7 +992,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			//oProc.StartInfo.RedirectStandardInput = true;	//###IMPROVE!!!! Possibly to feed commands to Blender via its console-based Python console?  Would be ultra cool!!  ###RESEARCH!!!!!
 		}
 		oProc.StartInfo.WindowStyle = eWinStyle;
-		UnityEngine.Debug.Log(string.Format("CGame.LaunchProcess() file='{0}'  args='{1}'", sFileProcess, sArguments));
+		Debug.Log(string.Format("CGame.LaunchProcess() file='{0}'  args='{1}'", sFileProcess, sArguments));
 		oProc.Start();			//###IMPROVE: Many powerful features in this class!!!!
 		//ShowWindow(oProc.MainWindowHandle, 2);            //###IMPROVE?
 		return oProc;		//###CHECK: Will above throw if there was an error??  We need to throw if error!
@@ -933,10 +1009,10 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 
 	static void oProcess_OutputDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
-		UnityEngine.Debug.Log("B: " + e.ToString());
+		Debug.Log("B: " + e.ToString());
 	}
 	static void oProcess_ErrorDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e) {
-		UnityEngine.Debug.LogError("B.Error! " + e.ToString());
+		Debug.LogError("B.Error! " + e.ToString());
 	}
 
 	static void oProcess_Exited(object sender, EventArgs e) {
@@ -1055,7 +1131,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			_sNameScenePose = sNameScenePose;
 			_bScenePoseFlipped = bScenePoseFlipped;
             SetBodiesAsKinematic(true);
-			UnityEngine.Debug.Log("Scene_Load() loading scene " + sPathScenePose);
+			Debug.Log("Scene_Load() loading scene " + sPathScenePose);
 			StreamReader oStreamRead = new StreamReader(sPathScenePose);
 			string sLine = oStreamRead.ReadLine();
 			EPoseRootPos ePoseRootPos = (EPoseRootPos)Enum.Parse(typeof(EPoseRootPos), sLine);
@@ -1091,7 +1167,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			}
         }
         else {
-			UnityEngine.Debug.LogError("Scene_Load() cannot find file " + _sNameScenePose);
+			Debug.LogError("Scene_Load() cannot find file " + _sNameScenePose);
 		}
         SetBodiesAsKinematic(false);      // Resume normal property sets (changes to pose nodes only move the node and not the PhysX bone)
     }
@@ -1102,7 +1178,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
 		string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
-		UnityEngine.Debug.Log("Scene_Save() saving scene " + sPathScenePose);
+		Debug.Log("Scene_Save() saving scene " + sPathScenePose);
 		StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
 		EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
 		oStreamWrite.WriteLine(ePoseRootPos.ToString());
@@ -1178,7 +1254,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_aBodies[0], new CObject[] { _oObj });        //###DESIGN: What to do??  ###U
 	}
 
 
@@ -1227,7 +1303,10 @@ public enum EGameGuiMsg {		//###OBS??  ###TODO: Incomplete!
 	FluidSimulation,
 	MouseEdit,
     Misc1,
-	COUNT						// Not an actual entry, just for sizing
+    CursorStat1,
+    CursorStat2,
+    CursorStat3,
+    COUNT						// Not an actual entry, just for sizing
 }
 
 public enum EPoseRootPos {		//###MOVE Scene 3D positions to act as 'root' for the CPoseRoot.  MUST match content of folder node Resources/EPoseRootPos!
@@ -1250,4 +1329,4 @@ public enum EPoseRootPos {		//###MOVE Scene 3D positions to act as 'root' for th
 
 
 //Time.timeScale = (Time.timeScale == 1.0f) ? 0.05f : 1.0f;		//###REVA ###TEMP
-//UnityEngine.Debug.Log("TimeScale=" + Time.timeScale.ToString());
+//Debug.Log("TimeScale=" + Time.timeScale.ToString());

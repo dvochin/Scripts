@@ -15,7 +15,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 	public	IntPtr				_hObject;				// The important server-side entity pointer.  Used on non-local objects & properties only
 	public	CProp[]				_aProps;
 	public	List<CPropGroup>	_aPropGroups = new List<CPropGroup>();
-			CPropGroup			_oPropGroup_LastAdded;	// The lastly-added 'property group' that provides a simple level of indirection between GUI grouping and our flat/fast properties.
+    CPropGroup			        _oPropGroup_LastAdded;	// The lastly-added 'property group' that provides a simple level of indirection between GUI grouping and our flat/fast properties.
 	public	Type				_oTypeFieldsEnum;
 	public	bool				_bInitialized;			// Object is fully initialized and ready for full functioning (set in FinishInitialization()
 

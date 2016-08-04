@@ -238,7 +238,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
    //         }
             //####SOON ####CLEANUP
-            _oUIWidget = CUIDropdown.Create(oPropGrp._oUICanvas, this, aFieldsEnum);
+            _oUIWidget = CUIDropdown.Create(oPropGrp._oUIPanel, this, aFieldsEnum);
 
         }
         else if ((_nPropFlags & CProp.AsCheckbox) != 0) {
@@ -253,7 +253,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			//oCheckbox.style.alignment = TextAnchor.LowerLeft;			//###IMPROVE: Checkbox too high... how to lower??
 			//_oWidgetGUI = oCheckbox;
 
-            _oUIWidget = CUIToggle.Create(oPropGrp._oUICanvas, this);
+            _oUIWidget = CUIToggle.Create(oPropGrp._oUIPanel, this);
 
         }
         else if ((_nPropFlags & CProp.AsButton) != 0) {
@@ -266,7 +266,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			//oButton.style.fontSize = 13;
 			//_oWidgetGUI = oButton;
 
-            _oUIWidget = CUIButton.Create(oPropGrp._oUICanvas, this);
+            _oUIWidget = CUIButton.Create(oPropGrp._oUIPanel, this);
 
         }
         else {
@@ -281,7 +281,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			//_oWidgetGUI = oSlider;
 			//_oWidgetGUI.positionAndSize.Set(0, 0, 1, G.C_Gui_WidgetsHeight);
 
-            _oUIWidget = CUISlider.Create(oPropGrp._oUICanvas, this);
+            _oUIWidget = CUISlider.Create(oPropGrp._oUIPanel, this);
         }
         //} 
   //      _oWidgetGUI.variableName = _sNameProp;			//###CHECK: Safe with spaces in-between??
@@ -390,7 +390,7 @@ public class CPropGroup {
 	public bool				_bInvisible;
 	public int				_nNumWidgetColumns;					    // The number of widgets packed left-to-right in this property group.  Used for small controls like checkboxes and short buttons.  Create a container if non-zero
 	//public iGUIContainer	_oContainer;							// The GUI container that will store our child properties.
-    public CUICanvas        _oUICanvas;                             // The canvas that owns us ####DESIGN??
+    public CUIPanel        _oUIPanel;                             // The canvas that owns us ####DESIGN??
     public List<int>		_aPropIDs = new List<int>();
 
     public CPropGroup(string sNamePropGrp, string sDescPropGrp, bool bInvisible = false, int nNumWidgetColumns = 1) {

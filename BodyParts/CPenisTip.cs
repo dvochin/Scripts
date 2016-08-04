@@ -67,7 +67,7 @@ public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CP
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		switch (eHotSpotEvent) {
 			case EHotSpotEvent.ContextMenu:
-				_oHotSpot.WndPopup_Create(new CObject[] { _oPenis._oObjDriver, _oPenis._oObj, _oObj });		//###DESIGN: Keep penis and penis tip objects accessible from penis tip? (or give penis its own hotspot??)
+				_oHotSpot.WndPopup_Create(null, new CObject[] { _oPenis._oObjDriver, _oPenis._oObj, _oObj });		//###DESIGN: Keep penis and penis tip objects accessible from penis tip? (or give penis its own hotspot??)
 				break;
 			case EHotSpotEvent.TriggerEnter:
 				Collider oCol1 = o as Collider;

@@ -89,8 +89,9 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 
     CBMesh _oMeshFlexCollider;                           // The 'collision' mesh fed to Flex.  It as a 'shrunken version' of the appearance mesh _oMeshNow by half the Flex collision margin so that the visible mesh appears to collide with other particles much closer than if collision mesh was rendered to the user.  (Created by Blender by a 'shrink' operation)
     CHotSpot _oHotSpot;                          // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
-    uFlex.FlexParticles     _oSoftFlexParticles;
+    uFlex.FlexParticles     _oFlexParticles;
     uFlex.FlexShapeMatching _oFlexShapeMatching;
+    uFlex.FlexParticlesRenderer _oFlexParticlesRenderer;
     Mesh _oMeshFlexGenerated = new Mesh();
     Vector3[] _aFlexParticlesAtStart;
     Transform _oBoneAnchor;                     // The bone this softbody 'anchors to' = Resets to the world-space position / rotation during reset
@@ -133,9 +134,11 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 		//=== Create the collision mesh from Blender ===
 		_oMeshFlexCollider = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
         _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = false;      // Collider does not render... only for Flex definition!
+        _oMeshFlexCollider.transform.SetParent(transform);
 
         //=== Create the Unity2Blender mesh so we can pass tetraverts to Blender for processing there ===
         _oMesh_Unity2Blender = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
+        _oMesh_Unity2Blender.transform.SetParent(transform);
     }
 
 
@@ -155,29 +158,32 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
                 CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);
                 uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
                 oFlexProc._oFlexProcessor = this;
-                _oSoftFlexParticles = GetComponent<uFlex.FlexParticles>();
+                _oFlexParticles = GetComponent<uFlex.FlexParticles>();
+                _oFlexParticlesRenderer = GetComponent<uFlex.FlexParticlesRenderer>();
+
 
                 //=== Backup the position of the particles at startup time (so we can reset softbody after pose teleport) ===
-                _aFlexParticlesAtStart = new Vector3[_oSoftFlexParticles.m_particlesCount];
-                for (int nParticle = 0; nParticle < _oSoftFlexParticles.m_particlesCount; nParticle++)
-                    _aFlexParticlesAtStart[nParticle] = _oBoneAnchor.worldToLocalMatrix.MultiplyPoint(_oSoftFlexParticles.m_particles[nParticle].pos);      //###LEARN: How to properly convert from world to local (taking into account the full path of the transform we're converting about)
+                _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
+                for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++)
+                    _aFlexParticlesAtStart[nParticle] = _oBoneAnchor.worldToLocalMatrix.MultiplyPoint(_oFlexParticles.m_particles[nParticle].pos);      //###LEARN: How to properly convert from world to local (taking into account the full path of the transform we're converting about)
 
 
                 //=== Fill in the Flex tetraverts into our 'Unity2Blender' mesh so it can quickly skin and pin the appropriate verts ===
                 //###F: Enhance Unity2Blender functionality to accept any # of verts!
-                int nVertTetras = _oSoftFlexParticles.m_particlesCount;
+                int nVertTetras = _oFlexParticles.m_particlesCount;
                 if (nVertTetras > CBody.C_Unity2Blender_MaxVerts)			// Unity to Blender mesh created at a fixed size with the max number of verts we're expecting.  Check if we're within our set limit
                 	throw new Exception("ERROR in CBSoft.Init()  More tetraverts than # of verts in Unity2Blender mesh!");
 
                 //=== Upload our tetraverts to Blender so it can select those that are pinned and skin them ===
                 for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
-                    _oMesh_Unity2Blender._memVerts.L[nVertTetra] = _oSoftFlexParticles.m_particles[nVertTetra].pos;
+                    _oMesh_Unity2Blender._memVerts.L[nVertTetra] = _oFlexParticles.m_particles[nVertTetra].pos;
 				_oMesh_Unity2Blender.UpdateVertsToBlenderMesh();                // Blender now has our tetraverts.  It can now find the tetraverts near the rim and skin them
 
                 //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
                 float nRangeTetraPinHunt = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nRimTetraVertHuntDistanceMult;       //###TUNE: Make relative to all-important Flex particle size!
                 CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nVertTetras.ToString() + ", " + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
 				_oMeshRimBaked = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+                _oMeshRimBaked.transform.SetParent(transform);
 
                 //=== Receive the important 'CSoftBody.aMapRimTetravert2Tetravert' and 'CSoftBody.aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
                 List<ushort> aMapVertsSkinToSim;
@@ -186,7 +192,6 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 
                 //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
                 _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-                GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.showFlexParticles == false;       // Hide or show debug particles
                 _oFlexShapeMatching     = GetComponent<uFlex.FlexShapeMatching>();
                 _oFlexGeneratedSMR      = GetComponent<SkinnedMeshRenderer>();
                 //_oFlexGeneratedSMR.enabled = true;
@@ -222,7 +227,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexSkinnedMesh>());
                 CUtility.DestroyComponent(GetComponent<SkinnedMeshRenderer>());
                 CUtility.DestroyComponent(_oFlexToSkinnedMesh);     _oFlexToSkinnedMesh = null;
-                CUtility.DestroyComponent(_oSoftFlexParticles);     _oSoftFlexParticles = null;
+                CUtility.DestroyComponent(_oFlexParticles);     _oFlexParticles = null;
 
                 if (_oObj != null) {
 					_oObj = null;
@@ -257,14 +262,30 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
     }
 
     public void Reset_SoftBody_DoReset() {                       // Reset softbody to its startup state around anchor bone.  Essential during pose load / teleportation!
-        if (_oSoftFlexParticles != null) { 
+        if (_oFlexParticles != null) { 
             for (int nParticle = 0; nParticle < _aFlexParticlesAtStart.Length; nParticle++) {       //_oSoftFlexParticles.m_particlesCount
-                _oSoftFlexParticles.m_particles [nParticle].pos = _oBoneAnchor.localToWorldMatrix.MultiplyPoint(_aFlexParticlesAtStart[nParticle]);
-                _oSoftFlexParticles.m_velocities[nParticle] = Vector3.zero;
+                _oFlexParticles.m_particles [nParticle].pos = _oBoneAnchor.localToWorldMatrix.MultiplyPoint(_aFlexParticlesAtStart[nParticle]);
+                _oFlexParticles.m_velocities[nParticle] = Vector3.zero;
             }
         }
     }
 
+    
+    //--------------------------------------------------------------------------	UTILITY
+    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
+        //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
+        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+        if (_oFlexToSkinnedMesh != null)
+            _oFlexToSkinnedMesh._oSkinMeshRend_SkinnedMesh.enabled = bShowPinningRims;
+        if (_oFlexGeneratedSMR != null)
+            _oFlexGeneratedSMR.enabled = bShowFlexSkinned;
+        if (_oMeshFlexCollider != null)
+            _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = bShowFlexColliders;        // Add a flag for this intermediate mesh?  ###DESIGN: Or delete once done?
+        if (_oFlexParticlesRenderer != null)
+            _oFlexParticlesRenderer.enabled = bShowFlexParticles;
+        if (_oMesh_Unity2Blender != null)
+            _oMesh_Unity2Blender.GetComponent<MeshRenderer>().enabled = false;      // Always hide this mesh... no visible value?
+    }
 
 
     //--------------------------------------------------------------------------	IHotspot interface
@@ -273,7 +294,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {		//###DESIGN? Currently an interface call... but if only GUI interface occurs through CObject just have cursor directly invoke the GUI_Create() method??
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
 	}
 
     public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
@@ -289,9 +310,9 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
     }
 
     public void OnPropSet_Mass(float nValueOld, float nValueNew) {
-        float nInvMassPerParticle = 1 / (nValueNew * _oSoftFlexParticles.m_particlesCount);     // Note that this count is all particles (including pinned)... change to only unpinned particles for mass?
-        for (int nPar = 0; nPar < _oSoftFlexParticles.m_particlesCount; nPar++)
-            _oSoftFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;        //###BUG: Pin particles  ###F
+        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount);     // Note that this count is all particles (including pinned)... change to only unpinned particles for mass?
+        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount; nPar++)
+            _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;        //###BUG: Pin particles  ###F
    //     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {            // Iterate through the rim tetraverts to update the position of their corresponding tetraverts
    //         nIndex++;   // ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
 			//ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];

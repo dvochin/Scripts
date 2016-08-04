@@ -369,6 +369,6 @@ public class CFlex : MonoBehaviour {
         //=== Add particle renderer ===
         uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(go, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
         partRend.m_size = partRend.m_radius = particleSpacing;
-        partRend.enabled = CGame.INSTANCE.showFlexParticles;
+        partRend.enabled = false;           // Hidden by default
     }
 }

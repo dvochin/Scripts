@@ -775,15 +775,25 @@ public class CUtility {			// Collection of static utility functions
     #endregion
 	
     #region === UI ===
-    public static void WndPopup_Create(EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1)
-    {
+    public static void WndPopup_Create(CBody oBody, EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1) {
+        //=== Find the closest canvas to the camera ===
+        float nDistToCamClosest = float.MaxValue;
+        CUICanvas oCanvasClosest = null;
+        foreach (CUICanvas oCanvas in oBody._aUICanvas) {
+            float nDistToCam = Vector2.Distance(oCanvas.transform.position, Camera.main.transform.position);
+            if (nDistToCamClosest > nDistToCam) {
+                nDistToCamClosest = nDistToCam;
+                oCanvasClosest = oCanvas;
+            }
+        }
+
         //=== Construct the dialog's content dependent on what type of dialog it is ===
-        CUICanvas oUICanvas = CUICanvas.Create();           //####DESIGN!  ####SOON ####CLEANUP?
+        CUIPanel oPanel = CUIPanel.Create(oCanvasClosest);           //####DESIGN!  ####SOON ####CLEANUP?
         int nRows = 0;
         int nPropGrps = 0;
         foreach (CObject oObj in aObjects) {
             foreach (CPropGroup oPropGrp in oObj._aPropGroups) {   //###BUG!: Inserts one extra!  Why??
-                oPropGrp._oUICanvas = oUICanvas;                    //####IMPROVE ####MOVE??
+                oPropGrp._oUIPanel = oPanel;                    //####IMPROVE ####MOVE??
                 //////////oPropGrp.CreateWidget(oListBoxContent);
                 foreach (int nPropID in oPropGrp._aPropIDs) {
                     CProp oProp = oObj.PropFind(nPropID);
@@ -792,8 +802,8 @@ public class CUtility {			// Collection of static utility functions
                 nPropGrps++;
             }
         }
-        oUICanvas.transform.position = CGame.INSTANCE._oCursor.transform.position;
-        oUICanvas.transform.rotation = Camera.main.transform.rotation;
+        //oCanvas.transform.position = CGame.INSTANCE._oCursor.transform.position;
+        //oCanvas.transform.rotation = Camera.main.transform.rotation;
     }
     #endregion
 }

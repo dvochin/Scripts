@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class CUIButton : CUIWidget {
     [HideInInspector]   public Button     _oButton;
 
-    public static CUIButton Create(CUICanvas oCanvas, CProp oProp) {
+    public static CUIButton Create(CUIPanel oCanvas, CProp oProp) {
         GameObject oButtonResGO = Resources.Load("UI/CUIButton") as GameObject;
         GameObject oButtonGO = Instantiate(oButtonResGO) as GameObject;
         oButtonGO.transform.SetParent(oCanvas.transform, false);
@@ -14,7 +14,7 @@ public class CUIButton : CUIWidget {
         return oUIButton;
     }
 
-    public override void Init(CUICanvas oCanvas, CProp oProp) {
+    public override void Init(CUIPanel oCanvas, CProp oProp) {
         _oButton = GetComponent<Button>();                              // Button is our node
         _oTextLabel = transform.GetChild(0).GetComponent<Text>();       // Label is always 1st child of prefab
         base.Init(oCanvas, oProp);

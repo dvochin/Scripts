@@ -23,7 +23,7 @@ public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : 
 	//---------------------------------------------------------------------------	HOTSPOT EVENTS
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(null, new CObject[] { _oObj });
 	}
 
 	public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {

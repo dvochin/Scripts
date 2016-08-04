@@ -54,7 +54,7 @@ public class CCursor : MonoBehaviour {
 	[HideInInspector] 	public 	CGizmo		_oGizmo;					// The current gizmo we have shown on screen / own.  Null if not editing any object.
 
 	//---------------------------------------------------------------------------	GUI PROPERTIES
-						public 	float		_DefaultCursorDepth = 0.9f;			// Distance between the selected Hotspot and camera... how far cursor goes 'into the scene' -> critical for 3D
+						public 	float		_DefaultCursorDepthOnHotspots = 0.90f;			// Distance between the selected Hotspot and camera... how far cursor goes 'into the scene' -> critical for 3D  ###TUNE!
 
 	//---------------------------------------------------------------------------	INTERNAL MEMBERS
 								EModeCursor	_eModeCursor  = EModeCursor.S1_SearchingForHotspot;
@@ -88,6 +88,9 @@ public class CCursor : MonoBehaviour {
 						public const uint 	C_LayerMask_HotSpot 		= (uint)1 << C_Layer_HotSpot;
 
 						public const float	C_TimeMaxForMouseClick		= 0.2f;		// Mouse clicks longer then this do not do anything ###TUNE
+
+
+    public Transform _oCurrentGuiObject_HACK = null;                    // Current Unity GUI object under the cursor.  Comes from our CUIPanel and used for cursor 3D depth adjustment.
 
 
 	
@@ -139,34 +142,54 @@ public class CCursor : MonoBehaviour {
 
 		//###WEAK?  The changes above to cursor mode operation are specific to the game and take away some of the generic behavior that may be useful for other purposes
              if (Input.GetKeyDown(KeyCode.W))	SetEditMode(EEditMode.Move);		// W = Move
-		else if (Input.GetKeyDown(KeyCode.R))	SetEditMode(EEditMode.Rotate);		// R = Rotate
-		//else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
-		//else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
-	
-		//=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
-		//_oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(0xFFFFFFFF);
-		//CGame.SetGuiMessage(EGameGuiMsg.Dev, _oRayHit_LayerHotSpot.transform.name);
-		_oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(nLayerTargetMask);
+		else if (Input.GetKeyDown(KeyCode.T))	SetEditMode(EEditMode.Rotate);      // T = roTate               //###WEAK: Conflicts with reset!  Which to keep??
+                                                                                    //else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
+                                                                                    //else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
+
+        //=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
+        CGame.SetGuiMessage(EGameGuiMsg.CursorStat1, "Cursor Mode: " + _eModeCursor.ToString());
+        _oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(0xFFFFFFFF);
+        if (_oRayHit_LayerHotSpot.collider != null)
+            CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: " + _oRayHit_LayerHotSpot.transform.name);
+        else
+            CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: None");
+        _oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(nLayerTargetMask);
 		if (_oRayHit_LayerHotSpot.collider != null)
-			_nDepth = _oRayHit_LayerHotSpot.distance * _DefaultCursorDepth;         // We adjust the '3D depth' of mouse cursor only when a collider is found.  ###IMPROVE: Implement slerp to gracefully change depth?
-		Vector3 vecMouse2D = new Vector3(Input.mousePosition.x, Input.mousePosition.y, _nDepth);		//###OPT: Cache localPosition??
+			_nDepth = _oRayHit_LayerHotSpot.distance * _DefaultCursorDepthOnHotspots;         // We adjust the '3D depth' of mouse cursor only when a collider is found.  ###IMPROVE: Implement slerp to gracefully change depth?
+
+
+
+  //      GameObject oSelectedUI = EventSystem.current.currentSelectedGameObject;     // EventSystem.current.IsPointerOverGameObject()) {        // If cursor is over Unity UI widget set cursor directly there and don't process further cursor functionality
+  //      if (oSelectedUI != null) { 
+		//    CGame.SetGuiMessage(EGameGuiMsg.CursorStat3, "Cursor GUI: " + oSelectedUI.name);
+  //          //transform.position = Camera.main.ScreenToWorldPoint(;
+  //          //PointerEventData eventDataCurrentPosition = new PointerEventData(EventSystem.current);
+  //          //eventDataCurrentPosition.position = screenPosition;
+  //          //GraphicRaycaster uiRaycaster = canvas.gameObject.GetComponent<GraphicRaycaster>();
+  //          //List<RaycastResult> results = new List<RaycastResult>();
+  //          //uiRaycaster.Raycast(eventDataCurrentPosition, results);
+  //          //return results.Count > 0;
+  //          _nDepth = Vector3.Distance(oSelectedUI.transform.position, Camera.main.transform.position);
+		//} else {
+  //          CGame.SetGuiMessage(EGameGuiMsg.CursorStat3, "(Cursor: No GUI control)");
+  //      }
+
+
+        if (_oCurrentGuiObject_HACK != null)        //###CHECK: Proper transforms for VR??  For SpaceNavigator??
+            _nDepth = Vector3.Distance(_oCurrentGuiObject_HACK.position, Camera.main.transform.position);     //###DESIGN: Override hotspot depth above??   ###IDEA: Have cursor a child of panel when it is hovering on top??
+
+
+        Vector3 vecMouse2D = new Vector3(Input.mousePosition.x, Input.mousePosition.y, _nDepth);		//###OPT: Cache localPosition??
 		Vector3 vecMouse3D = Camera.main.ScreenToWorldPoint(vecMouse2D);
 		transform.position = vecMouse3D;
-		//CGame.SetGuiMessage(EGameGuiMsg.MouseStatus, _eModeCursor.ToString());
 
-		
-		if (EventSystem.current.IsPointerOverGameObject()) {        // If cursor is over Unity UI widget set cursor directly there and don't process further cursor functionality
-			//transform.position = Camera.main.ScreenToWorldPoint(;
-			//PointerEventData eventDataCurrentPosition = new PointerEventData(EventSystem.current);
-			//eventDataCurrentPosition.position = screenPosition;
-			//GraphicRaycaster uiRaycaster = canvas.gameObject.GetComponent<GraphicRaycaster>();
-			//List<RaycastResult> results = new List<RaycastResult>();
-			//uiRaycaster.Raycast(eventDataCurrentPosition, results);
-			//return results.Count > 0;
-			return;			//####SOON ####PROBLEM: Detecting what widget for width (solution offered in post)
-		}
 
-		bool bClickLeftDown		= Input.GetMouseButtonDown(0);
+        if (_oCurrentGuiObject_HACK != null)
+            return;			//####SOON ####PROBLEM: Detecting what widget for width (solution offered in post)
+
+
+
+        bool bClickLeftDown		= Input.GetMouseButtonDown(0);
 		bool bClickRightDown	= Input.GetMouseButtonDown(1);
 		bool bClickMiddleDown	= Input.GetMouseButtonDown(2);
 		bool bClickDown = bClickLeftDown || bClickRightDown || bClickMiddleDown;

@@ -75,7 +75,8 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 
 		//=== Create the skinned-portion of the cloth.  It will be responsible for driving Flex particles that heavily influence their corresponding particles in fully-simulated cloth mesh ===
 		_oBSkin_SkinnedPortion = (CBSkin)CBSkin.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkin));
-		_oSkinMeshRend_SkinnedPortion = _oBSkin_SkinnedPortion.GetComponent<SkinnedMeshRenderer>();            // Obtain reference to skinned mesh renderer as it is this object that can 'bake' a skinned mesh.
+        _oBSkin_SkinnedPortion.transform.SetParent(transform);
+        _oSkinMeshRend_SkinnedPortion = _oBSkin_SkinnedPortion.GetComponent<SkinnedMeshRenderer>();            // Obtain reference to skinned mesh renderer as it is this object that can 'bake' a skinned mesh.
         _oSkinMeshRend_SkinnedPortion.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
         //=== Receive the aMapVertsSkinToSim array Blender created to map the skinned verts to their pertinent simulated ones ===
@@ -94,7 +95,8 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 		//=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
 		_oBMeshClothAtStartup = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSimulated", typeof(CBMesh));
 		_oBMeshClothAtStartup.transform.SetParent(_oBody.FindBone("chest").transform);      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
-		_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
+        _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = false;
+		//_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
 
         //=== Create the Flex object for our simulated part ===
         CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.None, CGame.INSTANCE.nMassCloth, Color.yellow);
@@ -142,6 +144,13 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     public virtual void OnSimulateBetweenPhysX23() { }      //###OBS
 
 
+    //--------------------------------------------------------------------------	UTILITY
+    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
+        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+        _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = bShowMeshStartup;
+        _oSkinMeshRend_SkinnedPortion.enabled = bShowPinningRims;
+        GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
+    }
 
     public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 
@@ -151,7 +160,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {		//###DESIGN? Currently an interface call... but if only GUI interface occurs through CObject just have cursor directly invoke the GUI_Create() method??
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
 	}
 
     public void OnPropSet_Tightness(float nValueOld, float nValueNew) {

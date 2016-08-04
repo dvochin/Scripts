@@ -8,7 +8,7 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
 
     uFlex.FlexParticles         _oFlexParticles;
     uFlex.FlexSprings           _oFlexSprings;
-    SkinnedMeshRenderer         _oSkinMeshRend_SkinnedMesh;     // Reference to the SMR of our skinned body.  We bake it every framee into _oMeshBakedSkin
+    public SkinnedMeshRenderer  _oSkinMeshRend_SkinnedMesh;     // Reference to the SMR of our skinned body.  We bake it every framee into _oMeshBakedSkin
     Mesh                        _oMeshBakedSkin;                // The 'baked' version of the _oSkinMeshRend_SkinnedMesh.  We bake at every frame and to drive each vert's corresponding 'master flex' particle (which in turns its corresponding 'slave flex' particle in the simulated mesh)
     List<ushort>                _aMapVertsSkinToSim;            // Blender-generated map of which Flex-simulated mesh map to which particle of the skinned mesh guiding the Flex mesh.
     public int                  _nNumMappingsSkinToSim;         // Number of skin-to-sim mappings = extra particles and springs that are responsible for 'driving' the 'skinned portion' of the cloth particles to the corresponding position of the 'skinned particles'

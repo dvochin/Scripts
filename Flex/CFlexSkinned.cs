@@ -45,7 +45,7 @@ public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {
 
         uFlex.FlexParticlesRenderer partRend = gameObject.AddComponent<uFlex.FlexParticlesRenderer>();
         partRend.m_size = partRend.m_radius = particleSpacing;
-        partRend.enabled = CGame.INSTANCE.showFlexParticles;
+        partRend.enabled = false;
 
         //Material oMat = new Material(Shader.Find("Diffuse"));
         //Texture oTex = Resources.Load("Textures/Woman/A/Torso", typeof(Texture)) as Texture;

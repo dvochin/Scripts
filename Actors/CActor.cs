@@ -228,7 +228,7 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		//_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.	###CHECK: Hotspot triggers throw this off??
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
 	}
 
 	public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {
@@ -342,7 +342,6 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 			Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(_oTransform.gameObject);
             //Debug.Log("Collider copy " + oNodeSrc.name);
             Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
-            Collider oColDstBase;
             if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
 				CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
 				CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(CapsuleCollider));
@@ -350,13 +349,11 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 				oColDst.radius 		= oColSrc.radius;
 				oColDst.height 		= oColSrc.height;
 				oColDst.direction 	= oColSrc.direction;
-                oColDstBase = oColDst;
             } else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
 				BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
 				BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(BoxCollider));
 				oColDst.center 		= oColSrc.center;
 				oColDst.size 		= oColSrc.size;
-                oColDstBase = oColDst;
             }
         }
     }

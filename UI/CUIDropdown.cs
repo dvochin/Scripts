@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class CUIDropdown : CUIWidget {
     [HideInInspector]   public Dropdown     _oDropdown;
 
-    public static CUIDropdown Create(CUICanvas oCanvas, CProp oProp, FieldInfo[] aFieldsEnum) {
+    public static CUIDropdown Create(CUIPanel oCanvas, CProp oProp, FieldInfo[] aFieldsEnum) {
         GameObject oDropdownResGO = Resources.Load("UI/CUIDropdown") as GameObject;
         GameObject oDropdownGO = Instantiate(oDropdownResGO) as GameObject;
         oDropdownGO.transform.SetParent(oCanvas.transform, false);
@@ -14,7 +14,7 @@ public class CUIDropdown : CUIWidget {
         return oUIDropdown;
     }
 
-    public void Init(CUICanvas oCanvas, CProp oProp, FieldInfo[] aFieldsEnum) {
+    public void Init(CUIPanel oCanvas, CProp oProp, FieldInfo[] aFieldsEnum) {
         _oTextLabel = transform.GetChild(0).GetComponent<Text>();           // Label is always first child of prefab
         _oDropdown  = transform.GetChild(1).GetComponent<Dropdown>();       // Dropdown is always 2nd child of prefab
         //_oDropdown.options.RemoveAll();

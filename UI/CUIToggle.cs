@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class CUIToggle : CUIWidget {
     [HideInInspector]   public Toggle     _oToggle;
 
-    public static CUIToggle Create(CUICanvas oCanvas, CProp oProp) {
+    public static CUIToggle Create(CUIPanel oCanvas, CProp oProp) {
         GameObject oToggleResGO = Resources.Load("UI/CUIToggle") as GameObject;
         GameObject oToggleGO = Instantiate(oToggleResGO) as GameObject;
         oToggleGO.transform.SetParent(oCanvas.transform, false);
@@ -14,7 +14,7 @@ public class CUIToggle : CUIWidget {
         return oUIToggle;
     }
 
-    public override void Init(CUICanvas oCanvas, CProp oProp) {
+    public override void Init(CUIPanel oCanvas, CProp oProp) {
         _oToggle = GetComponent<Toggle>();                              // Toggle is our node
         _oTextLabel = transform.GetChild(1).GetComponent<Text>();       // Label is always 2nd child of prefab
         base.Init(oCanvas, oProp);

@@ -2,14 +2,14 @@
 using UnityEngine.UI;
 
 public abstract class CUIWidget : MonoBehaviour {
-    [HideInInspector]   public CUICanvas    _oCanvas;           // Our owning canvas
+    [HideInInspector]   public CUIPanel    _oCanvas;           // Our owning canvas
     [HideInInspector]   public CProp        _oProp;             // The property we represent  ####SOON: to abstract class??
     [HideInInspector]   public Text         _oTextLabel;
     [HideInInspector]   public bool         _bInitialized;      // Exists to prevent calls to PropSet until fully initialized
     public string       _Label;
     
 
-    public virtual void Init(CUICanvas oCanvas, CProp oProp) {
+    public virtual void Init(CUIPanel oCanvas, CProp oProp) {
         _oCanvas = oCanvas;
         _oProp = oProp;
         if (_oProp == null)
