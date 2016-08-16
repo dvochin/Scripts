@@ -244,14 +244,24 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		if (nError != 0)
 			throw new CException("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
 		_oMeshNow.MarkDynamic();		// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
-		_oMeshNow.vertices = _memVerts.L;
-		for (int nVert = 0; nVert < GetNumVerts(); nVert++)					//###IMPROVE: A better way to 'deep copy'??
-			_memVertsStart.L[nVert] = _memVerts.L[nVert];					// Set the 'startup verts' to what Blender just provided.  (Blender is always authoritative)
-		if (bUpdateNormals)
+		_oMeshNow.vertices = _memVerts.L;       //###CHECK: This ok/needed with next call??
+        CopyOriginalVertsToVerts(true);
+        if (bUpdateNormals)
 			UpdateNormals();								// Verts have moved, update * fix normals...
 	}	
 
-	public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
+    public void CopyOriginalVertsToVerts(bool bInvert) {
+        if (bInvert) {      //###IMPROVE: Can make more efficient?  Study what is going on with references and deep copy failures!
+            _memVertsStart.L = (Vector3[])_memVerts.L.Clone();
+        } else {
+            _memVerts.L = (Vector3[])_memVertsStart.L.Clone();
+            _oMeshNow.vertices = (Vector3[])_memVertsStart.L.Clone();
+        }
+        //Array.Copy(_memVertsStart.L, _oMeshNow.vertices, GetNumVerts());        //###LEARN: This DOES NOT WORK!  Why???  Array.Copy obviously does not do a deep copy  (Clone() always works!... a reference problem?)
+        //for (int nVert = 0; nVert < GetNumVerts(); nVert++)                       // Old slow way to deep copy ALWAYS WORKS
+        //    _oMeshNow.vertices[nVert] = _memVertsStart.L[nVert];					// Set the 'startup verts' to what Blender just provided.  (Blender is always authoritative)
+    }
+    public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
         if (_bSharedFromBlender == false)
             throw new CException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
         int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);

@@ -63,19 +63,19 @@ using UnityEngine.UI;
 public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game object.  Accessable via anywhere via 'INSTANCE'.  Provides top-level game init/shutdown and initiates the 'heartbeat' calls that make the game progres frame by frame
 
     //---------------------------------------------------------------------------	TEMP Flex
-    //public bool _ShowBodies = true;
-    public bool ShowPresentation = true;
+    public bool ShowPresentation = true;            //###IMPROVE: Add softbody shapes!
     public bool ShowPhysxColliders = false;
     public bool ShowMeshStartup = false;
     public bool ShowPinningRims = false;
     public bool ShowFlexSkinned = false;
     public bool ShowFlexColliders = false;
     public bool ShowFlexParticles = false;
+    public bool EnableIdlePoseMovement = true;          // Small adjustments applied to all poses (to promote a less robotic still appearance)
 
     //public bool showFlexParticles = true;
-    public float particleSpacing = 0.02f;
+    public float particleSpacing = 0.02f;               // 20mm = thickness of a finger = smallest object we need to collide with.
     public float volumeSampling = 1;                    // 1 = Volume spacing at particle spacing, 2 = rich inner volume defintion, 0.01 = very sparse inner definition.  Huge influence!
-    public float surfaceSampling = 1;                   // Not muh effect on surface defintion.  .001 = 132 par 5 = 183 par
+    public float surfaceSampling = 1;                   // Not much effect on surface defintion.  .001 = 132 par 5 = 183 par
     public float clusterSpacingMult = 1.6f;             // Hugely important and dictates # of bones.  Need to keep this yield desired bone numbers and adjust RadiusMult for desired effect  1=175 particles fall apart  1.3=93 Almost holds together  1.5 mostly holds together  2=41 Mostly together with some breaks  2.5 about right  3=12  5.0 looks stiff  8 crashes  (The spacing for shape-matching clusters, should be at least the particle spacing)
     public float clusterRadiusMult = 2.0f;              // Hugely important.  Once SpacingMult set for # of bones we want we adjust this to keep things together!  Starts looking very good at 2.0  Stiffens as we increase and probably more expensive  (Controls the overall size of the clusters, this controls how much overlap the clusters have which affects how smooth the final deformation is, if parts of the body are detaching then it means the clusters are not overlapping sufficiently to form a fully connected set of clusters)
     public float clusterStiffness = 0.10f;              // Hugely important.  0.1 = Very slow restitution  0.5 = Still too slow  0.75 = Stiff as possible no shimmer 0.8 = Minor shimmer  0.89 = Major shimmer 1.0 blows up
@@ -870,11 +870,24 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 
     void HideShowMeshes(bool bShowPresentationMeshes) {
-        ShowPresentation = bShowPresentationMeshes;
-        ShowPhysxColliders = !bShowPresentationMeshes;
+        ShowPresentation = bShowPresentationMeshes;             
+        //ShowFlexParticles = !bShowPresentationMeshes;
+        //ShowPhysxColliders = !bShowPresentationMeshes;
         if (bShowPresentationMeshes)        // Quickly set all the debug rendering off if we want presentation meshes.
             ShowMeshStartup = ShowPinningRims = ShowFlexSkinned = ShowFlexColliders = ShowFlexParticles = false;
         HideShowMeshes();
+    }
+
+
+    //---------------------------------------------------------------------------	LINE MANAGER
+    public static LineRenderer Line_Add(string sKey) {
+        GameObject oTemplateGO = Resources.Load("Prefabs/LineRenderer", typeof(GameObject)) as GameObject;
+        GameObject oLineGO = Instantiate(oTemplateGO);
+        oLineGO.name = sKey;
+        oLineGO.transform.SetParent(GameObject.Find("Resources/LineManager").transform);
+        oLineGO.SetActive(true);
+        LineRenderer oLR = oLineGO.GetComponent<LineRenderer>();
+        return oLR;
     }
 
 

@@ -165,7 +165,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
 		if (_nBodyID == 0) {
-			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Shemale);
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
 			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
 //			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
 //			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
@@ -230,13 +230,13 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
-        _aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-        _aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
-		//if (eBodySex == EBodySex.Woman) {
-  //          _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
-  //      } else {
+        //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+        //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+        if (eBodySex == EBodySex.Woman) {
+            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
+        } else {
             _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
-  //      }
+        }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
         //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
@@ -247,12 +247,12 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         ////////////###DEV _aCloths.Add(CBCloth.Create(this, "FullShirt"));
 
 
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
         ////=== Create the various soft-body mesh parts that are dependant on the body sex ===
         ////###IMPROVE!!!! Parse array of Blender-pushed softbody into our parts (instead of pulling like below?)
         //if (_bForMorphingOnly == false) {
@@ -270,7 +270,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //=== Obtain the source mesh body for normal extraction ===
         ///_oBodySource = CBMesh.Create(null, this, "oMeshSource", typeof(CBMesh));
-		///_oBodySource.GetComponent<MeshRenderer>().enabled = false;					// This mesh is to pull normals only.  Not visible at runtime!
+        ///_oBodySource.GetComponent<MeshRenderer>().enabled = false;					// This mesh is to pull normals only.  Not visible at runtime!
 
 
         //===== MAIN SKINNED BODY PROCESSING =====

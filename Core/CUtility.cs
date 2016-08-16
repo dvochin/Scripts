@@ -308,10 +308,25 @@ using System.Reflection;
 
 #pragma warning disable 162         // "Unreacheable Code Detected"
 
-public class CUtility {			// Collection of static utility functions
+public class CUtility {         // Collection of static utility functions
+    static Color[] _aColorsForDebug = {     //###IMPROVE: Add more RBG colors
+            Color.red,
+            Color.green,
+            Color.blue,
+            new Color32(128, 000, 000, 255),     // Dark Red
+            new Color32(000, 128, 000, 255),     // Dark Green
+            new Color32(000, 000, 128, 255),     // Dark Blue
+            Color.cyan,
+            Color.magenta,
+            Color.yellow,
+            new Color32(255, 153, 051, 255),     // Orange
+            //Color.gray,
+            //Color.white,
+        };
+    static int _nLastRandomColorProvided = -1;
 
-	#region === Node / Component Creation ===
-	public static Component FindOrCreateNode(GameObject oParentGO, string sName, Type oType) {
+    #region === Node / Component Creation ===
+    public static Component FindOrCreateNode(GameObject oParentGO, string sName, Type oType) {
 		if (oParentGO == null)
 			throw new CException("*E: FindOrCreateNode() called with no parent GameObject!");
 		return CUtility.FindOrCreateNode(oParentGO.transform, sName, oType);
@@ -483,7 +498,15 @@ public class CUtility {			// Collection of static utility functions
 		oMeshRend.enabled = bMakeVisible;
 		Debug.Log("BakeSkinnedMeshAndShow() created: " + sNodeName);
 	}
-	#endregion
+
+    public static Color GetRandomColor() {
+        //int nColorChoice = (int)(UnityEngine.Random.value * _aColorsForDebug.Length);
+        int nColorChoice = _nLastRandomColorProvided++;
+        if (_nLastRandomColorProvided == _aColorsForDebug.Length)
+            _nLastRandomColorProvided = 0;
+        return _aColorsForDebug[nColorChoice];
+    }
+    #endregion
 
 	#region === Reflection ===
 	public static List<FieldInfo> GetSuperPublicFields(object o) {

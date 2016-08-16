@@ -294,10 +294,14 @@ public class CFlex : MonoBehaviour {
 
                     Vector3[] rigidRestPoses = new Vector3[shapes.m_shapesCount];
 
+                    GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;    //###MOD
+
                     for (int i = 0; i < shapes.m_shapesCount; i++) {
                         rigidRestPoses[i] = shapes.m_shapeCenters[i];
 
-                        bones[i] = new GameObject("FlexShape_" + i).transform;
+                        //###MOD bones[i] = new GameObject("FlexShape_" + i).transform;
+                        bones[i] = Instantiate(oTemplateGO).transform;      //##MOD
+                        bones[i].name = "Shape" + i.ToString();
                         bones[i].parent = go.transform;
                         bones[i].localPosition = shapes.m_shapeCenters[i];
                         bones[i].localRotation = Quaternion.identity;

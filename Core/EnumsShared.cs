@@ -150,6 +150,7 @@ public enum EFlexCloth {
 };
 
 public enum EFlexSoftBody{
+    Volume,
     Stiffness,
     Mass
 };

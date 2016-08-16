@@ -1,4 +1,14 @@
 /*###DISCUSSION: Soft Body
+------ Just got better visualization...
+- Now onto create/destroy of sb... bone problem or Blender problem?
+    - Revisit proper cleanup between the two apps!
+
+
+
+
+
+
+
 
 NOW:
 - Vagina mostly formed in blender... although we have a problem with disjointed verts in vagina backplate!  WTF??
@@ -65,13 +75,15 @@ using System;
 using System.Collections.Generic;
 
 
-public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####DEV ####DESIGN: Based on CBMesh or CBSkin??
-	// Manages a single soft body object send to Flex implementation for soft body simulation.  These 'body parts' (such as breasts, penis, vagina) 
-	//... are conneted to the main body skinned mesh via _oMeshRimBaked which pins this softbody's tetraverts to those skinned from the main body
+public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {                    //####DEV ####DESIGN: Based on CBMesh or CBSkin??
+                                                                                        // Manages a single soft body object send to Flex implementation for soft body simulation.  These 'body parts' (such as breasts, penis, vagina) 
+                                                                                        //... are conneted to the main body skinned mesh via _oMeshRimBaked which pins this softbody's tetraverts to those skinned from the main body
+
+    public int _VertToShowSkinningBones_HACK = -1;
 
 	//---------------------------------------------------------------------------	MEMBERS
 	[HideInInspector]	public 	CObject				_oObj;							// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
-	[HideInInspector]	public	CBSkinBaked			_oMeshRimBaked;					// The skinned 'rim mesh' that is baked everyframe.  Contains rim and tetraverts.  Rim is to adjust normals at softbody mesh boundary and the tetraverts in this mesh are to 'pin' our softbody tetraverts to the skinned body (so softbody doesn't go 'flying off')
+	[HideInInspector]	public	CBSkinBaked			_oMeshSoftBodyRim;					// The skinned 'rim mesh' that is baked everyframe.  Contains rim and tetraverts.  Rim is to adjust normals at softbody mesh boundary and the tetraverts in this mesh are to 'pin' our softbody tetraverts to the skinned body (so softbody doesn't go 'flying off')
 	
 	[HideInInspector]	public	List<ushort>		_aMapRimVerts2Verts = new List<ushort>();		// Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
 	[HideInInspector]	public	List<ushort>		_aMapRimVerts2SourceVerts;		// Map of flattened rim vert IDs to source vert IDs.  Allows Unity to reset rim vert normals messed-up by capping to default normal for seamless rendering
@@ -99,6 +111,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
     bool _bSoftBodyInReset;              // When true soft body will be reset at next frame.  Used during pose loading.
     SkinnedMeshRenderer _oFlexGeneratedSMR;
     CFlexToSkinnedMesh _oFlexToSkinnedMesh;
+    Vector3[] _aShapeRestPosOrig;
 
 
     //---------------------------------------------------------------------------	INIT
@@ -155,12 +168,19 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 			case EGameModes.Play:
                 //=== Call our C++ side to construct the solid tetra mesh.  We need that to assign tetrapins ===		//###DESIGN!: Major design problem between cutter sent here... can cut cloth too??  (Will have to redesign cutter on C++ side for this problem!)
                 //###DEV ###DESIGN: Recreate public properties each time???
-                CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);
+                CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);  //SelfCollideFiltered
                 uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
                 oFlexProc._oFlexProcessor = this;
-                _oFlexParticles = GetComponent<uFlex.FlexParticles>();
-                _oFlexParticlesRenderer = GetComponent<uFlex.FlexParticlesRenderer>();
 
+                //=== Obtain references to the components we'll need at runtime ===
+                _oFlexParticles         = GetComponent<uFlex.FlexParticles>();
+                _oFlexParticlesRenderer = GetComponent<uFlex.FlexParticlesRenderer>();
+                _oFlexShapeMatching     = GetComponent<uFlex.FlexShapeMatching>();
+                _oFlexGeneratedSMR      = GetComponent<SkinnedMeshRenderer>();
+
+                //=== Backup the rest position so we can expand / contract soft body volume without loss of information ===
+                _aShapeRestPosOrig = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
+                Array.Copy(_oFlexShapeMatching.m_shapeRestPositions, _aShapeRestPosOrig, _oFlexShapeMatching.m_shapeIndicesCount);
 
                 //=== Backup the position of the particles at startup time (so we can reset softbody after pose teleport) ===
                 _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
@@ -182,8 +202,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
                 //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
                 float nRangeTetraPinHunt = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nRimTetraVertHuntDistanceMult;       //###TUNE: Make relative to all-important Flex particle size!
                 CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nVertTetras.ToString() + ", " + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
-				_oMeshRimBaked = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
-                _oMeshRimBaked.transform.SetParent(transform);
+				_oMeshSoftBodyRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+                _oMeshSoftBodyRim.transform.SetParent(transform);
 
                 //=== Receive the important 'CSoftBody.aMapRimTetravert2Tetravert' and 'CSoftBody.aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
                 List<ushort> aMapVertsSkinToSim;
@@ -192,10 +212,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 
                 //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
                 _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-                _oFlexShapeMatching     = GetComponent<uFlex.FlexShapeMatching>();
-                _oFlexGeneratedSMR      = GetComponent<SkinnedMeshRenderer>();
-                //_oFlexGeneratedSMR.enabled = true;
-                _oFlexToSkinnedMesh.Initialize(ref aMapVertsSkinToSim, _oMeshRimBaked._oSkinMeshRendNow);
+                _oFlexToSkinnedMesh.Initialize(ref aMapVertsSkinToSim, _oMeshSoftBodyRim._oSkinMeshRendNow);
 
                 //=== Bake the rim tetramesh a first time so its rim and tetraverts are updated to its skinned body ===
                 //###OBS? _oMeshRimBaked.Baking_UpdateBakedMesh();
@@ -212,10 +229,12 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
                 //=== Create the managing object and related hotspot ===
                 _oObj = new CObject(this, 0, typeof(EFlexSoftBody), "SoftBody " + gameObject.name);        //###IMPROVE: Name of soft body to GUI
                 _oObj.PropGroupBegin("", "", true);
-                _oObj.PropAdd(EFlexSoftBody.Stiffness,     "Stiffness",    1.0f, 0.001f, 1.0f, "", CProp.Local);
-                _oObj.PropAdd(EFlexSoftBody.Mass,          "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
+                _oObj.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "", CProp.Local);
+                _oObj.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "", CProp.Local);       //###IMPROVE: Log scale!
+                _oObj.PropAdd(EFlexSoftBody.Mass,           "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
                 _oObj.FinishInitialization();
-                _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
+                if (GetType() != typeof(CBreastR))          //###HACK!: Right breast doesn't get hotspot (left breast gets it and manually broadcasts to right one)
+                    _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
 
                 break;
 
@@ -225,35 +244,33 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexParticlesRenderer>());
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexShapeMatching>());
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexSkinnedMesh>());
+                CUtility.DestroyComponent(GetComponent<uFlex.FlexSprings>());
+                CUtility.DestroyComponent(GetComponent<CVisualizeSoftBody>());
                 CUtility.DestroyComponent(GetComponent<SkinnedMeshRenderer>());
-                CUtility.DestroyComponent(_oFlexToSkinnedMesh);     _oFlexToSkinnedMesh = null;
+                CUtility.DestroyComponent(_oFlexToSkinnedMesh); _oFlexToSkinnedMesh = null;
                 CUtility.DestroyComponent(_oFlexParticles);     _oFlexParticles = null;
 
-                if (_oObj != null) {
+                if (_oObj != null)
 					_oObj = null;
-				}
-				if (_oMeshRimBaked != null)
-					Destroy(_oMeshRimBaked.gameObject);
-				_oMeshRimBaked = null;
+				if (_oMeshSoftBodyRim != null)
+					Destroy(_oMeshSoftBodyRim.gameObject);
+				_oMeshSoftBodyRim = null;
 				_aMapRimVerts2Verts = null;
 
-				//=== Capped softbodies have messed up normals due to capping.  Blender constructed for us a map of which rim verts map to which source verts.  Reset the rim normals to the corresponding source vert normal for seamless rendering ===
-                //###F ###BROKEN
-				//CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2SourceVerts()",	out _aMapRimVerts2SourceVerts);
-				//for (int nIndex = 0; nIndex < _aMapRimVerts2SourceVerts.Count;) {         // Iterate through the flattened map...
-				//	int nVertID			= _aMapRimVerts2SourceVerts[nIndex++];            // The simple list has been flattened into <nVertID0, nVertSourceID0>, etc...
-				//	int nVertSourceID   = _aMapRimVerts2SourceVerts[nIndex++];
-				//	_memNormals.L[nVertID] = _oBody._oBodySource._memNormals.L[nVertSourceID];
-				//}
-				//_oMeshNow.normals   = _memNormals.L;
+                //=== Return the visible verts to the starting position (so next conversion to Softbody starts from the same data and skins properly ===
+                CopyOriginalVertsToVerts(false);
 
-				//=== Restore Blender's mesh and our visible mesh to the way it was during first creation (e.g. no softbody movement) ===
-				//_oMeshNow.vertices  = _memVerts.L = _memVertsStart.L;				//###LEARN: This call doesn't do it! (copy whole array)  Must copy each vert for _memVerts to really be set to _memVertsStart...
-				//for (int nVert = 0; nVert < GetNumVerts(); nVert++)					//###IMPROVE: A better way to 'deep copy'??
-				//	_memVerts.L[nVert] = _memVertsStart.L[nVert];
-				//_oMeshNow.vertices  = _memVerts.L;
-//				UpdateVertsToBlenderMesh();			//###CHECK: Needed??
-				break;
+                //=== Capped softbodies have messed up normals due to capping.  Blender constructed for us a map of which rim verts map to which source verts.  Reset the rim normals to the corresponding source vert normal for seamless rendering ===
+                //###F ###BROKEN
+                //CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2SourceVerts()",	out _aMapRimVerts2SourceVerts);
+                //for (int nIndex = 0; nIndex < _aMapRimVerts2SourceVerts.Count;) {         // Iterate through the flattened map...
+                //	int nVertID			= _aMapRimVerts2SourceVerts[nIndex++];            // The simple list has been flattened into <nVertID0, nVertSourceID0>, etc...
+                //	int nVertSourceID   = _aMapRimVerts2SourceVerts[nIndex++];
+                //	_memNormals.L[nVertID] = _oBody._oBodySource._memNormals.L[nVertSourceID];
+                //}
+                //_oMeshNow.normals   = _memNormals.L;
+
+                break;
 		}
 	}
 
@@ -297,28 +314,35 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
 			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
 	}
 
-    public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
-        //Debug.LogFormat("SoftBody Tightness {0}", nValueNew);
+    public void OnPropSet_Volume(float nValueOld, float nValueNew) {
+        //###LEARN: Flex softbody volume is expanded / contracted by scaling the shape rest particle position (as they are all about the shape center / bone)
+        for (int nShapeIndex = 0; nShapeIndex < _oFlexShapeMatching.m_shapeIndicesCount; nShapeIndex++)
+            _oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _aShapeRestPosOrig[nShapeIndex] * nValueNew;
+        if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
+            _oBody._oBreastR.OnPropSet_Volume(nValueOld, nValueNew);
+        //Debug.LogFormat("SoftBody Volume: {0}", nValueNew);
     }
 
     public void OnPropSet_Stiffness(float nValueOld, float nValueNew) {
         for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++)
             _oFlexShapeMatching.m_shapeCoefficients[nShape] = nValueNew;
-        //_oFlexShapeMatching.m_shapeCenters[nShape] *= nValueNew;
-        //_oFlexShapeMatching.m_shapeRestPositions[nShape] *= nValueNew;
-        Debug.LogFormat("SoftBody Stiffness {0}", nValueNew);
+        if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
+            _oBody._oBreastR.OnPropSet_Stiffness(nValueOld, nValueNew);
+        //Debug.LogFormat("SoftBody Stiffness: {0}", nValueNew);               //###IMPROVE: Remove per-function logging and add flag so CProp does it (with various logging levels)
     }
 
     public void OnPropSet_Mass(float nValueOld, float nValueNew) {
         float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount);     // Note that this count is all particles (including pinned)... change to only unpinned particles for mass?
-        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount; nPar++)
+        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount; nPar++)                     //###BUG: Doesn't appear to do anything!
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;        //###BUG: Pin particles  ###F
    //     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {            // Iterate through the rim tetraverts to update the position of their corresponding tetraverts
    //         nIndex++;   // ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
 			//ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];
    //         _oSoftFlexParticles.m_particles[nVertTetra].invMass = 0;
    //     }
-        Debug.LogFormat("SoftBody Mass {0}", nValueNew);
+        if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
+            _oBody._oBreastR.OnPropSet_Mass(nValueOld, nValueNew);
+        //Debug.LogFormat("SoftBody Mass {0}", nValueNew);
     }
 
 
@@ -331,12 +355,12 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
         }
 
         //=== Bake rim skinned mesh and update position of softbody tetravert pins ===
-        if (_oMeshRimBaked) { 
-		    _oMeshRimBaked.Baking_UpdateBakedMesh();                                        // Bake the rim tetramesh so its rim-backplate and tetraverts are updated to its skinned body.
+        if (_oMeshSoftBodyRim) { 
+		    _oMeshSoftBodyRim.Baking_UpdateBakedMesh();                                        // Bake the rim tetramesh so its rim-backplate and tetraverts are updated to its skinned body.
             _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();
 
-            Vector3[] aVertsRimBaked    = _oMeshRimBaked._oMeshBaked.vertices;     //###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!
-            Vector3[] aNormalsRimBaked  = _oMeshRimBaked._oMeshBaked.normals;
+            Vector3[] aVertsRimBaked    = _oMeshSoftBodyRim._oMeshBaked.vertices;     //###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!
+            Vector3[] aNormalsRimBaked  = _oMeshSoftBodyRim._oMeshBaked.normals;
        //     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {			// Iterate through the rim tetraverts to update the position of their corresponding tetraverts
 			    //ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
 			    //ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];
@@ -398,6 +422,32 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {					//####D
     //        Gizmos.DrawLine(aVertsRimBaked[nVertRim], aVertsRimBaked[nVertRim] + 0.05f * aNormalsRimBaked[nVertRim]);
     //        Gizmos.color = Color.green;
     //        Gizmos.DrawLine(aVertsOrig[nVertMesh], aVertsOrig[nVertMesh] + 0.05f * aNormalsOrig[nVertMesh]);
+    //    }
+    //}
+
+
+
+
+    //void DrawDebugBoneInfo(Vector3 vecVert, Vector3 vecSize, uFlex.FlexSkinnedMesh oFlexSkinned, int nBone) {
+    //    Vector3 vecBone = oFlexSkinned.m_bones[nBone].position;
+    //    Gizmos.DrawWireCube(vecBone, vecSize);
+    //    Gizmos.DrawLine(vecVert, vecBone);
+    //}
+
+    //public virtual void OnDrawGizmos() {            //###DEBUG: Temp debug function to visually draw one skinned vert and its four source bones.
+    //    if (_VertToShowSkinningBones_HACK != -1) { 
+    //        float nSize = CGame.INSTANCE.particleSpacing / 2;
+    //        Vector3 vecSize = new Vector3(nSize, nSize, nSize);
+    //        Gizmos.color = Color.magenta;
+    //        Vector3 vecVert = _oMeshNow.vertices[_VertToShowSkinningBones_HACK];
+    //        Gizmos.DrawSphere(vecVert, nSize);
+
+    //        uFlex.FlexSkinnedMesh oFlexSkinned = gameObject.GetComponent<uFlex.FlexSkinnedMesh>();
+    //        BoneWeight oBoneWeight = _oFlexGeneratedSMR.sharedMesh.boneWeights[_VertToShowSkinningBones_HACK];
+    //        DrawDebugBoneInfo(vecVert, vecSize, oFlexSkinned, oBoneWeight.boneIndex0);
+    //        DrawDebugBoneInfo(vecVert, vecSize, oFlexSkinned, oBoneWeight.boneIndex1);
+    //        DrawDebugBoneInfo(vecVert, vecSize, oFlexSkinned, oBoneWeight.boneIndex2);
+    //        DrawDebugBoneInfo(vecVert, vecSize, oFlexSkinned, oBoneWeight.boneIndex3);
     //    }
     //}
 

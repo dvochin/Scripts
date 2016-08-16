@@ -363,8 +363,8 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		switch (eGameModeNew) {
 			case EGameModes.Configure:
 				_oRigidBody.isKinematic = true;
-//				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
-//				_oTransform.localRotation = _quatStartingRotation;
+				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
+				_oTransform.localRotation = _quatStartingRotation;          //###NOW###
 				break;
 			case EGameModes.Play:
 				_oRigidBody.isKinematic = false;

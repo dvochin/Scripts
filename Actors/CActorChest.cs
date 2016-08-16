@@ -39,9 +39,10 @@ public class CActorChest : CActor {
 		_oObj.PropAdd(EActorChest.Chest_Twist,		"Chest-Twist",		0,	-100,	100,	"", CProp.Local);
 		_oObj.FinishInitialization();
 
-		_oObj.PropSet(EActorChest.Pinned, 1);			// Manually set pinned to 1 on torso so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
+		_oObj.PropSet(EActorChest.Pinned, 1);           // Manually set pinned to 1 on torso so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
 
-		StartCoroutine(Coroutine_ChangeRandomPose());			//###CHECK: When destroyed OK??
+        if (CGame.INSTANCE.EnableIdlePoseMovement)
+            StartCoroutine(Coroutine_ChangeRandomPose());			//###CHECK: When destroyed OK??
 	}
 
 	IEnumerator Coroutine_ChangeRandomPose() {	// Simple coroutine to efficiently apply randomization to some of our property values	###MOVE: Move to utility?
