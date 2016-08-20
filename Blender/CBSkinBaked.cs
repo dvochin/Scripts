@@ -32,7 +32,7 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 
 	//---------------------------------------------------------------------------	UPDATE
 
-	public override void OnSimulatePre() {		//####CHECK: Call base class?
+	public override void OnSimulatePre() {		//####CHECK: Call base class?       //###OBS!
 		Baking_UpdateBakedMesh();
 	}
 }

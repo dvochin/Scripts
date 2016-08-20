@@ -34,14 +34,15 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
         }
 
         //=== Connect to previously-created shape nodes ===
-        _aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
-        for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++){
-            Transform oShapeT = _oFlexSkinnedMesh.m_bones[nShape];
-            CVisualizeShape oVisShape = oShapeT.GetComponent<CVisualizeShape>();
-            _aVisShapes[nShape] = oVisShape;
-            oVisShape.Initialize(this, nShape);
+        if (_oFlexSkinnedMesh != null) { 
+            _aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
+            for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++){
+                Transform oShapeT = _oFlexSkinnedMesh.m_bones[nShape];
+                CVisualizeShape oVisShape = oShapeT.GetComponent<CVisualizeShape>();
+                _aVisShapes[nShape] = oVisShape;
+                oVisShape.Initialize(this, nShape);
+            }
         }
-
         GetComponent<MeshRenderer>().enabled = false;           // Hide the soft body renderer out of convenience so we see inside ###IMPROVE: Set transparent?
     }
 

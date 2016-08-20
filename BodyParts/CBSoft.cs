@@ -110,7 +110,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
     static string _sNameBoneAnchor_HACK;        // Horrible hack method of passing bone name to class instance... forced by CBMesh calling init code too early.  ###IMPROVE!
     bool _bSoftBodyInReset;              // When true soft body will be reset at next frame.  Used during pose loading.
     SkinnedMeshRenderer _oFlexGeneratedSMR;
-    CFlexToSkinnedMesh _oFlexToSkinnedMesh;
+    CFlexSkinnedSpringDriver_OBSOLETE _oFlexSkinnedSpringDriver;
     Vector3[] _aShapeRestPosOrig;
 
 
@@ -207,12 +207,13 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
                 //=== Receive the important 'CSoftBody.aMapRimTetravert2Tetravert' and 'CSoftBody.aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
                 List<ushort> aMapVertsSkinToSim;
-                CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapVertsSkinToSim()",	out aMapVertsSkinToSim);		// Read the tetravert traversal map from our CSoftBody instance
-				CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2Verts()",	out _aMapRimVerts2Verts);               // Read the twin-vert traversal map from our CSoftBody instance
+                CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapVertsSkinToSim()",	out aMapVertsSkinToSim);		// Read the tetravert traversal map from our CSoftBody instance
+				CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2Verts()",	out _aMapRimVerts2Verts);               // Read the twin-vert traversal map from our CSoftBody instance
 
                 //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-                _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-                _oFlexToSkinnedMesh.Initialize(ref aMapVertsSkinToSim, _oMeshSoftBodyRim._oSkinMeshRendNow);
+                //###NOW###
+                //_oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexSkinnedSpringDriver)) as CFlexSkinnedSpringDriver;
+                //_oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oMeshSoftBodyRim._oSkinMeshRendNow);
 
                 //=== Bake the rim tetramesh a first time so its rim and tetraverts are updated to its skinned body ===
                 //###OBS? _oMeshRimBaked.Baking_UpdateBakedMesh();
@@ -247,7 +248,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexSprings>());
                 CUtility.DestroyComponent(GetComponent<CVisualizeSoftBody>());
                 CUtility.DestroyComponent(GetComponent<SkinnedMeshRenderer>());
-                CUtility.DestroyComponent(_oFlexToSkinnedMesh); _oFlexToSkinnedMesh = null;
+                CUtility.DestroyComponent(_oFlexSkinnedSpringDriver); _oFlexSkinnedSpringDriver = null;
                 CUtility.DestroyComponent(_oFlexParticles);     _oFlexParticles = null;
 
                 if (_oObj != null)
@@ -292,8 +293,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
     public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
         //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
         GetComponent<MeshRenderer>().enabled = bShowPresentation;
-        if (_oFlexToSkinnedMesh != null)
-            _oFlexToSkinnedMesh._oSkinMeshRend_SkinnedMesh.enabled = bShowPinningRims;
+        if (_oFlexSkinnedSpringDriver != null)
+            _oFlexSkinnedSpringDriver._oSMR_Driver.enabled = bShowPinningRims;
         if (_oFlexGeneratedSMR != null)
             _oFlexGeneratedSMR.enabled = bShowFlexSkinned;
         if (_oMeshFlexCollider != null)
@@ -357,7 +358,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
         //=== Bake rim skinned mesh and update position of softbody tetravert pins ===
         if (_oMeshSoftBodyRim) { 
 		    _oMeshSoftBodyRim.Baking_UpdateBakedMesh();                                        // Bake the rim tetramesh so its rim-backplate and tetraverts are updated to its skinned body.
-            _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();
+            _oFlexSkinnedSpringDriver.UpdateFlexParticleToSkinnedMesh();
 
             Vector3[] aVertsRimBaked    = _oMeshSoftBodyRim._oMeshBaked.vertices;     //###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!
             Vector3[] aNormalsRimBaked  = _oMeshSoftBodyRim._oMeshBaked.normals;

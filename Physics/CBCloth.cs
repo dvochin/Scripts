@@ -54,7 +54,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     uFlex.FlexParticles _oFlexParticles;
     uFlex.FlexSprings   _oFlexSprings;
     float[] _aSpringRestLengthsBAK;                 // Backup of spring rest lengths.  Used to perform non-destructive ratio adjustments
-    CFlexToSkinnedMesh _oFlexToSkinnedMesh;
+    CFlexSkinnedSpringDriver_OBSOLETE _oFlexSkinnedSpringDriver;
 
     public static CBCloth Create(CBody oBody, string sNameCloth, string sClothType, string sNameClothSrc, string sVertGrp_ClothSkinArea) {    // Static function override from CBMesh::Create() to route Blender request to Body Col module and deserialize its additional information for the local creation of a CBBodyColCloth
         string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
@@ -81,7 +81,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 
         //=== Receive the aMapVertsSkinToSim array Blender created to map the skinned verts to their pertinent simulated ones ===
         List<ushort> aMapVertsSkinToSim;
-        CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapVertsSkinToSim()", out aMapVertsSkinToSim);
+        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapVertsSkinToSim()", out aMapVertsSkinToSim);
 
         //=== Create the simulated part of the cloth ===
         MeshFilter oMeshFilter = GetComponent<MeshFilter>();
@@ -120,8 +120,9 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         System.Array.Copy(_oFlexSprings.m_springRestLengths, _aSpringRestLengthsBAK, _oFlexSprings.m_springsCount);
 
         //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-        _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-        _oFlexToSkinnedMesh.Initialize(ref aMapVertsSkinToSim, _oSkinMeshRend_SkinnedPortion);
+        //###NOW###
+        //_oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexSkinnedSpringDriver)) as CFlexSkinnedSpringDriver;
+        //_oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oSkinMeshRend_SkinnedPortion);
 
         //=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
         //_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;
@@ -164,7 +165,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 	}
 
     public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexToSkinnedMesh._nNumMappingsSkinToSim ; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumSprings ; nSpring++)
             _oFlexSprings.m_springCoefficients[nSpring] = nValueNew;
         //oFlexSprings.m_newStiffness = nValueNew;
         //oFlexSprings.m_overrideStiffness = true;          //###NOTE: Not doing it this way as it iterates every frame!
@@ -172,14 +173,14 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     }
 
     public void OnPropSet_Length(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexToSkinnedMesh._nNumMappingsSkinToSim; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumSprings; nSpring++)
             _oFlexSprings.m_springRestLengths[nSpring] = _aSpringRestLengthsBAK[nSpring] * nValueNew;
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
-    public void OnPropSet_Mass(float nValueOld, float nValueNew) {
-        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexToSkinnedMesh._nNumMappingsSkinToSim);
-        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexToSkinnedMesh._nNumMappingsSkinToSim; nPar++)
+    public void OnPropSet_Mass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
+        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumSprings);
+        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumSprings; nPar++)
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
         Debug.LogFormat("Cloth Mass {0}", nValueNew);
     }
@@ -187,7 +188,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     //---------------------------------------------------------------------------	Flex
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
         //=== Bake the baked part of our cloth.  We need its periphery verts to pin our simulated part of the cloth! ===
-        _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();
+        _oFlexSkinnedSpringDriver.UpdateFlexParticleToSkinnedMesh();
 
         if (Input.GetKeyDown(KeyCode.F10)) {			//####TEMP			####OBS ####CLEAN
             for (int nVert = 0; nVert < _oBMeshClothAtStartup._memVerts.L.Length; nVert++) {		// Copy each vert from the 'backup' mesh to this simulated cloth...

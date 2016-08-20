@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {
+public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
 
     SkinnedMeshRenderer _oSMR;
     Mesh _oMeshSkinBaked;

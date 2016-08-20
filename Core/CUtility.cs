@@ -380,10 +380,32 @@ public class CUtility {         // Collection of static utility functions
             return;
         UnityEngine.Object.Destroy(oComponent);
     }
-	#endregion
 
-	#region === Find ===
-	public static Transform FindNodeByName(Transform oNode, string sNodeName) {
+    public static uFlex.FlexParticles CreateFlexParticles(GameObject oGO, int nParticleCount, uFlex.FlexInteractionType nFlexInterationType, Color oColor) {
+        uFlex.FlexParticles oFlexParticles = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
+        oFlexParticles.m_particlesCount = nParticleCount;                             // The non-edge particle are the ones that require driving between skinned and visible mesh.
+        oFlexParticles.m_type = uFlex.FlexBodyType.Other;
+        oFlexParticles.m_particles = new uFlex.Particle[nParticleCount];
+        oFlexParticles.m_colours = new Color[nParticleCount];
+        oFlexParticles.m_velocities = new Vector3[nParticleCount];
+        oFlexParticles.m_densities = new float[nParticleCount];
+        oFlexParticles.m_particlesActivity = new bool[nParticleCount];
+        oFlexParticles.m_colour = oColor;
+        oFlexParticles.m_interactionType = nFlexInterationType;          // The simulated particles collide with everything (other than ourselves)
+        oFlexParticles.m_collisionGroup = -1;           // Flex runtime will allocate to its own 'phase' of type m_interactionType 
+        oFlexParticles.m_bounds.SetMinMax(new Vector3(-1,-1,-1), new Vector3(1,1,1));        //###CHECK: Better with some reasonable values than zero?
+
+        //=== Add particle renderer component for debug visualization ===
+        uFlex.FlexParticlesRenderer oFlexPartRend = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
+        oFlexPartRend.m_size = oFlexPartRend.m_radius = CGame.INSTANCE.particleSpacing;
+        oFlexPartRend.enabled = false;           // Hidden by default
+
+        return oFlexParticles;
+    }
+    #endregion
+
+    #region === Find ===
+    public static Transform FindNodeByName(Transform oNode, string sNodeName) {
 		if (oNode.name == sNodeName)
 			return oNode;
 		for (int nChild = 0; nChild < oNode.childCount; nChild++) {
@@ -619,7 +641,7 @@ public class CUtility {         // Collection of static utility functions
 	#endregion
 
 	#region === Blender Serialization ===
-	public static void BlenderSerialize_GetSerializableCollection(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+	public static void BlenderSerialize_GetSerializableCollection_USHORT(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
 		aBlenderArray = new List<ushort>();
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
 
@@ -638,7 +660,27 @@ public class CUtility {         // Collection of static utility functions
 		}
 		BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 	}
-	public static void BlenderSerialize_GetSerializableCollection_Float(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<float> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+    public static void BlenderSerialize_GetSerializableCollection_INT(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<int> aBlenderArray)
+    {   //###IMPROVE: Process various types with templates?
+        aBlenderArray = new List<int>();
+        CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+
+        CGame.gBL_SendCmd_GetMemBuffer(sNameModuleList, sFullyQualifiedMemberVariable, ref memBA);
+
+        byte[] oBA = (byte[])memBA.L;                   // Obtain byte array and set read position to zero
+        int nPosBA = 0;
+
+        BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);              // Read the 'beginning magic number' that always precedes a stream.
+        int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 4; nPosBA += 4;                // gBL_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
+        if (nArrayElements > 0) {
+            for (int nArrayElement = 0; nArrayElement < nArrayElements; nArrayElement++) {
+                aBlenderArray.Add(BitConverter.ToInt32(oBA, nPosBA)); nPosBA += 4;
+            }
+        }
+        BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);               // Read the 'end magic number' that always follows a stream.
+    }
+
+    public static void BlenderSerialize_GetSerializableCollection_Float(string sNameModuleList, string sFullyQualifiedMemberVariable, out List<float> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
 		//###IMPROVE: Can merge into one call that can accept any primitive?  (short, float, etc)
 		aBlenderArray = new List<float>();
 		CMemAlloc<byte> memBA = new CMemAlloc<byte>();

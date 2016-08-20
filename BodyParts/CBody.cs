@@ -96,8 +96,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public	CBreastL 		    _oBreastL;					// The left and right breasts as softbodies
 	public	CBreastR 		    _oBreastR;
 	public	CPenis				_oPenis;
-    public  CVagina				_oVagina;
-	public	List<CBSoft>		_aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
+    public  CFlexSkin           _oVagina;
+    public List<CBSoft>		    _aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
 	public	List<CBCloth>		_aCloths		= new List<CBCloth>();		// List of our simulated cloth.  Used to iterate during runtime
@@ -143,8 +143,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public const int C_Unity2Blender_MaxVerts = 5000;			// Maximum number of verts for Unity2Blender mesh       ###OBS ###TUNE ###IMPROVE: Create damn mesh on demand!! ###MOVE
     public CUICanvas[] _aUICanvas = new CUICanvas[2];           // The UI canvases that display various user interface panels to provide end-user edit capability on this body.  One for each left / right.
 
-
-	public CBody(int nBodyID) {
+    public CBody(int nBodyID) {
 		_nBodyID = nBodyID;
 		_sBlenderInstancePath_CBody = "CBody_GetBody(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBody instance			####MOVE??
 
@@ -216,9 +215,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
 
-        //if (_nBodyID == 1) 
-        //    _oBodyRootGO.transform.position = new Vector3(0, 0, 1.5f);      //###F ###HACK!!!!!!
-
         //=== Obtain references to needed sub-objects of our prefab ===
         _oBonesT	= _oBodyRootGO.transform.FindChild("Bones");			// Set key nodes of Bones and Base we'll need quick access to over and over.
 		_oBaseT		= _oBodyRootGO.transform.FindChild("Base");
@@ -230,10 +226,12 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
-        //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-        //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+        if (eBodySex != EBodySex.Man) {
+            //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+        }
         if (eBodySex == EBodySex.Woman) {
-            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
+            _oVagina = CFlexSkin.Create(this, "TestFlexSkin", 15);
         } else {
             _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
         }
@@ -278,10 +276,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodyRootGO, this, "oMeshBody", typeof(CBSkin));
         //_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
-        //###F
-        _oBodyFlexCldr = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
-        _oBodyFlexCldr.gameObject.AddComponent<CFlexSkinned>();
-        _oBodyFlexCldr.GetComponent<SkinnedMeshRenderer>().enabled = false;
+        //###F      ###NOW###
+        //_oBodyFlexCldr = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
+        //_oBodyFlexCldr.gameObject.AddComponent<CFlexSkinned>();
+        //_oBodyFlexCldr.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
         //=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
         Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
@@ -624,14 +622,17 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         _oBodySkinnedMesh._oSkinMeshRendNow.enabled = bShowPresentation;
         _oFace.GetComponent<MeshRenderer>().enabled = bShowPresentation;
         _oHairGO.GetComponent<MeshRenderer>().enabled = bShowPresentation;
-        _oBodyFlexCldr._oSkinMeshRendNow.enabled = bShowFlexColliders;
-        if (_oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>() != null)
-            _oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
-
+        if (_oBodyFlexCldr != null) { 
+            _oBodyFlexCldr._oSkinMeshRendNow.enabled = bShowFlexColliders;
+            if (_oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>() != null)
+                _oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
+        }
         foreach (CBSoft oSoftBody in _aSoftBodies)
             oSoftBody.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
         foreach (CBCloth oCloth in _aCloths)
             oCloth.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
+        if (_oVagina != null)
+            _oVagina.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
     }
 
 

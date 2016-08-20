@@ -871,7 +871,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     void HideShowMeshes(bool bShowPresentationMeshes) {
         ShowPresentation = bShowPresentationMeshes;             
-        //ShowFlexParticles = !bShowPresentationMeshes;
+        ShowFlexParticles = !bShowPresentationMeshes;
         //ShowPhysxColliders = !bShowPresentationMeshes;
         if (bShowPresentationMeshes)        // Quickly set all the debug rendering off if we want presentation meshes.
             ShowMeshStartup = ShowPinningRims = ShowFlexSkinned = ShowFlexColliders = ShowFlexParticles = false;
