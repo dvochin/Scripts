@@ -110,8 +110,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
     static string _sNameBoneAnchor_HACK;        // Horrible hack method of passing bone name to class instance... forced by CBMesh calling init code too early.  ###IMPROVE!
     bool _bSoftBodyInReset;              // When true soft body will be reset at next frame.  Used during pose loading.
     SkinnedMeshRenderer _oFlexGeneratedSMR;
-    CFlexSkinnedSpringDriver_OBSOLETE _oFlexSkinnedSpringDriver;
     Vector3[] _aShapeRestPosOrig;
+    CFlexToSkinnedMesh _oFlexToSkinnedMesh;
 
 
     //---------------------------------------------------------------------------	INIT
@@ -211,9 +211,13 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 				CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2Verts()",	out _aMapRimVerts2Verts);               // Read the twin-vert traversal map from our CSoftBody instance
 
                 //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-                //###NOW###
-                //_oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexSkinnedSpringDriver)) as CFlexSkinnedSpringDriver;
-                //_oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oMeshSoftBodyRim._oSkinMeshRendNow);
+                _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
+                _oFlexShapeMatching = GetComponent<uFlex.FlexShapeMatching>();
+                _oFlexGeneratedSMR = GetComponent<SkinnedMeshRenderer>();
+                //_oFlexGeneratedSMR.enabled = true;
+                _oFlexToSkinnedMesh.Initialize(ref aMapVertsSkinToSim, _oMeshSoftBodyRim);
+
+
 
                 //=== Bake the rim tetramesh a first time so its rim and tetraverts are updated to its skinned body ===
                 //###OBS? _oMeshRimBaked.Baking_UpdateBakedMesh();
@@ -248,7 +252,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                 CUtility.DestroyComponent(GetComponent<uFlex.FlexSprings>());
                 CUtility.DestroyComponent(GetComponent<CVisualizeSoftBody>());
                 CUtility.DestroyComponent(GetComponent<SkinnedMeshRenderer>());
-                CUtility.DestroyComponent(_oFlexSkinnedSpringDriver); _oFlexSkinnedSpringDriver = null;
+                CUtility.DestroyComponent(_oFlexToSkinnedMesh); _oFlexToSkinnedMesh = null;
                 CUtility.DestroyComponent(_oFlexParticles);     _oFlexParticles = null;
 
                 if (_oObj != null)
@@ -293,8 +297,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
     public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
         //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
         GetComponent<MeshRenderer>().enabled = bShowPresentation;
-        if (_oFlexSkinnedSpringDriver != null)
-            _oFlexSkinnedSpringDriver._oSMR_Driver.enabled = bShowPinningRims;
+        if (_oFlexToSkinnedMesh != null)
+            _oFlexToSkinnedMesh._oMeshSoftBodyRim.enabled = bShowPinningRims;
         if (_oFlexGeneratedSMR != null)
             _oFlexGeneratedSMR.enabled = bShowFlexSkinned;
         if (_oMeshFlexCollider != null)
@@ -357,16 +361,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
         //=== Bake rim skinned mesh and update position of softbody tetravert pins ===
         if (_oMeshSoftBodyRim) { 
-		    _oMeshSoftBodyRim.Baking_UpdateBakedMesh();                                        // Bake the rim tetramesh so its rim-backplate and tetraverts are updated to its skinned body.
-            _oFlexSkinnedSpringDriver.UpdateFlexParticleToSkinnedMesh();
-
-            Vector3[] aVertsRimBaked    = _oMeshSoftBodyRim._oMeshBaked.vertices;     //###LEARN!!!!!: Absolutely IMPERATIVE to obtain whole array before loop like the one below... with individual access profiler reveals 7ms per frame if not!!
-            Vector3[] aNormalsRimBaked  = _oMeshSoftBodyRim._oMeshBaked.normals;
-       //     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {			// Iterate through the rim tetraverts to update the position of their corresponding tetraverts
-			    //ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
-			    //ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];
-       //         _oSoftFlexParticles.m_particles[nVertTetra].pos = aVertsRimBaked[nVertTetraRim];  // Set position of tetramesh pinned vert to its corresponding vert in skinned rim mesh.  This will 'pin' the edge of the soft body to where it should go on skinned body.
-       //     }
+            _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();      // Calls _oMeshSoftBodyRim.Baking_UpdateBakedMesh() we need in this call
 
             //=== Bake the skinned softbody into a regular mesh (so we can update edge-of-softbody position and normals to pertinent rim verts ===
             _oFlexGeneratedSMR.BakeMesh(_oMeshFlexGenerated);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
@@ -374,6 +369,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
             Vector3[] aNormalsFlexGenerated  = _oMeshFlexGenerated.normals;
 
             //=== Iterate through all softbody edge verts to update their position and normals ===
+            Vector3[] aVertsRimBaked    = _oMeshSoftBodyRim._oMeshBaked.vertices;       // Obtain the verts and normals from baked rim mesh so we can manually set rim verts & normals for seamless connection to main body mesh.
+            Vector3[] aNormalsRimBaked  = _oMeshSoftBodyRim._oMeshBaked.normals;
             for (int nIndex = 0; nIndex < _aMapRimVerts2Verts.Count;) {         // Iterate through the twin vert flattened map...
                 ushort nVertMesh    = _aMapRimVerts2Verts[nIndex++];            // The simple list has been flattened into <nVertMesh0, nVertRim0>, <nVertMesh1, nVertRim1>, etc
                 ushort nVertRim     = _aMapRimVerts2Verts[nIndex++];

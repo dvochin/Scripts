@@ -40,8 +40,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 	[HideInInspector]	public 	CObject				_oObj;					// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
 
 	[HideInInspector]	public 	CBMesh				_oBMeshClothAtStartup;			// The 'startup cloth' that won't get simulated.  It is used to reset the simulated cloth to its start position
-	[HideInInspector]	public 	CBSkin				_oBSkin_SkinnedPortion;			// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
-    [HideInInspector]	public 	SkinnedMeshRenderer	_oSkinMeshRend_SkinnedPortion;
+	[HideInInspector]	public 	CBSkinBaked			_oBSkinBaked_SkinnedPortion;			// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
 
 	                    Transform                   _oWatchBone;				// Bone position we watch from our owning body to 'autotune' cloth simulation parameters so cloth stays on body during rapid movement (e.g. pose changing)
 //                        Vector3                     _vecWatchBonePosLast, _vecWatchBonePosNow;       // Last position of watched bone above.  Used to determine speed of bone to autotune cloth simulation parameters
@@ -54,7 +53,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     uFlex.FlexParticles _oFlexParticles;
     uFlex.FlexSprings   _oFlexSprings;
     float[] _aSpringRestLengthsBAK;                 // Backup of spring rest lengths.  Used to perform non-destructive ratio adjustments
-    CFlexSkinnedSpringDriver_OBSOLETE _oFlexSkinnedSpringDriver;
+    CFlexToSkinnedMesh _oFlexSkinnedSpringDriver;
 
     public static CBCloth Create(CBody oBody, string sNameCloth, string sClothType, string sNameClothSrc, string sVertGrp_ClothSkinArea) {    // Static function override from CBMesh::Create() to route Blender request to Body Col module and deserialize its additional information for the local creation of a CBBodyColCloth
         string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
@@ -74,10 +73,9 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 		_sBlenderInstancePath_CCloth = CBCloth.s_sNameClothSrc_HACK;
 
 		//=== Create the skinned-portion of the cloth.  It will be responsible for driving Flex particles that heavily influence their corresponding particles in fully-simulated cloth mesh ===
-		_oBSkin_SkinnedPortion = (CBSkin)CBSkin.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkin));
-        _oBSkin_SkinnedPortion.transform.SetParent(transform);
-        _oSkinMeshRend_SkinnedPortion = _oBSkin_SkinnedPortion.GetComponent<SkinnedMeshRenderer>();            // Obtain reference to skinned mesh renderer as it is this object that can 'bake' a skinned mesh.
-        _oSkinMeshRend_SkinnedPortion.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
+		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBody, _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkinBaked));
+        _oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
+        _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
         //=== Receive the aMapVertsSkinToSim array Blender created to map the skinned verts to their pertinent simulated ones ===
         List<ushort> aMapVertsSkinToSim;
@@ -88,7 +86,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 		MeshRenderer oMeshRend = GetComponent<MeshRenderer>();
         //oMeshRend.sharedMaterial = Resources.Load("Materials/BasicColors/TransWhite25") as Material;        //####SOON? Get mats!  ###F
         oMeshRend.sharedMaterial = Resources.Load("Materials/Test-2Sided") as Material;        //####SOON? Get mats!  ###F
-        _oSkinMeshRend_SkinnedPortion.sharedMaterial = oMeshRend.sharedMaterial;        // Skinned part has same material
+        _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.sharedMaterial = oMeshRend.sharedMaterial;        // Skinned part has same material
 		_oMeshNow = oMeshFilter.sharedMesh;
 		_oMeshNow.MarkDynamic();                // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
@@ -120,9 +118,8 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         System.Array.Copy(_oFlexSprings.m_springRestLengths, _aSpringRestLengthsBAK, _oFlexSprings.m_springsCount);
 
         //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-        //###NOW###
-        //_oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexSkinnedSpringDriver)) as CFlexSkinnedSpringDriver;
-        //_oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oSkinMeshRend_SkinnedPortion);
+        _oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
+        _oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oBSkinBaked_SkinnedPortion);
 
         //=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
         //_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;
@@ -149,7 +146,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
         GetComponent<MeshRenderer>().enabled = bShowPresentation;
         _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = bShowMeshStartup;
-        _oSkinMeshRend_SkinnedPortion.enabled = bShowPinningRims;
+        _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = bShowPinningRims;
         GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
     }
 
@@ -165,7 +162,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 	}
 
     public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumSprings ; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nSpring++)
             _oFlexSprings.m_springCoefficients[nSpring] = nValueNew;
         //oFlexSprings.m_newStiffness = nValueNew;
         //oFlexSprings.m_overrideStiffness = true;          //###NOTE: Not doing it this way as it iterates every frame!
@@ -173,14 +170,14 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     }
 
     public void OnPropSet_Length(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumSprings; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nSpring++)
             _oFlexSprings.m_springRestLengths[nSpring] = _aSpringRestLengthsBAK[nSpring] * nValueNew;
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
     public void OnPropSet_Mass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
-        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumSprings);
-        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumSprings; nPar++)
+        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim);
+        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nPar++)
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
         Debug.LogFormat("Cloth Mass {0}", nValueNew);
     }

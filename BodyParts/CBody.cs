@@ -164,7 +164,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
 		if (_nBodyID == 0) {
-			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Shemale);
 			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
 //			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
 //			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
@@ -227,8 +228,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+            _aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            _aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
             _oVagina = CFlexSkin.Create(this, "TestFlexSkin", 15);
@@ -237,7 +238,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
-        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        _aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
         ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
@@ -276,10 +277,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodyRootGO, this, "oMeshBody", typeof(CBSkin));
         //_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
-        //###F      ###NOW###
-        //_oBodyFlexCldr = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
-        //_oBodyFlexCldr.gameObject.AddComponent<CFlexSkinned>();
-        //_oBodyFlexCldr.GetComponent<SkinnedMeshRenderer>().enabled = false;
+        _oBodyFlexCldr = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
+        _oBodyFlexCldr.gameObject.AddComponent<CFlexSkinned>();
+        _oBodyFlexCldr.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
         //=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
         Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
