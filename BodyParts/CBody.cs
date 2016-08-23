@@ -140,7 +140,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
     //---------------------------------------------------------------------------
     public bool _bForMorphingOnly;                              // Body is currently in 'morphing mode' only (not gameplay) ###DEV To enum?
 
-	public const int C_Unity2Blender_MaxVerts = 5000;			// Maximum number of verts for Unity2Blender mesh       ###OBS ###TUNE ###IMPROVE: Create damn mesh on demand!! ###MOVE
     public CUICanvas[] _aUICanvas = new CUICanvas[2];           // The UI canvases that display various user interface panels to provide end-user edit capability on this body.  One for each left / right.
 
     public CBody(int nBodyID) {
@@ -209,7 +208,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 		//===== CREATE THE BODY IN BLENDER =====  
-		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "', " + C_Unity2Blender_MaxVerts.ToString() + ")");		// This new instance is an extension of this Unity CBody instance and contains most instance members
+		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "')");		// This new instance is an extension of this Unity CBody instance and contains most instance members
 
         //=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
         GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
@@ -238,7 +237,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
-        _aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
         ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));

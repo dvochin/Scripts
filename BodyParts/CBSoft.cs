@@ -86,7 +86,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 	[HideInInspector]	public	CBSkinBaked			_oMeshSoftBodyRim;					// The skinned 'rim mesh' that is baked everyframe.  Contains rim and tetraverts.  Rim is to adjust normals at softbody mesh boundary and the tetraverts in this mesh are to 'pin' our softbody tetraverts to the skinned body (so softbody doesn't go 'flying off')
 	
 	[HideInInspector]	public	List<ushort>		_aMapRimVerts2Verts = new List<ushort>();		// Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
-	[HideInInspector]	public	List<ushort>		_aMapRimVerts2SourceVerts;		// Map of flattened rim vert IDs to source vert IDs.  Allows Unity to reset rim vert normals messed-up by capping to default normal for seamless rendering
+	//[HideInInspector]	public	List<ushort>		_aMapRimVerts2SourceVerts;		// Map of flattened rim vert IDs to source vert IDs.  Allows Unity to reset rim vert normals messed-up by capping to default normal for seamless rendering
 	
 	//---------------------------------------------------------------------------	Flex-related properties sent during BSoft_Init()
 	[HideInInspector]	public	string				_sNameSoftBody;					// The name of our 'detached softbody' in Blender.  ('BreastL', 'BreastR', 'Penis', 'VaginaL', 'VaginaR') from a substring of our class name.  Must match Blender!!
@@ -97,7 +97,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 	//---------------------------------------------------------------------------	MISC
 	[HideInInspector]	public	string				_sBlenderInstancePath_CSoftBody;				// The Blender instance path where our corresponding CSoftBody is access from CBody's Blender instance
 	[HideInInspector]	public	string				_sBlenderInstancePath_CSoftBody_FullyQualfied;	// The Blender instance path where our corresponding CSoftBody is access from CBody's Blender instance (Fully qualified (includes CBody access string)
-	[HideInInspector]	public	CBMesh				_oMesh_Unity2Blender;							// The Unity2Blender mesh we use to pass meshes from Unity to Blender for processing there (e.g. Softbody tetramesh skinning & pinning)
+	[HideInInspector]	public	CBMesh				oMesh_Unity2Blender;							// The Unity2Blender mesh we use to pass meshes from Unity to Blender for processing there (e.g. Softbody tetramesh skinning & pinning)
 
     CBMesh _oMeshFlexCollider;                           // The 'collision' mesh fed to Flex.  It as a 'shrunken version' of the appearance mesh _oMeshNow by half the Flex collision margin so that the visible mesh appears to collide with other particles much closer than if collision mesh was rendered to the user.  (Created by Blender by a 'shrink' operation)
     CHotSpot _oHotSpot;                          // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
@@ -148,10 +148,6 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 		_oMeshFlexCollider = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
         _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = false;      // Collider does not render... only for Flex definition!
         _oMeshFlexCollider.transform.SetParent(transform);
-
-        //=== Create the Unity2Blender mesh so we can pass tetraverts to Blender for processing there ===
-        _oMesh_Unity2Blender = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
-        _oMesh_Unity2Blender.transform.SetParent(transform);
     }
 
 
@@ -187,23 +183,26 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                 for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++)
                     _aFlexParticlesAtStart[nParticle] = _oBoneAnchor.worldToLocalMatrix.MultiplyPoint(_oFlexParticles.m_particles[nParticle].pos);      //###LEARN: How to properly convert from world to local (taking into account the full path of the transform we're converting about)
 
-
-                //=== Fill in the Flex tetraverts into our 'Unity2Blender' mesh so it can quickly skin and pin the appropriate verts ===
-                //###F: Enhance Unity2Blender functionality to accept any # of verts!
+                //=== Ask Blender to create a 'Unity2Blender' mesh of the right number of verts so we can upload our Tetramesh to Blender for processing there ===
                 int nVertTetras = _oFlexParticles.m_particlesCount;
-                if (nVertTetras > CBody.C_Unity2Blender_MaxVerts)			// Unity to Blender mesh created at a fixed size with the max number of verts we're expecting.  Check if we're within our set limit
-                	throw new Exception("ERROR in CBSoft.Init()  More tetraverts than # of verts in Unity2Blender mesh!");
+                CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".CreateMesh_Unity2Blender(" + nVertTetras.ToString() + ")");        // Our softbody instance will now have its 'oMeshUnity2Blender' member populated with a temporary mesh of exactly nVertTetras verts
+
+                //=== Obtain the Unity2Blender mesh so we can pass tetraverts to Blender for processing there ===
+                CBMesh oMesh_Unity2Blender = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
+                oMesh_Unity2Blender.transform.SetParent(transform);
 
                 //=== Upload our tetraverts to Blender so it can select those that are pinned and skin them ===
                 for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
-                    _oMesh_Unity2Blender._memVerts.L[nVertTetra] = _oFlexParticles.m_particles[nVertTetra].pos;
-				_oMesh_Unity2Blender.UpdateVertsToBlenderMesh();                // Blender now has our tetraverts.  It can now find the tetraverts near the rim and skin them
+                    oMesh_Unity2Blender._memVerts.L[nVertTetra] = _oFlexParticles.m_particles[nVertTetra].pos;
+				oMesh_Unity2Blender.UpdateVertsToBlenderMesh();                // Blender now has our tetraverts.  It can now find the tetraverts near the rim and skin them
 
                 //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
                 float nRangeTetraPinHunt = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nRimTetraVertHuntDistanceMult;       //###TUNE: Make relative to all-important Flex particle size!
                 CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nVertTetras.ToString() + ", " + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
 				_oMeshSoftBodyRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
                 _oMeshSoftBodyRim.transform.SetParent(transform);
+                Destroy(oMesh_Unity2Blender);       // Were' done with Unity2Blender mesh, delete
+                oMesh_Unity2Blender = null;
 
                 //=== Receive the important 'CSoftBody.aMapRimTetravert2Tetravert' and 'CSoftBody.aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
                 List<ushort> aMapVertsSkinToSim;
@@ -266,7 +265,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                 CopyOriginalVertsToVerts(false);
 
                 //=== Capped softbodies have messed up normals due to capping.  Blender constructed for us a map of which rim verts map to which source verts.  Reset the rim normals to the corresponding source vert normal for seamless rendering ===
-                //###F ###BROKEN
+                //###F ###BROKEN ###OBS getting normals from source body?
                 //CUtility.BlenderSerialize_GetSerializableCollection("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2SourceVerts()",	out _aMapRimVerts2SourceVerts);
                 //for (int nIndex = 0; nIndex < _aMapRimVerts2SourceVerts.Count;) {         // Iterate through the flattened map...
                 //	int nVertID			= _aMapRimVerts2SourceVerts[nIndex++];            // The simple list has been flattened into <nVertID0, nVertSourceID0>, etc...
@@ -305,8 +304,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
             _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = bShowFlexColliders;        // Add a flag for this intermediate mesh?  ###DESIGN: Or delete once done?
         if (_oFlexParticlesRenderer != null)
             _oFlexParticlesRenderer.enabled = bShowFlexParticles;
-        if (_oMesh_Unity2Blender != null)
-            _oMesh_Unity2Blender.GetComponent<MeshRenderer>().enabled = false;      // Always hide this mesh... no visible value?
+        if (oMesh_Unity2Blender != null)
+            oMesh_Unity2Blender.GetComponent<MeshRenderer>().enabled = false;      // Always hide this mesh... no visible value?
     }
 
 
