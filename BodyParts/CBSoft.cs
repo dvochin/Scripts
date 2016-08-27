@@ -128,8 +128,9 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
         _sNameBoneAnchor_HACK = sNameBoneAnchor_HACK;
         bool bIsFlexSkin = oTypeBMesh == typeof(CVagina);           //###WEAK: Duplication between static and instance of same thing
         CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + oBody._nBodyID.ToString() + ").CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + "," + bIsFlexSkin.ToString() + ")");      // Separate the softbody from the source body.
-        //###NOW### CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
-        CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshFlexCollider", oTypeBMesh);		// Create the softbody mesh from the just-created Blender mesh.
+        //###NOW###
+        CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
+        //////////////CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshFlexCollider", oTypeBMesh);		// Create the softbody mesh from the just-created Blender mesh.
         return oBSoft;
     }
 
@@ -150,10 +151,10 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 		_oMeshNow.MarkDynamic();        // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
         //###NOW###
-		////=== Create the collision mesh from Blender ===
-		//_oMeshFlexCollider = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
-  //      _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = false;      // Collider does not render... only for Flex definition!
-  //      _oMeshFlexCollider.transform.SetParent(transform);
+        //=== Create the collision mesh from Blender ===
+        _oMeshFlexCollider = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
+        _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = false;      // Collider does not render... only for Flex definition!
+        _oMeshFlexCollider.transform.SetParent(transform);
     }
 
 
@@ -207,7 +208,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
                     //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
                     float nRangeTetraPinHunt = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nRimTetraVertHuntDistanceMult;       //###TUNE: Make relative to all-important Flex particle size!
-                    CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nVertTetras.ToString() + ", " + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
+                    CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
 				    _oMeshSoftBodyRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
                     _oMeshSoftBodyRim.transform.SetParent(transform);
                     Destroy(oMesh_Unity2Blender);       // Were' done with Unity2Blender mesh, delete
