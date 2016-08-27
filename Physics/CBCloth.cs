@@ -77,9 +77,9 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         _oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
         _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
-        //=== Receive the aMapVertsSkinToSim array Blender created to map the skinned verts to their pertinent simulated ones ===
-        List<ushort> aMapVertsSkinToSim;
-        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapVertsSkinToSim()", out aMapVertsSkinToSim);
+        //=== Receive the aMapPinnedFlexParticles array Blender created to map the skinned verts to their pertinent simulated ones ===
+        List<ushort> aMapPinnedFlexParticles;
+        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapPinnedFlexParticles()", out aMapPinnedFlexParticles);
 
         //=== Create the simulated part of the cloth ===
         MeshFilter oMeshFilter = GetComponent<MeshFilter>();
@@ -119,7 +119,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 
         //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
         _oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-        _oFlexSkinnedSpringDriver.Initialize(ref aMapVertsSkinToSim, _oBSkinBaked_SkinnedPortion);
+        _oFlexSkinnedSpringDriver.Initialize(ref aMapPinnedFlexParticles, _oBSkinBaked_SkinnedPortion);
 
         //=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
         //_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;

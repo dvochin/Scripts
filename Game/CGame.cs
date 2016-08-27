@@ -84,7 +84,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public float skinFalloff = 1.0f;                    // (The speed at which the bone's influence on a vertex falls off with distance)
     public float skinMaxDistMult = 6.0f;                // (The maximum distance a bone can be from a vertex before it will not influence it any more)
     public float nRimTetraVertHuntDistanceMult = 0.8f;
-    public float nSoftBodyFlexColliderShrinkDist = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
+    public float nSoftBodyFlexColliderShrinkRatio = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
     public float nMassSoftBody = 2.0f;              //###TUNE
     public float nMassCloth = 1.0f;
 
@@ -278,10 +278,13 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		if (ErosEngine.gBL_HandshakeBlender() == false)
 			throw new CException("ERROR: Could not handshake with Blender!  Game unusable.");
 
-        SetForegroundWindow(_hWnd_Unity);			// Set our editor / player back into focus (away from just-spawned Blender)
-		
-		//=== Start PhysX ===
-		Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+        SetForegroundWindow(_hWnd_Unity);           // Set our editor / player back into focus (away from just-spawned Blender)
+
+        //=== Set Blender global variables ===
+        CGame.gBL_SendCmd("G", "CGlobals.SetFlexParticleSpacing(" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
+        
+        //=== Start PhysX ===
+        Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
 
 		Debug.Log("5. PhysX2 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);

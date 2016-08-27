@@ -9,15 +9,15 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
     uFlex.FlexParticles         _oFlexParticles;
     uFlex.FlexSprings           _oFlexSprings;
     public CBSkinBaked          _oMeshSoftBodyRim;     // Reference to the SMR of our skinned body.  We bake it every framee into _oMeshBakedSkin
-    List<ushort>                _aMapVertsSkinToSim;            // Blender-generated map of which Flex-simulated mesh map to which particle of the skinned mesh guiding the Flex mesh.
+    List<ushort>                _aMapPinnedFlexParticles;            // Blender-generated map of which Flex-simulated mesh map to which particle of the skinned mesh guiding the Flex mesh.
     public int                  _nNumMappingsSkinToSim;         // Number of skin-to-sim mappings = extra particles and springs that are responsible for 'driving' the 'skinned portion' of the cloth particles to the corresponding position of the 'skinned particles'
     ushort                      _nStartOfExtraParticles;        // Where in our parent's container our 'extra springs and particles' start...
     ushort                      _nStartOfExtraSprings;
 
-    public void Initialize(ref List<ushort> aMapVertsSkinToSim, CBSkinBaked oMeshSoftBodyRim) {
+    public void Initialize(ref List<ushort> aMapPinnedFlexParticles, CBSkinBaked oMeshSoftBodyRim) {
         //=== Obtain reference to the objects we'll need at every game frame ===
-        _aMapVertsSkinToSim = aMapVertsSkinToSim;
-        _nNumMappingsSkinToSim = _aMapVertsSkinToSim.Count / 2;         // Each mapping takes two slots in _aMapVertsSkinToSim
+        _aMapPinnedFlexParticles = aMapPinnedFlexParticles;
+        _nNumMappingsSkinToSim = _aMapPinnedFlexParticles.Count / 2;         // Each mapping takes two slots in _aMapPinnedFlexParticles
         _oMeshSoftBodyRim = oMeshSoftBodyRim;
         _oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;     // Find or create these necessary compoenent from our parent
         _oFlexSprings   = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexSprings))   as uFlex.FlexSprings;
@@ -41,11 +41,11 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
         ushort nNextSpring         = _nStartOfExtraSprings;
         for (ushort nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {     //###F ###BUG??? Assumes all skinned particles are used?  ###CHECK!
             ushort nMappingX2 = (ushort)(nMapping * 2);
-            //ushort nParticleSkinned             = _aMapVertsSkinToSim[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
-            ushort nParticleSimulatedMoving     = _aMapVertsSkinToSim[nMappingX2 + 1];              // The index of the simulated particle in this mapping (moves as usual but has a spring to nParticleSimulatedPinned pinned particle)
+            //ushort nParticleSkinned             = _aMapPinnedFlexParticles[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
+            ushort nParticleSimulatedMoving     = _aMapPinnedFlexParticles[nMappingX2 + 1];              // The index of the simulated particle in this mapping (moves as usual but has a spring to nParticleSimulatedPinned pinned particle)
             ushort nParticleSimulatedPinned     = nNextPinnedParticle++;                            // The ordinal of the (new) pinned Flex-simulated particle is the next ordinal.
             ushort nSpring                      = nNextSpring++;
-            _aMapVertsSkinToSim[nMappingX2 + 1] = nParticleSimulatedPinned;                     // We never need to address the moving particle after this loop... so re-use the map to point to the pinned particle we'll need to move everyframe instead.
+            _aMapPinnedFlexParticles[nMappingX2 + 1] = nParticleSimulatedPinned;                     // We never need to address the moving particle after this loop... so re-use the map to point to the pinned particle we'll need to move everyframe instead.
             _oFlexParticles.m_particles[nParticleSimulatedPinned].invMass = 0;        // The extra particle is always the skinned one which we drive so it gets infinite mass to not be simulated
             _oFlexParticles.m_particles[nParticleSimulatedPinned].pos = _oFlexParticles.m_particles[nParticleSimulatedMoving].pos;
             _oFlexParticles.m_colours[nParticleSimulatedPinned] = Color.gray;        //###TODO: Standardize Flex colors!
@@ -67,8 +67,8 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
         //=== Update the position of our (master) skinned driving particles so (slave) simulated particle can closely follow ===
         for (int nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {
             ushort nMappingX2 = (ushort)(nMapping * 2);
-            ushort nParticleSkinned         = _aMapVertsSkinToSim[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
-            ushort nParticleSimulatedPinned = _aMapVertsSkinToSim[nMappingX2 + 1];          // Note that this map was modified in init to 'flatten' the sparesly populated pinned simulated particules
+            ushort nParticleSkinned         = _aMapPinnedFlexParticles[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
+            ushort nParticleSimulatedPinned = _aMapPinnedFlexParticles[nMappingX2 + 1];          // Note that this map was modified in init to 'flatten' the sparesly populated pinned simulated particules
             _oFlexParticles.m_particles[nParticleSimulatedPinned].pos = aVertSkinned[nParticleSkinned];
         }
     }
@@ -91,25 +91,25 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
 //    uFlex.FlexSprings           _oFlexSprings;
 //    public int                  _nNumSprings;                  // Number of driver-to-driven particle mappings = extra particles and springs that are responsible for 'driving' the 'skinned portion' of the cloth particles to the corresponding position of the 'skinned particles'
 //    uFlex.FlexParticles         _oFlexParticles;
-//    List<ushort>                _aMapVertsSkinToSim;
+//    List<ushort>                _aMapPinnedFlexParticles;
 //    int                         _nNumMappingsSkinToSim;
 //    int                         _nStartOfExtraParticles;
 //    int                         _nStartOfExtraSprings;
 
-//    public static CFlexSkinnedSpringDriver Create(CBody oBody, ref List<ushort> aMapVertsSkinToSim, ref uFlex.FlexParticles oFlexParticles) {
+//    public static CFlexSkinnedSpringDriver Create(CBody oBody, ref List<ushort> aMapPinnedFlexParticles, ref uFlex.FlexParticles oFlexParticles) {
 //        //=== Create the (driving) skinned mesh that will be responsible for driving Flex particles that in turn drive Flex springs which in turn drive the slave (simulated) particles of our owner.  This component is added to the new game object craeted below ===
 //        CBSkinBaked oBSkinBaked_Driver = (CBSkinBaked)CBSkinBaked.Create(null, oBody, sBlenderInstancePath_DriverSkinnedMesh, typeof(CBSkinBaked));
 //        oBSkinBaked_Driver.transform.SetParent(oFlexParticles.transform);        // Parent under our owning node for clarity.
 //        CFlexSkinnedSpringDriver oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(oBSkinBaked_Driver.gameObject, typeof(CFlexSkinnedSpringDriver)) as CFlexSkinnedSpringDriver;
-//        oFlexSkinnedSpringDriver.Initialize(oBody, ref aMapVertsSkinToSim, ref oFlexParticles);
+//        oFlexSkinnedSpringDriver.Initialize(oBody, ref aMapPinnedFlexParticles, ref oFlexParticles);
 //        return oFlexSkinnedSpringDriver;
 //    }
 
-//    public void Initialize(CBody oBody, ref List<ushort> aMapVertsSkinToSim, ref uFlex.FlexParticles oFlexParticles) {
+//    public void Initialize(CBody oBody, ref List<ushort> aMapPinnedFlexParticles, ref uFlex.FlexParticles oFlexParticles) {
 //        //=== Obtain reference to the objects we'll need at every game frame ===
 //        _oFlexParticles = oFlexParticles;
-//        _aMapVertsSkinToSim = aMapVertsSkinToSim;
-//        _nNumMappingsSkinToSim = _aMapVertsSkinToSim.Count / 2;         // Each mapping takes two slots in _aMapVertsSkinToSim
+//        _aMapPinnedFlexParticles = aMapPinnedFlexParticles;
+//        _nNumMappingsSkinToSim = _aMapPinnedFlexParticles.Count / 2;         // Each mapping takes two slots in _aMapPinnedFlexParticles
 //        ////_oSkinMeshRend_SkinnedMesh = oSkinMeshRend_SkinnedMesh;
 
 //        _oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;     // Create these necessary components attached to the skinned part of the mesh
@@ -134,11 +134,11 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
 //        int nNextSpring         = _nStartOfExtraSprings;
 //        for (int nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {     //###F ###BUG??? Assumes all skinned particles are used?  ###CHECK!
 //            int nMappingX2 = nMapping * 2;
-//            //ushort nParticleSkinned             = _aMapVertsSkinToSim[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
-//            int nParticleSimulatedMoving    = _aMapVertsSkinToSim[nMappingX2 + 1];              // The index of the simulated particle in this mapping (moves as usual but has a spring to nParticleSimulatedPinned pinned particle)
+//            //ushort nParticleSkinned             = _aMapPinnedFlexParticles[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
+//            int nParticleSimulatedMoving    = _aMapPinnedFlexParticles[nMappingX2 + 1];              // The index of the simulated particle in this mapping (moves as usual but has a spring to nParticleSimulatedPinned pinned particle)
 //            int nParticleSimulatedPinned    = nNextPinnedParticle++;                            // The ordinal of the (new) pinned Flex-simulated particle is the next ordinal.
 //            int nSpring                      = nNextSpring++;
-//            _aMapVertsSkinToSim[nMappingX2 + 1] = (ushort)nParticleSimulatedPinned;                     // We never need to address the moving particle after this loop... so re-use the map to point to the pinned particle we'll need to move everyframe instead.
+//            _aMapPinnedFlexParticles[nMappingX2 + 1] = (ushort)nParticleSimulatedPinned;                     // We never need to address the moving particle after this loop... so re-use the map to point to the pinned particle we'll need to move everyframe instead.
 //            _oFlexParticles.m_particles[nParticleSimulatedPinned].invMass = 0;        // The extra particle is always the skinned one which we drive so it gets infinite mass to not be simulated
 //            _oFlexParticles.m_particles[nParticleSimulatedPinned].pos = _oFlexParticles.m_particles[nParticleSimulatedMoving].pos;
 //            _oFlexParticles.m_colours[nParticleSimulatedPinned] = Color.gray;        //###TODO: Standardize Flex colors!
@@ -160,8 +160,8 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
 //        //=== Update the position of our (master) skinned driving particles so (slave) simulated particle can closely follow ===
 //        for (int nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {
 //            ushort nMappingX2 = (ushort)(nMapping * 2);
-//            ushort nParticleSkinned         = _aMapVertsSkinToSim[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
-//            ushort nParticleSimulatedPinned = _aMapVertsSkinToSim[nMappingX2 + 1];          // Note that this map was modified in init to 'flatten' the sparesly populated pinned simulated particules
+//            ushort nParticleSkinned         = _aMapPinnedFlexParticles[nMappingX2 + 0];              // The index of the skinned particle in this mapping (sparsely populated)
+//            ushort nParticleSimulatedPinned = _aMapPinnedFlexParticles[nMappingX2 + 1];          // Note that this map was modified in init to 'flatten' the sparesly populated pinned simulated particules
 //            _oFlexParticles.m_particles[nParticleSimulatedPinned].pos = aVertSkinned[nParticleSkinned];
 //        }
 //    }

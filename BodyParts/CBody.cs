@@ -96,7 +96,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public	CBreastL 		    _oBreastL;					// The left and right breasts as softbodies
 	public	CBreastR 		    _oBreastR;
 	public	CPenis				_oPenis;
-    public  CFlexSkin           _oVagina;
+    public  CVagina             _oVagina;
+    //public  CFlexSkin           _oVagina;
     public List<CBSoft>		    _aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
@@ -163,8 +164,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
 		if (_nBodyID == 0) {
-			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
-			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Shemale);
+			_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Woman);
+			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Shemale);
 			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
 //			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
 //			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
@@ -227,11 +228,12 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            _aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            _aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+            //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
-            _oVagina = CFlexSkin.Create(this, "TestFlexSkin", 15);
+            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest"));
+            //_oVagina = CFlexSkin.Create(this, "TestFlexSkin", 15);
         } else {
             _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
         }

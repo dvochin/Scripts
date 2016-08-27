@@ -33,7 +33,7 @@ public class CBreastBase : CBSoft/*, IHotSpotMgr*/ {    //###OBS!
 
 
 	public CBreastBase() {
-		_nRangeTetraPinHunt = 0.017f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
+		_nRangeTetraPinHunt_OBS = 0.017f;		//###TUNE!!  (Changes with _SoftBodyDetailLevel!!)
 		_SoftBodyDetailLevel = 15;          //###TUNE
 		_nBreastID = (this.GetType().Name == "CBreastR") ? 1 : 0;
 	}

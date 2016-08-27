@@ -88,7 +88,7 @@ public class CPenis_OBS : CBSoft, IObject, IHotSpotMgr {
 
 
 	public CPenis_OBS() {
-		_nRangeTetraPinHunt = 0.012f;           //15###TUNE!!: Sensitive & important!		//###CHECK: Why the sudden range increase requirement???
+		_nRangeTetraPinHunt_OBS = 0.012f;           //15###TUNE!!: Sensitive & important!		//###CHECK: Why the sudden range increase requirement???
 		_SoftBodyDetailLevel = 15;				//###OPT!!!: Reduce if quality can be maintained at base
 	}
 
