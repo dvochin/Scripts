@@ -25,7 +25,7 @@
 */
 using UnityEngine;
 
-public class CBreastBase : CBSoft/*, IHotSpotMgr*/ {    //###OBS!
+public class CBreastBase : CSoftBody/*, IHotSpotMgr*/ {    //###OBS!
 
 	//CHotSpot	_oHotSpot;
 	///public	CBodyColBreast		_oBodyColBreast;            // The breast collider mesh.  Used in PhysX3 to repell cloth

@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
 using System.Collections;
 
-public class CPenis : CBSoft {
+public class CPenis : CSoftBody {
 }

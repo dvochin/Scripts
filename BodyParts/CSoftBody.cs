@@ -170,7 +170,7 @@ using System;
 using System.Collections.Generic;
 
 
-public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {                    //####DEV ####DESIGN: Based on CBMesh or CBSkin??
+public class CSoftBody : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {                    //####DEV ####DESIGN: Based on CBMesh or CBSkin??
                                                                                         // Manages a single soft body object send to Flex implementation for soft body simulation.  These 'body parts' (such as breasts, penis, vagina) 
                                                                                         //... are conneted to the main body skinned mesh via _oMeshRimBaked which pins this softbody's tetraverts to those skinned from the main body
 
@@ -181,7 +181,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 	[HideInInspector]	public	List<ushort>		_aMapRimVerts2Verts = new List<ushort>();		// Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
 	//[HideInInspector]	public	List<ushort>		_aMapRimVerts2SourceVerts;		// Map of flattened rim vert IDs to source vert IDs.  Allows Unity to reset rim vert normals messed-up by capping to default normal for seamless rendering
 	
-	//---------------------------------------------------------------------------	Flex-related properties sent during BSoft_Init()
+	//---------------------------------------------------------------------------	Flex-related properties sent during SoftBody_Init()
 	[HideInInspector]	public	string				_sNameSoftBody;					// The name of our 'detached softbody' in Blender.  ('BreastL', 'BreastR', 'Penis', 'VaginaL', 'VaginaR') from a substring of our class name.  Must match Blender!!
 	[HideInInspector]	public  int					_SoftBodyDetailLevel;			// Detail level of the associated Flex tetramesh... a range between 20 (low) and 50 (very high) is reasonable  ###CLEAN
 	[HideInInspector]	public	EColGroups			_eColGroup;                     // The Flex collider group for this softbody.  Used to properly determine what this softbody collides with...###CLEAN
@@ -214,20 +214,20 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
     //---------------------------------------------------------------------------	INIT
 
-    public CBSoft() {                           // Setup the default arguments... usually overriden by our derived class   //###BUG??? Why are these settings not overriding those in instanced node???
+    public CSoftBody() {                           // Setup the default arguments... usually overriden by our derived class   //###BUG??? Why are these settings not overriding those in instanced node???
 		_nRangeTetraPinHunt_OBS = CGame.INSTANCE.particleSpacing * 1.0f;       //###TUNE: Make relative to all-important Flex particle size!
 	}
 
-	public static CBSoft Create(CBody oBody, Type oTypeBMesh, string sNameBoneAnchor_HACK) { 
+	public static CSoftBody Create(CBody oBody, Type oTypeBMesh, string sNameBoneAnchor_HACK) { 
 		string sNameSoftBody = oTypeBMesh.Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         _sNameBoneAnchor_HACK = sNameBoneAnchor_HACK;
         bool bIsFlexSkin = oTypeBMesh == typeof(CVagina);           //###WEAK: Duplication between static and instance of same thing
         CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + oBody._nBodyID.ToString() + ").CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + "," + bIsFlexSkin.ToString() + ")");      // Separate the softbody from the source body.
         
-        CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
-        //###NOW### //CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshVAGINABAKED_HACK", oTypeBMesh, true);       // Create the softbody mesh from the just-created Blender mesh.
-        //////////////CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshFlexCollider", oTypeBMesh);		// Create the softbody mesh from the just-created Blender mesh.
-        return oBSoft;
+        CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
+        //###NOW### //CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshVAGINABAKED_HACK", oTypeBMesh, true);       // Create the softbody mesh from the just-created Blender mesh.
+        //////////////CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshFlexCollider", oTypeBMesh);		// Create the softbody mesh from the just-created Blender mesh.
+        return oSoftBody;
     }
 
 	public override void OnDeserializeFromBlender() {
@@ -256,7 +256,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
 
     public override void OnDestroy() {
-		Debug.Log("Destroy CBSoft " + gameObject.name);
+		Debug.Log("Destroy CSoftBody " + gameObject.name);
 		base.OnDestroy();
 	}
 

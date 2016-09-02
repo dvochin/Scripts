@@ -97,7 +97,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public	CBreastR 		    _oBreastR;
 	public	CPenis				_oPenis;
     public  CVagina             _oVagina;
-    public List<CBSoft>		    _aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
+    public List<CSoftBody>		    _aSoftBodies	= new List<CSoftBody>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
 	public	List<CBCloth>		_aCloths		= new List<CBCloth>();		// List of our simulated cloth.  Used to iterate during runtime
@@ -227,13 +227,13 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+            //_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
-            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
+            _aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
         } else {
-            _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
+            _aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "chest/abdomen/hip"));
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
@@ -402,8 +402,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//if (_oVagina != null)
 		//	_oVagina.OnSimulatePre();
 	
-		foreach (CBSoft oBSoft in _aSoftBodies)
-			oBSoft.OnSimulatePre();
+		foreach (CSoftBody oSoftBody in _aSoftBodies)
+			oSoftBody.OnSimulatePre();
 
 		_oHeadLook.OnSimulatePre();
 
@@ -479,13 +479,13 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
     }
 
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
-        foreach (CBSoft oBody in _aSoftBodies)
+        foreach (CSoftBody oBody in _aSoftBodies)
             oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
     }
 
     public void OnSimulateBetweenPhysX23() {
-		//foreach (CBSoft oBSoft in _aSoftBodies)					// First simulate the PhysX2 soft bodies
-		//	oBSoft.OnSimulateBetweenPhysX23();
+		//foreach (CSoftBody oSoftBody in _aSoftBodies)					// First simulate the PhysX2 soft bodies
+		//	oSoftBody.OnSimulateBetweenPhysX23();
 		foreach (CBCloth oBCloth in _aCloths)					// Simulate the PhysX3 cloths from the just-updated colliders above
 			oBCloth.OnSimulateBetweenPhysX23();
 		//if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
@@ -493,8 +493,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	}
 
 	public void OnSimulatePost() {
-		foreach (CBSoft oBSoft in _aSoftBodies)			//###CHECK: Cloth fitting mode needs breast to run, but others???
-			oBSoft.OnSimulatePost();
+		foreach (CSoftBody oSoftBody in _aSoftBodies)			//###CHECK: Cloth fitting mode needs breast to run, but others???
+			oSoftBody.OnSimulatePost();
 		foreach (CBCloth oBCloth in _aCloths)
 			oBCloth.OnSimulatePost();
 	}
@@ -626,7 +626,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
             if (_oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>() != null)
                 _oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
         }
-        foreach (CBSoft oSoftBody in _aSoftBodies)
+        foreach (CSoftBody oSoftBody in _aSoftBodies)
             oSoftBody.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
         foreach (CBCloth oCloth in _aCloths)
             oCloth.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
@@ -676,8 +676,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {        //###DEV
-		foreach (CBSoft oBSoft in _aSoftBodies)
-			oBSoft.OnChangeGameMode(eGameModeNew, eGameModeOld);
+		foreach (CSoftBody oSoftBody in _aSoftBodies)
+			oSoftBody.OnChangeGameMode(eGameModeNew, eGameModeOld);
 		foreach (CActor oActor in _aActors)
 			oActor.OnChangeGameMode(eGameModeNew, eGameModeOld);
 	}

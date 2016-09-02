@@ -54,7 +54,7 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern Vector3	SoftBody_GetTetraVert(IntPtr pSoftBodyPtr, int nVertTetra);		// Accesses inside the tetramesh vertices to find and constuct CPinTetras
 	[DllImport(ErosDll)] public static extern int		SoftBody_GetTetraVertCount(IntPtr pSoftBodyPtr);					// Accesses inside the tetramesh vertices to find number of tetraverts
 	[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreast(IntPtr pBodyColBreastPtr, IntPtr pVerts, IntPtr pNormals, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);
-	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachTetraVertToPos(IntPtr pBSoftPtr, int nVertTetra, Vector3 vecPinPos);		//####TODO: Rename?
+	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachTetraVertToPos(IntPtr pSoftBodyPtr, int nVertTetra, Vector3 vecPinPos);		//####TODO: Rename?
 	
 	//---------------------------------------------------------------------------	COLLIDERS
 	[DllImport(ErosDll)] public static extern IntPtr	Collider_Box_Create		(string szName, uint nFlags, Vector3 vecPos, Quaternion quatRot, Vector3 vecBoxSize, float nDensityOrMass, int eColGroup);

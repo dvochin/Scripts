@@ -66,7 +66,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 
-public class CPenis_OBS : CBSoft, IObject, IHotSpotMgr {
+public class CPenis_OBS : CSoftBody, IObject, IHotSpotMgr {
 	//---------------------------------------------------------------------------	MEMBERS
 	[HideInInspector]	public 	CObject				_oObjDriver;					// Our client/server object responsible for the penis colliders.  Note that our parent class has related oObj which is the softbody client/server object!
 	[HideInInspector]	public 	CPenisTip			_oPenisTip;						// The penis tip object controls cum fluid

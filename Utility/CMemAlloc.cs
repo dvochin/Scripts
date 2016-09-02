@@ -46,7 +46,7 @@ public class CMemAlloc<T> {									// Important helper class used throughout to
 
 public enum EPhysDest {				// Who this message is for...		//###OBS??
 	Manager,
-	BSoft,
+	SoftBody,
 	Cloth
 };
 

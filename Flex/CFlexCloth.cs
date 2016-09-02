@@ -6,7 +6,7 @@
 //	//---------------------------------------------------------------------------	MEMBERS
 //	[HideInInspector]	public 	CObject				_oObj;                          // The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
 
-//    //---------------------------------------------------------------------------	PhysX-related properties sent during BSoft_Init()
+//    //---------------------------------------------------------------------------	PhysX-related properties sent during SoftBody_Init()
 //    [HideInInspector]   public CHotSpot             _oHotSpot;
 
 

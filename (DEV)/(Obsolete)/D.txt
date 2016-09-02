@@ -68,9 +68,9 @@
 	- Anim files have a nice Unity GUI that can be useful to edit
 	- Custom files would more easily support transactions, undo/redo, etc.
 
--- New BSoft merging --
+-- New SoftBody merging --
 - We make the simplifying assumption that CBody ALWAYS merges two or more skinned mesh + soft body and branches them out (like last implementation)
-- CBSoftLocal won't be used... We assume that each skinned mesh that CBody can merge has a child called 'BSoft' that contains a non-skinned mesh with its pins at the same location as its parent
+- CSoftBodyLocal won't be used... We assume that each skinned mesh that CBody can merge has a child called 'SoftBody' that contains a non-skinned mesh with its pins at the same location as its parent
 - Currently we don't skin wrap the breasts onto the top (bad skinning transition) so that leaves verts mapped to root... this the best??
 
 -- Caress system --
@@ -164,12 +164,12 @@
 - Put back slit and improve... (we also need for breasts without cutting shirt... tought!)
 - Preliminary tests with stabilizing forces were mediocre -> would probably oscillate, be unstable, require high CPU and difficult to improve.  
 	- Backstopping a solid is probably best.
-	- Right now solid fails on NaN... probably have to fix CBSoft to trim back vertex?
+	- Right now solid fails on NaN... probably have to fix CSoftBody to trim back vertex?
 	- Also have to do slit for this testing.
 	- Locate back tetra verts, pin solid (or use our new spring pin) and retry.
 - REMEMBER: Screwed up pos of vagina!
 -BUG: bad pinning of vagina... caused by pinning from tris instead of verts??
-	- Caused by CBSoft.OnStart() call to FindVertByPos with too big a range.
+	- Caused by CSoftBody.OnStart() call to FindVertByPos with too big a range.
 	- Screwed up pos of vagina and that's why a range of zero won't work!  Fix the mesh positions!
 --- Old CBody discussion? ---
 -- How the PhysX mesh and the skinned mesh are merged together during init --
@@ -258,7 +258,7 @@
 - Reconnsider OnPhys_Message... broadcast to cloth and softbodies????
 - Consider restore of soft body bones to init state to avoid rebooting Unity all the time!
 - Init takes too long, shorten!
-- Debug window refresh needed for BSoft.  Fix 'ApplyLinks'!!! //###
+- Debug window refresh needed for SoftBody.  Fix 'ApplyLinks'!!! //###
 - Now in sync mode.  Simplifies things but are we killing performance???
 	- Would starting of simulation in earliest update and blocking on LateUpdate ok?
 	- Is FixedUpdate totally useless now?
@@ -404,11 +404,11 @@
 ? Getting annoying that Unity locks our dll once loaded!  Find out what it calls!!
     
 === DESIGN ISSUES ===
-? BSoft accepting collections of meshes is not compatible with the existing one-cutter-per-mesh!  (Cutter currently 'owned' by CBSoft!!!)
+? SoftBody accepting collections of meshes is not compatible with the existing one-cutter-per-mesh!  (Cutter currently 'owned' by CSoftBody!!!)
 - Breasts look bad under gravity but penis needs it... Switch off gravity at the soft body level??
 - Define collision layers between skinned colliders and our bone colliders!!  Same??  different??  Are actors like hands and feet on different layer??
 - CHarnessSphereActorWalker being derived from us makes no sense related to our collider functionality.  Move our skin position update stuff to a base class and let walker class derive from that instead
-- CBSoft overrides nicely but leaves its children with full arrays that are useless.. clean them!
+- CSoftBody overrides nicely but leaves its children with full arrays that are useless.. clean them!
 - Problem with gravity making breasts look bad... get rid of it?  and just apply to cloth??
 - Disable cam movement when panel shown?  (Cound cause 'poke through' if we allow!)
 
@@ -416,7 +416,7 @@
 + Huge limitation: we have to init each character at origin!  (Ok to move later)
 - CBody functionality *must* have skinned mesh in idle pose (all bones as design during idle pose) for mouse ray to work and code to function.  (Alternative would involve calculating every skinned vertex before editing!!)
 	- Still valid if we design colliders in gametime?
-? CBSoft requires that host mesh has the same material as it... (like Vagina to Hip).  For Penis this is not true... I had to convert a couple nearly-invisible polys on the host mesh to the penis material to get our code to work!!
+? CSoftBody requires that host mesh has the same material as it... (like Vagina to Hip).  For Penis this is not true... I had to convert a couple nearly-invisible polys on the host mesh to the penis material to get our code to work!!
 
 === IDEAS ===
 - Use File.Encrypt() for anything??
@@ -504,7 +504,7 @@
 + Send colliders to PhysX!
 - Apply properties to all soft bodies! -> redesign!
 - Slit on breasts that won't cut clothing!
-- BSoft shutdown doesn't recover anymore -> a nasty problem because of triangle submeshes!
+- SoftBody shutdown doesn't recover anymore -> a nasty problem because of triangle submeshes!
 
 -- PhysX collision (Unity) --
 - Finalize gravity!
@@ -562,7 +562,7 @@
 - Vertex lit on penis makes it look awesome!  Is that a feasibility or do we need specular??
 - For more options and tweaking on animation panel entries, we could simplify by allowing simple adjustments to the 'current animation' (e.g. last entered) to allow user to adjust period, min, max, etc (and save on another name?)
 - Growth on breasts limited by clothing... having clothing a larger margin of smoothing of pins would help?
-- CBSoftVagina and CActorBreasts with CBSoftPenis -> Makes it possible to abstract away man, woman and shemale
+- CSoftBodyVagina and CActorBreasts with CSoftBodyPenis -> Makes it possible to abstract away man, woman and shemale
 - Running a collider inside penis during ejaculation will make it look great!!!
 
 === IMPROVEMENTS ===
@@ -627,7 +627,7 @@
 - Self-collision is a paramater we should control with SetParameter
 - Dual scenes (cloth and default) is now all over the place... fix!!
 - BUG!!!: Why the game hangs at 612MB about 30% of time???
-- Major design changes... with CBSoftEx and removal of CActorEx... STUDY CAREFULLY!
+- Major design changes... with CSoftBodyEx and removal of CActorEx... STUDY CAREFULLY!
 - Gravity disabled... hard to lift penis up as it twists... that's what happens with too many links??
 - Specularity on vagina doesn't look very good... keep??
 - BUG? Man has materials 2&3 set to penis (Sclera & Pupil!) to prevent pinning!
@@ -636,8 +636,8 @@
 - Gone with no penis growth? :		//###BUG? //###CHECK - Problem with setting penis growth size.  We MUST have starting state all at scale 1.0 or else the growth mechanism will 'skin twice' and results look poor...  Would need to redo init.
 +++ Have huge cock flesh be going up and down from a ring of capsules simulating vagina entry and hand -> will be so HOT!!
 + Important design problem with penis growth: Position of the pins not the same skinned value for big & small...  fixing code for this would be tough... kludge it so it looks ok??
-+++ Broken CBSoftLocal!!														
---- Simplification of BSoft got rid of lag between PhysX softbody and Unity, but still a few 'hickups' every second or so when we update PhysX GUI
++++ Broken CSoftBodyLocal!!														
+--- Simplification of SoftBody got rid of lag between PhysX softbody and Unity, but still a few 'hickups' every second or so when we update PhysX GUI
 + Capping of breast is almost perfect except for some snags around armpits... rework mesh to fix or make algorithm more complex to remove cap??
 -- Missing polys near shemale crotch area
 - Why the heck is shemale penis requiring such large range for CPinUnity??  Fix mesh??
@@ -646,7 +646,7 @@
 ?- softbodies won't render if not 2!
 - PhysX failure during tetra creation needs to be trapped and reported to Unity... what to do then??
 - CBSkin on breasts frequently getting in the way...
-	- For breast GUI, having CBSkin and CBSoftBreasts give overlapping GUI!
+	- For breast GUI, having CBSkin and CSoftBodyBreasts give overlapping GUI!
 - Breast growth blending gives new mesh smooth verts more distance so they don't expand at the same rate as their neighbor vert -> mesh distortion!  What can be done??
 - CBSkin.Awake() called WAY too many times per skinned mesh... and wasting tons of memory per mesh with possibly-unused resources... REDESIGN!
 - How the heck can CBSkinEd raycast hit other side of fucking collision mesh???
@@ -668,7 +668,7 @@
 - Need more penis damping!?  On actors as joint already maxed out!
 	- Why is setting slerp drive does nothing!  This is an important setting and we need to control it!!
 - Very weird... too many links (20) causes separation of softbody with shaft...  had to increase size of capsules!
-- Hook into GUI panel code... subclass CBSoft from CActor?????
+- Hook into GUI panel code... subclass CSoftBody from CActor?????
 - Remove vagina expansion sphere & collider group??
 - Vagina gate still needed???
 + Need to globalize penis ration calculations from penis mesh creation utility and use for everything!

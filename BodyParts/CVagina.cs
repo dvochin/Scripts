@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class CVagina : CBSoft
+public class CVagina : CSoftBody
 {
 }
 
@@ -64,8 +64,8 @@ public class CVagina : CBSoft
 
 
 //public class CVagina {		// Class to abstract away complexity of managing L/R vagina under one set of properties		//####OBS ####SOON
-//	public CBSoftVaginaL 		_oBSoftVaginaL;
-//	public CBSoftVaginaR 		_oBSoftVaginaR;
+//	public CSoftBodyVaginaL 		_oSoftBodyVaginaL;
+//	public CSoftBodyVaginaR 		_oSoftBodyVaginaR;
 //	CBody				_oBody;
 
 //	CCollider 			_oColGuideU,  _oColGuideD,  _oColGuideL,  _oColGuideR;	// The 'guide track' that guide the penis rigid body inner core inside the vagina
@@ -82,8 +82,8 @@ public class CVagina : CBSoft
 //	public CVagina(CBody oBody) {
 //		_oBody = oBody;		//###WEAK!!! Filling in body's array of softbodies!  Revisit??
 //		//###BROKEN
-//		//oBody._aSoftBodies.Add(_oBSoftVaginaR = (CBSoftVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaR)));
-//		//oBody._aSoftBodies.Add(_oBSoftVaginaL = (CBSoftVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CBSoftVaginaL)));
+//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaR = (CSoftBodyVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaR)));
+//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaL = (CSoftBodyVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaL)));
 
 //		_aColliders.Add(_oColGuideU  = PrepareCollider("VaginaGuideTrackU"));
 //		_aColliders.Add(_oColGuideD  = PrepareCollider("VaginaGuideTrackD"));
@@ -161,7 +161,7 @@ public class CVagina : CBSoft
 //		//}
 
 //		//CVagina oVagina = CGame.INSTANCE._oBodyWoman._oVagina;		//###DESIGN: Any value to a menu for vagina??
-//		//iGUISmartPrefab_WndPopup.WndPopup_Create(new CObject[] { oVagina._oBSoftVaginaL._oObj, oVagina._oBSoftVaginaR._oObj }, "Vagina HACK", Input.mousePosition.x, Input.mousePosition.y);
+//		//iGUISmartPrefab_WndPopup.WndPopup_Create(new CObject[] { oVagina._oSoftBodyVaginaL._oObj, oVagina._oSoftBodyVaginaR._oObj }, "Vagina HACK", Input.mousePosition.x, Input.mousePosition.y);
 //	}
 
 //	public void VaginaGuideTrack_EnableDisable(bool bEnable) {

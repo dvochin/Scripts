@@ -11,7 +11,7 @@
 - Remove extra skinned mesh... or pass this one to Flex C#?
 - Delay between the codebases
 - Object name... choose where functionality goes...
-    - CBSoft is based on CBMesh which draws... pass this to Flex?
+    - CSoftBody is based on CBMesh which draws... pass this to Flex?
 - Creating Flex object at proper tree address.
 
 === TODO ===

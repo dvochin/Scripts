@@ -15,7 +15,7 @@ public enum ECollLayer_OBS {
 	PenisRigidCore1,	// The rigid body colliders stiffening the penis
 	PenisRigidCore2,	// The rigid body colliders that are responsible for collision against vagina softbody
 	BreastsSoftBody,	// The soft body breasts
-	BodyColliders_OBS,		// The spheres our Unity implementation uses to simulate the body to push the cloth away (Set to not collide with 'BSoft')
+	BodyColliders_OBS,		// The spheres our Unity implementation uses to simulate the body to push the cloth away (Set to not collide with 'SoftBody')
 	Fluid,				// All Fluids (cum)
 	Clothing,			// Layer contains all clothing
 	NoSelfCollision,	// Any object in this group doesn't collide with other objects in this group

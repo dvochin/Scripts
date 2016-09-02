@@ -2,9 +2,9 @@ using UnityEngine;
 using System.Collections;
 
 
-public class CBSoftVagina : CBSoft {		// Class to abstract away complexity of managing vagina softbody
+public class CSoftBodyVagina : CSoftBody {		// Class to abstract away complexity of managing vagina softbody
 
-	public CBSoftVagina() {
+	public CSoftBodyVagina() {
 		_nRangeTetraPinHunt_OBS = 0.007f;
 		_SoftBodyDetailLevel = 20;				//###TUNE
 	}
