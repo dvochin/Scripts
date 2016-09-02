@@ -8,7 +8,6 @@ using UnityEngine;
 public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manages debug geometry for a soft body (shapes and particles)
     [HideInInspector] public uFlex.FlexShapeMatching    _oFlexShapeMatching;
     [HideInInspector] public uFlex.FlexParticles        _oFlexParticles;
-    [HideInInspector] public uFlex.FlexSkinnedMesh      _oFlexSkinnedMesh;
     CVisualizeParticle[]            _aVisParticles;
     CVisualizeShape[]               _aVisShapes;
     public float                    _SizeParticles = 0.0005f;  // CGame.INSTANCE.particleSpacing / 2;
@@ -19,7 +18,6 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
     void Start () {
         _oFlexShapeMatching     = GetComponent<uFlex.FlexShapeMatching>();
         _oFlexParticles         = GetComponent<uFlex.FlexParticles>();
-        _oFlexSkinnedMesh       = GetComponent<uFlex.FlexSkinnedMesh>();
         _vecSizeParticles   = new Vector3(_SizeParticles, _SizeParticles, _SizeParticles);
         _vecSizeShapes      = new Vector3(_SizeShapes, _SizeShapes, _SizeShapes);
 
@@ -33,26 +31,29 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
             oVisParticle.Initialize(this, nParticle);
         }
 
-        //=== Connect to previously-created shape nodes ===
-        if (_oFlexSkinnedMesh != null) { 
-            _aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
-            for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++){
-                Transform oShapeT = _oFlexSkinnedMesh.m_bones[nShape];
-                CVisualizeShape oVisShape = oShapeT.GetComponent<CVisualizeShape>();
-                _aVisShapes[nShape] = oVisShape;
-                oVisShape.Initialize(this, nShape);
-            }
+        //=== Create new nodes to render all shapes ===
+        _aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
+        for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++){
+            GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;
+            GameObject oParticleGO = Instantiate(oTemplateGO) as GameObject;
+            CVisualizeShape oVisShape = CUtility.FindOrCreateComponent(oParticleGO, typeof(CVisualizeShape)) as CVisualizeShape;
+            _aVisShapes[nShape] = oVisShape;
+            oVisShape.Initialize(this, nShape);
         }
+
         GetComponent<MeshRenderer>().enabled = false;           // Hide the soft body renderer out of convenience so we see inside ###IMPROVE: Set transparent?
     }
 
     void Update() {
         //=== Update position of each debug particle visualizer to the current particle position ===
-        foreach (CVisualizeParticle oVisParticle in _aVisParticles) {
+        foreach (CVisualizeParticle oVisParticle in _aVisParticles)
             oVisParticle.transform.position = _oFlexParticles.m_particles[oVisParticle._ParticleID].pos;
-        }
+
+        foreach (CVisualizeShape oVisShape in _aVisShapes)
+            oVisShape.transform.position = _oFlexShapeMatching.m_shapeTranslations[oVisShape._ShapeID];
+
         //=== Draw connections between this shape and our related particles upon mouse click ===
-        if (Input.GetMouseButtonDown(0)) {
+        if (Input.GetMouseButtonDown(1)) {
             int nLayerTarget = CCursor.C_Layer_HotSpot;                 //###BUG??? Send this layer mask to derived classes???
             uint nLayerTargetMask = (uint)1 << nLayerTarget;
             Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
@@ -70,6 +71,7 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
     }
 
     void OnDestroy() {
+        Debug.Log("CVisualizeSoftBody.OnDestroy() cleaning up.");
         foreach (CVisualizeParticle oVisParticle in _aVisParticles)
             GameObject.Destroy(oVisParticle.gameObject);
         foreach (CVisualizeShape oVisShape in _aVisShapes)

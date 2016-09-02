@@ -1,10 +1,105 @@
+//###NOW###
+/*
+
+=== CSoftBodySkin design decisions ===
+- Need to split CSoftBody into CSoftBodyBase and CSoftBody / CSoftBodySkin
+    - Algorithm to define rim and its arrays into base class
+
+- CSoftBodySkin skinning:
+    - Done in Blender by distance. (not geometry)
+    - Q: Do we need to 'push back' near Flex collider mesh temporarily to skin depth during pose binding?
+        - Try this as a last resort... might work with collider a particle distance away.
+        - Q: Do we 
+
+
+=== NEEDS ===
+- Need to modify virgin body for vagina hole with proper UV mapping.
+
+=== WISHLIST ===
+- Would be awesome if we can programatically generate vagina/anus colliders straight from virgin body mesh... (prevents body morphs)
+
+
+
+
+
+
+=== Vagina collider generation ===
+- Returning back to DAZ body, we're now sliding verts one ring outward (so no longer a need to clean up mesh)
+    - Do we manually slide the verts for 2cm particles or create code for exact opening size?
+    - How do we approach dick size vertex slide?
+- Need to cut the opening, extrude in for 3 rings
+- Then generation of outer collider mesh... 
+    - Glue a cylinder with right # of verts or move existing verts to form a cylinder??
+    - 
+
+
+
+
+###DESIGN: COrifice: Blender and Unity classes to support Flex-based penetration (vagina and anus)
+=== KEY GOALS ===
+- Create all dependant meshes from base body mesh and vertex groups.
+- Adjust opening size from penis diameter (presentation and both collider meshes)
+
+
+=== IMPLEMENTATION DECISIONS ===
+- Manages the presentation mesh (visible to user), the 'near' and 'far' Flex collider
+    - No benefit to use presentation mesh's geometry for the two collider meshes.  For efficiency and flexibility they should be decoupled.
+- Need to reduce verts of presentation mesh for near (and far) collider meshes... but how to deal with 'penetration tunnel'??
+    - We *must* have this tunnel fully defined (along with UVs and textures) in each vagina/anus.  They all have the same topology and same vert groups for the code to use.
+    - We could use 'limited dissolve' to remove some of the extraneous geometry of every vert except penetration tunnle
+        -IDEA: Triangulate before limited dissolve
+
+=== PROBLEMS ===
+- Skinning presentation mesh to near particles (or shapes?) = orifice will probably skin to particles on both sides
+    - Decouple those by removing cross-side bone influences (and re-scale bones on same side)
+
+=== QUESTIONS ===
+- Do we operate on half-meshes or full mesh??
+    - Half-mesh makes it easier for quality skinning of presentation mesh to near collider... also enforces symmetry during 'limited dissolve'
+
+=== IDEAS ===
+- Compute a 'center of opening' along with 'penetration angle' and base penetration tunnel from that.
+- Use 'loop tools flatten' to make penetration vert rings planar?
+- Use 'loop tools circle' to make far collision mesh?
+
+
+=== HOW IMPORTANT OPERATIONS ARE DONE ===
+- Opening size adjustment (presentation mesh first, which affects both collider meshes)
+    - Take vert groups representing the front and the back of the orifice and move with smoothing area.
+- Setting verts of penetration tunnel for near collider:
+    - Move the side verts of the penetration tunnel +x the distance of the Flex particle distance.  (from vert group)
+- Setting verts of penetration tunnel for far collider:
+    - Select entire pillars (either through vert groups or by bmesh traversal) and move to the appropriate spot on demi circle.
+
+
+
+*/
+
+/* Now have to play with collider in Blender to see how to best acheive large penetration
+ *  Blender not updating verts!  Look into that?
+ * Need to support a 'tunnel' concept that grows with penis size for the backmesh
+ *  Simplify backmesh too?
+ * How to write code... have code generate backmesh programmatically or does it join previously-created backmesh asset?
+ * Generate different size penises for penetration testing :)
+ * 
+ * 
+ * 
+ * We were'nt using particle verts!
+ * Work on real rim with body / pin particles
+ * Cleanup horrible mess with mass
+ * mess with mesh collider / presentation mesh in FlexSkin mode
+ * Still at single thickness mesh... do we really need two?
+ * We'll definitively need anchor springs
+ * Get visualizer working again.
+ * Port dildo into our full classes for its benefits?
+ * Work on skinned representation
+ * Vaginal full opening still a problem to do right
+ * 
+ * */
 /*###DISCUSSION: Soft Body
 ------ Just got better visualization...
 - Now onto create/destroy of sb... bone problem or Blender problem?
     - Revisit proper cleanup between the two apps!
-
-
-
 
 
 
@@ -128,8 +223,9 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
         _sNameBoneAnchor_HACK = sNameBoneAnchor_HACK;
         bool bIsFlexSkin = oTypeBMesh == typeof(CVagina);           //###WEAK: Duplication between static and instance of same thing
         CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + oBody._nBodyID.ToString() + ").CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + "," + bIsFlexSkin.ToString() + ")");      // Separate the softbody from the source body.
-        //###NOW###
+        
         CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
+        //###NOW### //CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshVAGINABAKED_HACK", oTypeBMesh, true);       // Create the softbody mesh from the just-created Blender mesh.
         //////////////CBSoft oBSoft = (CBSoft)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshFlexCollider", oTypeBMesh);		// Create the softbody mesh from the just-created Blender mesh.
         return oBSoft;
     }
@@ -167,7 +263,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
     public virtual void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
 
-		switch (eGameModeNew) { 
+        switch (eGameModeNew) { 
 			case EGameModes.Play:
 
                 if (_bIsFlexSkin == false) {                // Non flexskin gets solid geometry processed here in Unity with Flex.
@@ -175,23 +271,12 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                     //=== Call our C++ side to construct the solid tetra mesh.  We need that to assign tetrapins ===		//###DESIGN!: Major design problem between cutter sent here... can cut cloth too??  (Will have to redesign cutter on C++ side for this problem!)
                     //###DEV ###DESIGN: Recreate public properties each time???
                     CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);  //SelfCollideFiltered
-                    uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
-                    oFlexProc._oFlexProcessor = this;
 
                     //=== Obtain references to the components we'll need at runtime ===
                     _oFlexParticles         = GetComponent<uFlex.FlexParticles>();
                     _oFlexParticlesRenderer = GetComponent<uFlex.FlexParticlesRenderer>();
                     _oFlexShapeMatching     = GetComponent<uFlex.FlexShapeMatching>();
                     _oFlexGeneratedSMR      = GetComponent<SkinnedMeshRenderer>();
-
-                    //=== Backup the rest position so we can expand / contract soft body volume without loss of information ===
-                    _aShapeRestPosOrig = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
-                    Array.Copy(_oFlexShapeMatching.m_shapeRestPositions, _aShapeRestPosOrig, _oFlexShapeMatching.m_shapeIndicesCount);
-
-                    //=== Backup the position of the particles at startup time (so we can reset softbody after pose teleport) ===
-                    _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
-                    for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++)
-                        _aFlexParticlesAtStart[nParticle] = _oBoneAnchor.worldToLocalMatrix.MultiplyPoint(_oFlexParticles.m_particles[nParticle].pos);      //###LEARN: How to properly convert from world to local (taking into account the full path of the transform we're converting about)
 
                     //=== Ask Blender to create a 'Unity2Blender' mesh of the right number of verts so we can upload our Tetramesh to Blender for processing there ===
                     int nVertTetras = _oFlexParticles.m_particlesCount;
@@ -208,162 +293,145 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
                     //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
                     float nRangeTetraPinHunt = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nRimTetraVertHuntDistanceMult;       //###TUNE: Make relative to all-important Flex particle size!
-                    CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nRangeTetraPinHunt.ToString() + ")");		// Ask Blender select the tetraverts near the rim and skin them
-				    _oMeshSoftBodyRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
-                    _oMeshSoftBodyRim.transform.SetParent(transform);
-                    Destroy(oMesh_Unity2Blender);       // Were' done with Unity2Blender mesh, delete
+                    CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".ProcessTetraVerts(" + nRangeTetraPinHunt.ToString() + ")");        // Ask Blender select the tetraverts near the rim and skin them
+                    Destroy(oMesh_Unity2Blender);       // We're done with Unity2Blender mesh after ProcessTetraVerts... delete
                     oMesh_Unity2Blender = null;
 
-                    //=== Receive the important 'CSoftBody.aMapRimTetravert2Tetravert' and 'CSoftBody.aMapTwinVerts' array Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
-                    List<ushort> aMapPinnedFlexParticles;
-                    CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapPinnedFlexParticles()",	out aMapPinnedFlexParticles);		// Read the tetravert traversal map from our CSoftBody instance
-				    CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2Verts()",	out _aMapRimVerts2Verts);               // Read the twin-vert traversal map from our CSoftBody instance
-
-                    //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-                    _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-                    _oFlexShapeMatching = GetComponent<uFlex.FlexShapeMatching>();
-                    _oFlexGeneratedSMR = GetComponent<SkinnedMeshRenderer>();
-                    _oFlexToSkinnedMesh.Initialize(ref aMapPinnedFlexParticles, _oMeshSoftBodyRim);
-
-                } else {            // Flexskin implementation get the Flex solid generated in Blender with Unity receiving its generated output.
+                }
+                else {            // Flexskin implementation get the Flex solid generated in Blender with Unity receiving its generated output.
 
                     //=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
                     CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aShapeVerts()",              out aShapeVerts);
                     CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aShapeParticleIndices()",    out aShapeParticleIndices);
                     CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aShapeParticleCutoffs()",    out aShapeParticleCutoffs);
 
-                    ////=== Instantiate the FlexProcessor component so we get hooks to update ourselves during game frames ===
-                    //uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
-                    //oFlexProc._oFlexProcessor = this;
-
                     //=== Define Flex particles from Blender mesh made for Flex ===
                     int nParticles = GetNumVerts();
-                    uFlex.FlexParticles oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
-                    oFlexParticles.m_particlesCount = nParticles;
-                    oFlexParticles.m_particles = new uFlex.Particle[nParticles];
-                    oFlexParticles.m_colours = new Color[nParticles];
-                    oFlexParticles.m_velocities = new Vector3[nParticles];
-                    oFlexParticles.m_densities = new float[nParticles];
-                    oFlexParticles.m_particlesActivity = new bool[nParticles];
-                    oFlexParticles.m_colour = Color.green;                //###TODO: Colors!
-                    oFlexParticles.m_interactionType = uFlex.FlexInteractionType.SelfCollideFiltered;
-                    oFlexParticles.m_collisionGroup = -1;
+                    _oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
+                    _oFlexParticles.m_particlesCount = nParticles;
+                    _oFlexParticles.m_particles = new uFlex.Particle[nParticles];
+                    _oFlexParticles.m_colours = new Color[nParticles];
+                    _oFlexParticles.m_velocities = new Vector3[nParticles];
+                    _oFlexParticles.m_densities = new float[nParticles];
+                    _oFlexParticles.m_particlesActivity = new bool[nParticles];
+                    _oFlexParticles.m_colour = Color.green;                //###TODO: Colors!
+                    _oFlexParticles.m_interactionType = uFlex.FlexInteractionType.SelfCollideFiltered;
+                    _oFlexParticles.m_collisionGroup = -1;
                     //part.m_bounds.SetMinMax(min, max);            //###IMPROVE Bounds?
                     for (int nParticle = 0; nParticle < nParticles; nParticle++) {
-                        oFlexParticles.m_particles[nParticle].pos = _memVerts.L[nParticle];
-                        //###NOW### oFlexParticles.m_particles[nParticle].invMass = 1;            //###TODO: Mass
-                        oFlexParticles.m_particles[nParticle].invMass = 0;            //###TODO: Mass
-                        oFlexParticles.m_colours[nParticle] = oFlexParticles.m_colour;
-                        oFlexParticles.m_particlesActivity[nParticle] = true;
+                        _oFlexParticles.m_particles[nParticle].pos = _memVerts.L[nParticle];
+                        //_oFlexParticles.m_particles[nParticle].invMass = 1;            //###TODO: Mass
+                        //_oFlexParticles.m_particles[nParticle].invMass = 0;            //###TODO: Mass
+                        _oFlexParticles.m_colours[nParticle] = _oFlexParticles.m_colour;
+                        _oFlexParticles.m_particlesActivity[nParticle] = true;
                     }
 
                     //=== Define Flex shapes from the Blender particles that have been set as shapes too ===
                     int nShapes = aShapeVerts.Count;
-                    uFlex.FlexShapeMatching oFlexShapeMatching = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexShapeMatching)) as uFlex.FlexShapeMatching;
-                    oFlexShapeMatching.m_shapesCount = nShapes;
-                    oFlexShapeMatching.m_shapeIndicesCount = aShapeParticleIndices.Count;
-                    oFlexShapeMatching.m_shapeIndices = aShapeParticleIndices.ToArray();            //###LEARN: How to convert a list to a straight .Net array.
-                    oFlexShapeMatching.m_shapeOffsets = aShapeParticleCutoffs.ToArray();
-                    oFlexShapeMatching.m_shapeCenters = new Vector3[nShapes];
-                    oFlexShapeMatching.m_shapeCoefficients = new float[nShapes];
-                    oFlexShapeMatching.m_shapeTranslations = new Vector3[nShapes];
-                    oFlexShapeMatching.m_shapeRotations = new Quaternion[nShapes];
-                    oFlexShapeMatching.m_shapeRestPositions = new Vector3[oFlexShapeMatching.m_shapeIndicesCount];
-        
-                    //=== Calculate shape centers from attached particles ===
-                    int nShapeStart = 0;
-                    for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
-                        oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###NOW###
+                    _oFlexShapeMatching = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexShapeMatching)) as uFlex.FlexShapeMatching;
+                    _oFlexShapeMatching.m_shapesCount = nShapes;
+                    _oFlexShapeMatching.m_shapeIndicesCount = aShapeParticleIndices.Count;
+                    _oFlexShapeMatching.m_shapeIndices = aShapeParticleIndices.ToArray();            //###LEARN: How to convert a list to a straight .Net array.
+                    _oFlexShapeMatching.m_shapeOffsets = aShapeParticleCutoffs.ToArray();
+                    _oFlexShapeMatching.m_shapeCenters = new Vector3[nShapes];
+                    _oFlexShapeMatching.m_shapeCoefficients = new float[nShapes];
+                    _oFlexShapeMatching.m_shapeTranslations = new Vector3[nShapes];
+                    _oFlexShapeMatching.m_shapeRotations = new Quaternion[nShapes];
+                    _oFlexShapeMatching.m_shapeRestPositions = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
 
-                        int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
+                    //=== Calculate shape centers from attached particles ===
+                    //int nShape = 0;
+                    //foreach (int nShapeParticle in aShapeVerts) {
+                    //    _oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###NOW###
+                    //    _oFlexShapeMatching.m_shapeCenters[nShape] = _oFlexParticles.m_particles[nShapeParticle].pos;
+                    //    nShape++;
+                    //}
+
+                    int nShapeStart = 0;
+                    for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++) {
+                        _oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###NOW###   Calculate shape center here or just accept particle pos?
+
+                        int nShapeEnd = _oFlexShapeMatching.m_shapeOffsets[nShape];
                         Vector3 vecCenter = Vector3.zero;
                         for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
-                            int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
-                            Vector3 vecParticlePos = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
+                            int nParticle = _oFlexShapeMatching.m_shapeIndices[nShapeIndex];
+                            Vector3 vecParticlePos = _oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
                             vecCenter += vecParticlePos;
                         }
 
-                        vecCenter /= (nShapeEnd - nShapeStart);       //###NOW### Off by one??
-                        oFlexShapeMatching.m_shapeCenters[nShape] = vecCenter;
+                        vecCenter /= (nShapeEnd - nShapeStart);
+                        _oFlexShapeMatching.m_shapeCenters[nShape] = vecCenter;
                         nShapeStart = nShapeEnd;
                     }
-        
+
                     //=== Set the shape rest positions ===
                     nShapeStart = 0;
                     int nShapeIndexOffset = 0;
-                    for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
-                        int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
+                    for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++) {
+                        int nShapeEnd = _oFlexShapeMatching.m_shapeOffsets[nShape];
                         for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
-                            int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
-                            Vector3 vecParticle = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
-                            oFlexShapeMatching.m_shapeRestPositions[nShapeIndexOffset] = vecParticle - oFlexShapeMatching.m_shapeCenters[nShape];
+                            int nParticle = _oFlexShapeMatching.m_shapeIndices[nShapeIndex];
+                            Vector3 vecParticle = _oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
+                            _oFlexShapeMatching.m_shapeRestPositions[nShapeIndexOffset] = vecParticle - _oFlexShapeMatching.m_shapeCenters[nShape];
                             nShapeIndexOffset++;
                         }
                         nShapeStart = nShapeEnd;
                     }
 
-                    //###NOW###
-                    /* We were'nt using particle verts!
-                     * Work on real rim with body / pin particles
-                     * Cleanup horrible mess with mass
-                     * mess with mesh collider / presentation mesh in FlexSkin mode
-                     * Still at single thickness mesh... do we really need two?
-                     * We'll definitively need anchor springs
-                     * Get visualizer working again.
-                     * Port dildo into our full classes for its benefits?
-                     * Work on skinned representation
-                     * Vaginal full opening still a problem to do right
-                     * 
-                     * */
-
-
-
-
-
                     foreach (int nShapeParticle in aShapeVerts) {
-                        oFlexParticles.m_particles[nShapeParticle].invMass = 1;          // remap indices and create local space positions for each shape ###NOW###
+                        _oFlexParticles.m_particles[nShapeParticle].invMass = 1;          //###NOW###
                     }
 
-
-
-
-
-
-
                     //=== Add particle renderer ===
-                    uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-                    partRend.m_size = partRend.m_radius = CGame.INSTANCE.particleSpacing;
-                    partRend.enabled = false;           // Hidden by default
-
-                    //=== Add visualizer ===
-                    CVisualizeSoftBody oVisSB = CUtility.FindOrCreateComponent(gameObject, typeof(CVisualizeSoftBody)) as CVisualizeSoftBody;
-                    //oVisSB.enabled = false;
-
-
+                    _oFlexParticlesRenderer = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
+                    _oFlexParticlesRenderer.m_size = CGame.INSTANCE.particleSpacing;
+                    _oFlexParticlesRenderer.m_radius = _oFlexParticlesRenderer.m_size / 2.0f;
+                    _oFlexParticlesRenderer.enabled = false;           // Hidden by default
                 }
 
+                //=== Retreive the skinned rim mesh so pinned particles of Flex softbody can fix softbody to main body mesh and not float into space ===
+                _oMeshSoftBodyRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+                _oMeshSoftBodyRim.transform.SetParent(transform);
 
-                //=== Bake the rim tetramesh a first time so its rim and tetraverts are updated to its skinned body ===
-                //###OBS? _oMeshRimBaked.Baking_UpdateBakedMesh();
+                //=== Receive the important arrays Blender has prepared for softbody-connection to skinned mesh.  (to map the softbody edge vertices to the skinned-body vertices they should attach to)
+                List<ushort> aMapPinnedFlexParticles;
+                CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapPinnedFlexParticles()",	out aMapPinnedFlexParticles);		// Read the tetravert traversal map from our CSoftBody instance
+				CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts2Verts()",	out _aMapRimVerts2Verts);               // Read the twin-vert traversal map from our CSoftBody instance
 
-                //     //=== Pin the close-to-rim-backplate tetraverts by setting them as infinite mass.  They will be moved by us every frame (not simulated) ===
-                //     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {            // Iterate through the rim tetraverts to update the position of their corresponding tetraverts
-                //         nIndex++;    //ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
-                //ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];
-                //         _oSoftFlexParticles.m_particles[nVertTetra].invMass = 0;                    // Remove pinned tetraverts from SoftBody simulation by setting their 1/mass to zero (infinite weight = no movement)
-                //         _oSoftFlexParticles.m_colours[nVertTetra] = Color.magenta;                  // Color pin verts separately so we can visualize where they are.
-                //     }
+                //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
+                if (_bIsFlexSkin == false) {                // Non FlexSkin uses sophisticated CFlexToSkinnedMesh to pin particles via springs.  FlexSkin is direct particle pinning
+                    _oFlexToSkinnedMesh = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
+                    _oFlexToSkinnedMesh.Initialize(ref aMapPinnedFlexParticles, _oMeshSoftBodyRim);
+                }
 
+                //=== Backup the rest position so we can expand / contract soft body volume without loss of information ===
+                _aShapeRestPosOrig = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
+                Array.Copy(_oFlexShapeMatching.m_shapeRestPositions, _aShapeRestPosOrig, _oFlexShapeMatching.m_shapeIndicesCount);
+
+                //=== Backup the position of the particles at startup time (so we can reset softbody after pose teleport) ===
+                _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
+                for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++)
+                    _aFlexParticlesAtStart[nParticle] = _oBoneAnchor.worldToLocalMatrix.MultiplyPoint(_oFlexParticles.m_particles[nParticle].pos);      //###LEARN: How to properly convert from world to local (taking into account the full path of the transform we're converting about)
+
+                //=== Instantiate the FlexProcessor component so we get hooks to update ourselves during game frames ===
+                uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
+                oFlexProc._oFlexProcessor = this;
+
+                //=== Add debug visualizer ===
+                CVisualizeSoftBody oVisSB = CUtility.FindOrCreateComponent(gameObject, typeof(CVisualizeSoftBody)) as CVisualizeSoftBody;
+                oVisSB.enabled = false;
 
                 //=== Create the managing object and related hotspot ===
                 _oObj = new CObject(this, 0, typeof(EFlexSoftBody), "SoftBody " + gameObject.name);        //###IMPROVE: Name of soft body to GUI
                 _oObj.PropGroupBegin("", "", true);
                 _oObj.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "", CProp.Local);
                 _oObj.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "", CProp.Local);       //###IMPROVE: Log scale!
-                _oObj.PropAdd(EFlexSoftBody.Mass,           "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
+                _oObj.PropAdd(EFlexSoftBody.SoftBodyMass,     "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
                 _oObj.FinishInitialization();
                 if (GetType() != typeof(CBreastR))          //###HACK!: Right breast doesn't get hotspot (left breast gets it and manually broadcasts to right one)
                     _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
+
+                //Debug.Break();        //###LEARN: How to pause the game in the Editor.
 
                 break;
 
@@ -398,6 +466,8 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
                 //	_memNormals.L[nVertID] = _oBody._oBodySource._memNormals.L[nVertSourceID];
                 //}
                 //_oMeshNow.normals   = _memNormals.L;
+
+                ///UpdateVertsFromBlenderMesh(true);       //###NOW### ###TEMP
 
                 break;
 		}
@@ -460,7 +530,7 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
         //Debug.LogFormat("SoftBody Stiffness: {0}", nValueNew);               //###IMPROVE: Remove per-function logging and add flag so CProp does it (with various logging levels)
     }
 
-    public void OnPropSet_Mass(float nValueOld, float nValueNew) {
+    public void OnPropSet_SoftBodyMass(float nValueOld, float nValueNew) {
         float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount);     // Note that this count is all particles (including pinned)... change to only unpinned particles for mass?
         for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount; nPar++)                     //###BUG: Doesn't appear to do anything!
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;        //###BUG: Pin particles  ###F
@@ -470,23 +540,36 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
    //         _oSoftFlexParticles.m_particles[nVertTetra].invMass = 0;
    //     }
         if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
-            _oBody._oBreastR.OnPropSet_Mass(nValueOld, nValueNew);
+            _oBody._oBreastR.OnPropSet_SoftBodyMass(nValueOld, nValueNew);
         //Debug.LogFormat("SoftBody Mass {0}", nValueNew);
     }
 
 
     //---------------------------------------------------------------------------	UPDATE
 
+    void Update() {
+        if (Input.GetKeyDown(KeyCode.F9)) {         //###TEMP
+            Debug.LogWarning("Updating SB mesh (###HACK!)");
+            UpdateVertsFromBlenderMesh(true);
+            //Vector3[] aVertsPresentation = _oMeshNow.vertices;
+            //for (int nVert = 0; nVert < GetNumVerts(); nVert++)
+            //    _oFlexParticles.m_particles[nVert].pos = aVertsPresentation[nVert];
+        }
+    }
+
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
         //=== Reset soft body if marked for reset (e.g. during pose loading) ===
-        if (_bSoftBodyInReset) {
+        if (_bSoftBodyInReset)
             Reset_SoftBody_DoReset();
-        }
+
+        if (_oMeshSoftBodyRim == null)
+            return;
 
         //=== Bake rim skinned mesh and update position of softbody tetravert pins ===
-        if (_oMeshSoftBodyRim) { 
-            _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();      // Calls _oMeshSoftBodyRim.Baking_UpdateBakedMesh() we need in this call
+        _oMeshSoftBodyRim.Baking_UpdateBakedMesh();     // Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
 
+        if (_bIsFlexSkin == false) {
+            _oFlexToSkinnedMesh.UpdateFlexParticleToSkinnedMesh();      // Calls _oMeshSoftBodyRim.Baking_UpdateBakedMesh() we need in this call
             //=== Bake the skinned softbody into a regular mesh (so we can update edge-of-softbody position and normals to pertinent rim verts ===
             _oFlexGeneratedSMR.BakeMesh(_oMeshFlexGenerated);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
             Vector3[] aVertsFlexGenerated    = _oMeshFlexGenerated.vertices;
@@ -503,6 +586,27 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
             }
             _oMeshNow.vertices = aVertsFlexGenerated;
             _oMeshNow.normals  = aNormalsFlexGenerated;
+        }
+        else {
+            ////=== Iterate through all softbody edge verts to update their position and normals.  This is critical for a 'seamless connection' between the softbody presentation mesh and the main skinned body ===
+            //Vector3[] aVertsRimBaked    = _oMeshSoftBodyRim._oMeshBaked.vertices;       // Obtain the verts and normals from baked rim mesh so we can manually set rim verts & normals for seamless connection to main body mesh.
+            //Vector3[] aNormalsRimBaked  = _oMeshSoftBodyRim._oMeshBaked.normals;
+            //for (int nIndex = 0; nIndex < _aMapRimVerts2Verts.Count;) {         // Iterate through the twin vert flattened map...
+            //    ushort nVertMesh    = _aMapRimVerts2Verts[nIndex++];            // The simple list has been flattened into <nVertMesh0, nVertRim0>, <nVertMesh1, nVertRim1>, etc
+            //    ushort nVertRim     = _aMapRimVerts2Verts[nIndex++];
+            //    _oFlexParticles.m_particles[nVertMesh].pos = aVertsRimBaked[nVertRim];
+            //    _oFlexParticles.m_particles[nVertMesh].invMass = 0;     //###NOW###
+            //    //aVertsFlexGenerated  [nVertMesh] = aVertsRimBaked  [nVertRim];
+            //    //aNormalsFlexGenerated[nVertMesh] = aNormalsRimBaked[nVertRim];
+            //}
+            //=== Set the visible mesh verts to the particle verts (1:1 ratio) ===
+            Vector3[] aVertsPresentation = _oMeshNow.vertices;
+            for (int nVert = 0; nVert < GetNumVerts(); nVert++)
+                aVertsPresentation[nVert] = _oFlexParticles.m_particles[nVert].pos;
+            _oMeshNow.vertices = aVertsPresentation;
+
+            _oMeshNow.RecalculateNormals();         //###NOW###
+            _oMeshNow.RecalculateBounds();         //###NOW###
         }
     }
 
@@ -576,3 +680,16 @@ public class CBSoft : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {            
 
     public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 }
+
+
+//###OBS: Was in play init!
+//=== Bake the rim tetramesh a first time so its rim and tetraverts are updated to its skinned body ===
+//###OBS? _oMeshRimBaked.Baking_UpdateBakedMesh();
+//     //=== Pin the close-to-rim-backplate tetraverts by setting them as infinite mass.  They will be moved by us every frame (not simulated) ===
+//     for (int nIndex = 0; nIndex < _aMapRimTetravert2Tetravert.Count; ) {            // Iterate through the rim tetraverts to update the position of their corresponding tetraverts
+//         nIndex++;    //ushort nVertTetraRim	= _aMapRimTetravert2Tetravert[nIndex++];			// The simple list has been flattened into <nVertTetraRim0, nVertTetra0>, <nVertTetraRim1, nVertTetra1>, etc...
+//ushort nVertTetra		= _aMapRimTetravert2Tetravert[nIndex++];
+//         _oSoftFlexParticles.m_particles[nVertTetra].invMass = 0;                    // Remove pinned tetraverts from SoftBody simulation by setting their 1/mass to zero (infinite weight = no movement)
+//         _oSoftFlexParticles.m_colours[nVertTetra] = Color.magenta;                  // Color pin verts separately so we can visualize where they are.
+//     }
+

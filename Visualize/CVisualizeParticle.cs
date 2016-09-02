@@ -18,11 +18,11 @@ public class CVisualizeParticle : MonoBehaviour {      // CDebugSoftBodyParticle
         _Selected = !_Selected;
         if (_Selected) {
             Debug.LogFormat("Debug Particle {0} selected", _ParticleID);
-            GetComponent<MeshRenderer>().material.color = new Color32(0, 0, 128, 255);
+            GetComponent<MeshRenderer>().material.color = new Color32(128, 128, 0, 255);
             transform.localScale *= 2.0f;
         } else {
             Debug.LogFormat("Debug Particle {0} unselected", _ParticleID);
-            GetComponent<MeshRenderer>().material.color = Color.blue;
+            GetComponent<MeshRenderer>().material.color = Color.yellow;
             transform.localScale = _oVisSoftBody._vecSizeParticles;
         }
     }

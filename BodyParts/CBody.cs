@@ -97,7 +97,6 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public	CBreastR 		    _oBreastR;
 	public	CPenis				_oPenis;
     public  CVagina             _oVagina;
-    //public  CFlexSkin           _oVagina;
     public List<CBSoft>		    _aSoftBodies	= new List<CBSoft>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
@@ -169,7 +168,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			_oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.TiedUp);
 //			oObj.PropSet(EBodyDef.Hair, (int)EBodyHair.Messy);
 //			oObj.PropFind(EBodyDef.ClothingTop)._nPropFlags |= CProp.Hide;		//###HACK!!!!
-//			oObj.PropFind(EBodyDef.BreastSize)._nPropFlags |= CProp.Hide;
+//			oObj.PropFind(EBodyDef.BreastSize)._nPropFlags |= -CProp.Hide;
 //			oObj.PropFind(EBodyDef.Hair)._nPropFlags |= CProp.Hide;
 		} else {
 			//_oObj.PropSet(EBodyDef.Sex,				(int)EBodySex.Man);		####REVB
@@ -228,18 +227,17 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            _aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            _aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
+            //_aSoftBodies.Add(_oBreastL = (CBreastL)CBSoft.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CBSoft.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
-            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest"));
-            //_oVagina = CFlexSkin.Create(this, "TestFlexSkin", 15);
+            _aSoftBodies.Add(_oVagina = (CVagina)CBSoft.Create(this, typeof(CVagina), "chest/abdomen/hip"));
         } else {
             _aSoftBodies.Add(_oPenis = (CPenis)CBSoft.Create(this, typeof(CPenis), "chest/abdomen/hip"));
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
-        _aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
         ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));

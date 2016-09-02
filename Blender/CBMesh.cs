@@ -107,7 +107,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 					if (oMat != null)
 						_aMats[nMat] = oMat;
 					else
-						Debug.LogError("ERROR: Unknown special material '" + sCodedMaterial + "' in CBMesh.ctor()");
+						Debug.LogWarning("ERROR: Unknown special material '" + sCodedMaterial + "' in CBMesh.ctor()");
 
 				} else {
 
@@ -237,13 +237,25 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
         }
     }
     public virtual void UpdateVertsFromBlenderMesh(bool bUpdateNormals) {       // Ask Blender to update our copy of the verts.  Assumes the topology of the mesh hasn't changed!
-        if (_bSharedFromBlender == false)
+        if (_bSharedFromBlender == false)       //###NOW### ###BROKEN??
             throw new CException("Exception in CBMesh.UpdateVertsFromBlenderMesh().  Mesh is not exported / shared from Blender!");
         CGame.gBL_SendCmd("Client", "gBL_UpdateClientVerts('" + _sNameBlenderMesh + "')");
-		int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, _memVerts.P);
+
+        //###BUG!!! (Fixed with hack)  For some reason we can't get an update on our own buffer!  WTF?  Hack is to create a temp pinned array, get updated results and manually copy array to its source = WTF crap!!
+        //###IDEA: Is it possible it is because each vert is an object and we replaced these object's reference from their original pinned array?? (Verify this with pointer addresses!)
+        //int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, _memVerts.P);
+        //if (nError != 0)
+        //    throw new CException("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
+
+        //###HACK: Create temporary pinned array of the same size, get updated results, manually copy to where the results should go!
+        CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
+        int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, memVertsCopy.P);
 		if (nError != 0)
 			throw new CException("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
-		_oMeshNow.MarkDynamic();		// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
+        _memVerts.L = (Vector3[])memVertsCopy.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
+        memVertsCopy = null;
+
+        _oMeshNow.MarkDynamic();		// Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 		_oMeshNow.vertices = _memVerts.L;       //###CHECK: This ok/needed with next call??
         CopyOriginalVertsToVerts(true);
         if (bUpdateNormals)

@@ -294,13 +294,13 @@ public class CFlex : MonoBehaviour {
 
                     Vector3[] rigidRestPoses = new Vector3[shapes.m_shapesCount];
 
-                    GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;    //###MOD
+                    //GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;
 
                     for (int i = 0; i < shapes.m_shapesCount; i++) {
                         rigidRestPoses[i] = shapes.m_shapeCenters[i];
 
-                        //###MOD bones[i] = new GameObject("FlexShape_" + i).transform;
-                        bones[i] = Instantiate(oTemplateGO).transform;      //##MOD
+                        bones[i] = new GameObject("FlexShape_" + i).transform;
+                        //bones[i] = Instantiate(oTemplateGO).transform;
                         bones[i].name = "Shape" + i.ToString();
                         bones[i].parent = go.transform;
                         bones[i].localPosition = shapes.m_shapeCenters[i];
@@ -372,7 +372,8 @@ public class CFlex : MonoBehaviour {
 
         //=== Add particle renderer ===
         uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(go, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        partRend.m_size = partRend.m_radius = particleSpacing;
+        partRend.m_size = particleSpacing;
+        partRend.m_radius = partRend.m_size / 2.0f;
         partRend.enabled = false;           // Hidden by default
     }
 }

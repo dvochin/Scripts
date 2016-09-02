@@ -323,7 +323,7 @@ public class CUtility {         // Collection of static utility functions
             //Color.gray,
             //Color.white,
         };
-    static int _nLastRandomColorProvided = -1;
+    static int _nLastRandomColorProvided = 0;
 
     #region === Node / Component Creation ===
     public static Component FindOrCreateNode(GameObject oParentGO, string sName, Type oType) {
@@ -397,7 +397,8 @@ public class CUtility {         // Collection of static utility functions
 
         //=== Add particle renderer component for debug visualization ===
         uFlex.FlexParticlesRenderer oFlexPartRend = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        oFlexPartRend.m_size = oFlexPartRend.m_radius = CGame.INSTANCE.particleSpacing;
+        oFlexPartRend.m_size = CGame.INSTANCE.particleSpacing;
+        oFlexPartRend.m_radius = oFlexPartRend.m_size / 2.0f;
         oFlexPartRend.enabled = false;           // Hidden by default
 
         return oFlexParticles;

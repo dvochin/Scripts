@@ -60,9 +60,7 @@ public class CFlexToSkinnedMesh : MonoBehaviour {
     //###TODO ###DESTRUCTION
 
     public void UpdateFlexParticleToSkinnedMesh() {         // Call every frame from the context of owning Flex object (soft body or cloth) to update position of guiding particles.
-        //=== Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
-        _oMeshSoftBodyRim.Baking_UpdateBakedMesh(); 
-        Vector3[] aVertSkinned = _oMeshSoftBodyRim._oMeshBaked.vertices;
+        Vector3[] aVertSkinned = _oMeshSoftBodyRim._oMeshBaked.vertices;        //###NOTE: Assumes caller called '_oMeshSoftBodyRim.Baking_UpdateBakedMesh()' before!
 
         //=== Update the position of our (master) skinned driving particles so (slave) simulated particle can closely follow ===
         for (int nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {

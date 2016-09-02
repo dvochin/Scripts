@@ -146,11 +146,11 @@ public enum EChoice_EmitShape {
 public enum EFlexCloth {
     Tightness,
     Length,
-    Mass
+    ClothMass
 };
 
 public enum EFlexSoftBody{
     Volume,
     Stiffness,
-    Mass
+    SoftBodyMass
 };

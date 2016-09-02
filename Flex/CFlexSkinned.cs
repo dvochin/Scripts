@@ -44,7 +44,8 @@ public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {       // CFlex
         m_bounds.SetMinMax(min, max);       //###IMPROVE: Use bounds of skinned mesh instead?  Updates itself??
 
         uFlex.FlexParticlesRenderer partRend = gameObject.AddComponent<uFlex.FlexParticlesRenderer>();
-        partRend.m_size = partRend.m_radius = particleSpacing;
+        partRend.m_size = CGame.INSTANCE.particleSpacing;
+        partRend.m_radius = partRend.m_size / 2.0f;
         partRend.enabled = false;
 
         //Material oMat = new Material(Shader.Find("Diffuse"));

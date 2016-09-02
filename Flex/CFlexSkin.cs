@@ -1,4 +1,4 @@
-﻿/*NOW
+﻿/*###OBS: Now merged into SoftBody
 - Got early version of new cunt. Now need presentation mesh.
 - Try visualizer
 - Neighbors now up quite high... can 'smarten it up'?  Or wait until remesh?
@@ -13,7 +13,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 
-public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
+public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
     // Created from Blender implementation that converts a regular mesh portion and gives it 'thickness' by pulling presentation mesh along its normals
     // Blender defines what is a particle and what is a shape by sending us arrays that are compatible with the Flex implementation for 'FlexShapeMatching' (e.g. softbody)
 
@@ -24,12 +24,12 @@ public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a speciali
     public string _sBlenderInstancePath_CFlexSkin;				// Blender access string to our instance (form our CBody instance)
     static string s_sNameFlexSkin_HACK;
 
-    public static CFlexSkin Create(CBody oBody, string sNameFlexSkin, int nParticlesPerShape) {    // Static function override from CBMesh::Create() to route to proper Blender request command
+    public static CFlexSkin_OBS Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
         string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
-        CFlexSkin.s_sNameFlexSkin_HACK = "aFlexSkins['" + sNameFlexSkin + "']";
-        string sBlenderInstancePath = CFlexSkin.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
-        CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "', " + nParticlesPerShape.ToString() + ")");      // Create the Blender-side CCloth entity to service our requests
-        CFlexSkin oFlexSkin = (CFlexSkin)CBMesh.Create(null, oBody, sBlenderInstancePath, typeof(CFlexSkin));
+        CFlexSkin_OBS.s_sNameFlexSkin_HACK = "aFlexSkins['" + sNameFlexSkin + "']";
+        string sBlenderInstancePath = CFlexSkin_OBS.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
+        CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
+        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody, sBlenderInstancePath, typeof(CFlexSkin_OBS));
 		return oFlexSkin;
 	}
 
@@ -37,7 +37,7 @@ public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a speciali
         base.OnDeserializeFromBlender();
 
         //=== Construct the fully-qualified path to the Blender CMesh instance we need ===
-        _sBlenderInstancePath_CFlexSkin = CFlexSkin.s_sNameFlexSkin_HACK;
+        _sBlenderInstancePath_CFlexSkin = CFlexSkin_OBS.s_sNameFlexSkin_HACK;
         string sBlenderInstancePath = _sBlenderInstancePath_CFlexSkin + ".oMeshFlexSkin";       // Both the visible (driven) mesh and the driving skinned Flex mesh are from the same Blender CMesh
 
         //=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
@@ -85,7 +85,7 @@ public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a speciali
         //=== Calculate shape centers from attached particles ===
         int nShapeStart = 0;
         for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
-            oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###NOW###
+            oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###TODO
 
             int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
             Vector3 vecCenter = Vector3.zero;
@@ -94,7 +94,7 @@ public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a speciali
                 Vector3 vecParticlePos = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
                 vecCenter += vecParticlePos;
             }
-            vecCenter /= (nShapeEnd - nShapeStart);       //###NOW### Off by one??
+            vecCenter /= (nShapeEnd - nShapeStart);       //###TODO Off by one??
             oFlexShapeMatching.m_shapeCenters[nShape] = vecCenter;
             nShapeStart = nShapeEnd;
         }
@@ -115,7 +115,8 @@ public class CFlexSkin : CBMesh, IFlexProcessor {       // CFlexSkin: a speciali
 
         //=== Add particle renderer ===
         uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        partRend.m_size = partRend.m_radius = CGame.INSTANCE.particleSpacing;
+        partRend.m_size = CGame.INSTANCE.particleSpacing;
+        partRend.m_radius = partRend.m_size / 2.0f;
         partRend.enabled = false;           // Hidden by default
 
         //=== Add visualizer ===

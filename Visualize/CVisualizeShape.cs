@@ -14,6 +14,8 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
         transform.localScale = _oVisSoftBody._vecSizeShapes;
         _Color = Color.gray;            // Placeholder color until requested the first time.
         gameObject.SetActive(true);
+        name = string.Format("Shape{0}", _ShapeID);
+        transform.SetParent(_oVisSoftBody.transform);
     }
 
     public void ToggleSelect() {

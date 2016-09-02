@@ -108,7 +108,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         _oObj.PropGroupBegin("", "", true);
         _oObj.PropAdd(EFlexCloth.Tightness,     "Tightness",    1.0f, 0.01f, 2.5f, "", CProp.Local);
         _oObj.PropAdd(EFlexCloth.Length,        "Length",       1.0f, 0.50f, 1.10f, "", CProp.Local);
-        _oObj.PropAdd(EFlexCloth.Mass,          "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
+        _oObj.PropAdd(EFlexCloth.ClothMass,     "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
         _oObj.FinishInitialization();
         _oWatchBone = _oBody.FindBone("chest");            //####HACK ####DESIGN: Assumes this cloth is a top!
         _oHotSpot = CHotSpot.CreateHotspot(this, _oWatchBone, "Clothing", false, new Vector3(0, 0.22f, 0.04f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
@@ -175,7 +175,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
-    public void OnPropSet_Mass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
+    public void OnPropSet_ClothMass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
         float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim);
         for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nPar++)
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
@@ -185,6 +185,7 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     //---------------------------------------------------------------------------	Flex
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
         //=== Bake the baked part of our cloth.  We need its periphery verts to pin our simulated part of the cloth! ===
+        _oFlexSkinnedSpringDriver._oMeshSoftBodyRim.Baking_UpdateBakedMesh();     // Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
         _oFlexSkinnedSpringDriver.UpdateFlexParticleToSkinnedMesh();
 
         if (Input.GetKeyDown(KeyCode.F10)) {			//####TEMP			####OBS ####CLEAN
