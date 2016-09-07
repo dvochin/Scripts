@@ -57,8 +57,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
         string sCBodyDataMember = "CBody._aBodies[" + oBody._nBodyID.ToString() + "]." + sNameCBodyInstanceMember;			// Fully-qualified path to the CBody data member currently pointing to the mesh we need.
 		oBMesh._sNameBlenderMesh = CGame.gBL_SendCmd("CBody", sCBodyDataMember + ".GetName()");                              // Store the name of the Blender object holding the mesh so we can directly access.
 		oBMesh.OnDeserializeFromBlender();				// Fully deserialize the mesh from Blender.  (Virtual call that cascades accross several classes in order)
+        oBMesh.FinishIntialization();                 //###DESIGN ###CHECK?
 
-		return oBMesh;
+        return oBMesh;
 	}
 
 	public virtual void OnDeserializeFromBlender() {		//===== Very important top-level call to begin the process of deserializing a mesh from Blender.  Central to all our meshes! =====
@@ -92,6 +93,8 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		_oMeshNow = new Mesh();				// Create the actual mesh the object will use.  Will persist throughout...
 		//_oMeshNow.MarkDynamic();			//###CHECK: Use by default or case-by-case basis in subclasses??    ###OPT!
 
+        if (GetComponent<Collider>() != null)
+            Destroy(GetComponent<Collider>());                      //###LEARN: Hugely expensive mesh collider created by the above lines... turn it off!
 
 		//===== READ THE MATERIALS =====
 		//=== Read the material list from Blender and create the necessary materials linking to the provided texture images ===
@@ -206,26 +209,28 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
             ReleaseBlenderMesh();
     }
 
-	//public void GetBlenderSerializableCollection(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
-	//	CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-	//	CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
+    //public void GetBlenderSerializableCollection(string sNameArray, ref List<ushort> aBlenderArray) {		// Deserialize a Blender mesh's previously-created array		//####DEV: As array too?
+    //	CMemAlloc<byte> memBA = new CMemAlloc<byte>();
+    //	CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh_Array(sNameMesh='" + _sNameBlenderMesh + "', sNameArray='" + sNameArray + "')", ref memBA);
 
-	//	byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
-	//	int nPosBA = 0;
+    //	byte[] oBA = (byte[])memBA.L;					// Obtain byte array and set read position to zero
+    //	int nPosBA = 0;
 
-	//	CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
-	//	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
-	//	if (nArrayElements > 0) {
-	//		aBlenderArray = new List<ushort>();
-	//		for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
-	//			aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
-	//		}
-	//	}
-	//	CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
-	//}
+    //	CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+    //	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// gBL_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
+    //	if (nArrayElements > 0) {
+    //		aBlenderArray = new List<ushort>();
+    //		for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
+    //			aBlenderArray.Add(BitConverter.ToUInt16(oBA, nPosBA)); nPosBA+=2;
+    //		}
+    //	}
+    //	CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+    //}
 
+    public virtual void FinishIntialization() {
+    }
 
-	public virtual void OnDestroy() {
+    public virtual void OnDestroy() {
 		Debug.Log("OnDestroy CBMesh " + gameObject.name);
         ReleaseBlenderMesh();
 	}			

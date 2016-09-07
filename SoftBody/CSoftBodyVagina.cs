@@ -5,15 +5,15 @@ using System.Collections;
 public class CSoftBodyVagina : CSoftBody {		// Class to abstract away complexity of managing vagina softbody
 
 	public CSoftBodyVagina() {
-		_nRangeTetraPinHunt_OBS = 0.007f;
-		_SoftBodyDetailLevel = 20;				//###TUNE
+        ///_nRangeTetraPinHunt_OBS = 0.007f;
+        ///_SoftBodyDetailLevel = 20;				//###TUNE
 	}
 
-	public override void OnDeserializeFromBlender() {
+    public override void OnDeserializeFromBlender() {
 		base.OnDeserializeFromBlender();
-		_eColGroup = EColGroups.eLayerVagina;
+        ///_eColGroup = EColGroups.eLayerVagina;
 
-		_oObj.PropSet(ESoftBody.SolverIterations, 2);		//###OPT!!!! Expensive but shakes otherwise!
+        _oObj.PropSet(ESoftBody.SolverIterations, 2);		//###OPT!!!! Expensive but shakes otherwise!
 		_oObj.PropSet(ESoftBody.VolumeStiffness, 1);			//###IMPROVE: Make properties publicly available? (like penis?)
 		_oObj.PropSet(ESoftBody.StretchingStiffness, 0.5f);	//###TUNE!!!
 		_oObj.PropSet(ESoftBody.SoftBody_Damping, 1);

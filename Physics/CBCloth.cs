@@ -37,23 +37,23 @@ using UnityEngine;
 using System.Collections.Generic;
 
 public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CBCloth: Blender-based mesh that is cloth-simulated by our PhysX code.
-	[HideInInspector]	public 	CObject				_oObj;					// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
-
-	[HideInInspector]	public 	CBMesh				_oBMeshClothAtStartup;			// The 'startup cloth' that won't get simulated.  It is used to reset the simulated cloth to its start position
-	[HideInInspector]	public 	CBSkinBaked			_oBSkinBaked_SkinnedPortion;			// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
-
-	                    Transform                   _oWatchBone;				// Bone position we watch from our owning body to 'autotune' cloth simulation parameters so cloth stays on body during rapid movement (e.g. pose changing)
-//                        Vector3                     _vecWatchBonePosLast, _vecWatchBonePosNow;       // Last position of watched bone above.  Used to determine speed of bone to autotune cloth simulation parameters
-
-	CHotSpot			_oHotSpot;                          // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
-
-	public string       _sBlenderInstancePath_CCloth;				// Blender access string to our instance (form our CBody instance)
+    //---------------------------------------------------------------------------	SUB MESHES
+    CBMesh				_oBMeshClothAtStartup;              // The 'startup cloth' that is never simulated.  It is used to reset the simulated cloth to its start position
+	CBSkinBaked			_oBSkinBaked_SkinnedPortion;		// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
+    CPinnedParticles    _oPinnedParticles;              
+    //---------------------------------------------------------------------------	USER INTERFACE
+	CObject				_oObj;                              // The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
+    CHotSpot            _oHotSpot;                          // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
+    Transform           _oWatchBone;                        // Bone position we watch from our owning body to 'autotune' cloth simulation parameters so cloth stays on body during rapid movement (e.g. pose changing)
+    //---------------------------------------------------------------------------	BLENDER ACCESS
+    public string       _sBlenderInstancePath_CCloth;				// Blender access string to our instance (form our CBody instance)
 	static string       s_sNameClothSrc_HACK;                   //####HACK!: To pass in name from static creation!
-
+    //---------------------------------------------------------------------------	COMPONENT REFERENCE
     uFlex.FlexParticles _oFlexParticles;
     uFlex.FlexSprings   _oFlexSprings;
+    //---------------------------------------------------------------------------	BACKUP STRUCTURES
     float[] _aSpringRestLengthsBAK;                 // Backup of spring rest lengths.  Used to perform non-destructive ratio adjustments
-    CFlexToSkinnedMesh _oFlexSkinnedSpringDriver;
+
 
     public static CBCloth Create(CBody oBody, string sNameCloth, string sClothType, string sNameClothSrc, string sVertGrp_ClothSkinArea) {    // Static function override from CBMesh::Create() to route Blender request to Body Col module and deserialize its additional information for the local creation of a CBBodyColCloth
         string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
@@ -77,9 +77,9 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         _oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
         _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
-        //=== Receive the aMapPinnedFlexParticles array Blender created to map the skinned verts to their pertinent simulated ones ===
-        List<ushort> aMapPinnedFlexParticles;
-        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapPinnedFlexParticles()", out aMapPinnedFlexParticles);
+        //=== Receive the aMapPinnedParticles array Blender created to map the skinned verts to their pertinent simulated ones ===
+        List<ushort> aMapPinnedParticles;
+        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CCloth + ".SerializeCollection_aMapPinnedParticles()", out aMapPinnedParticles);
 
         //=== Create the simulated part of the cloth ===
         MeshFilter oMeshFilter = GetComponent<MeshFilter>();
@@ -118,28 +118,17 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         System.Array.Copy(_oFlexSprings.m_springRestLengths, _aSpringRestLengthsBAK, _oFlexSprings.m_springsCount);
 
         //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
-        _oFlexSkinnedSpringDriver = CUtility.FindOrCreateComponent(gameObject, typeof(CFlexToSkinnedMesh)) as CFlexToSkinnedMesh;
-        _oFlexSkinnedSpringDriver.Initialize(ref aMapPinnedFlexParticles, _oBSkinBaked_SkinnedPortion);
-
-        //=== Kludge the bone speed at startup to 'very high' so auto-tune will adjust for high initial movement ===
-        //_nBoneSpeedSum = _aBoneSpeeds[_nBoneSpeedSlotNow++] = 1000000;
+        _oPinnedParticles = CUtility.FindOrCreateComponent(gameObject, typeof(CPinnedParticles)) as CPinnedParticles;
+        _oPinnedParticles.Initialize(ref aMapPinnedParticles, _oBSkinBaked_SkinnedPortion);
     }
 
     public override void OnDestroy() {
-		///ErosEngine.Cloth_Destroy(_oObj._hObject);
 		base.OnDestroy();
 	}
 
 	public void Cloth_Reset() {
-        //_nClothDampingBackupValue = _oProp_ClothDamping.PropGet();		// Backup the cloth damping value as we manually change it for many frames after reset
-        //_oProp_ClothDamping.PropSet(1.0f);				// Right after reset max out the cloth damping so it gracefully rests on body...
-        //_nNumFramesClothParamsInReset = 30;				//... and return to normal cloth parameter behavior after these many frames
     }
 
-	public virtual void OnSimulatePost() {			// Post-process the cloth mesh after PhysX cloth simulation: set our vertex positions to what PhysX has calculated for this frame and weld boundary normals
-	}
-
-    public virtual void OnSimulateBetweenPhysX23() { }      //###OBS
 
 
     //--------------------------------------------------------------------------	UTILITY
@@ -162,22 +151,20 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
 	}
 
     public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oPinnedParticles._nNumMappingsSkinToSim; nSpring++)
             _oFlexSprings.m_springCoefficients[nSpring] = nValueNew;
-        //oFlexSprings.m_newStiffness = nValueNew;
-        //oFlexSprings.m_overrideStiffness = true;          //###NOTE: Not doing it this way as it iterates every frame!
         Debug.LogFormat("Cloth Tightness {0}", nValueNew);
     }
 
     public void OnPropSet_Length(float nValueOld, float nValueNew) {
-        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nSpring++)
+        for (int nSpring = 0; nSpring < _oFlexSprings.m_springsCount - _oPinnedParticles._nNumMappingsSkinToSim; nSpring++)
             _oFlexSprings.m_springRestLengths[nSpring] = _aSpringRestLengthsBAK[nSpring] * nValueNew;
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
     public void OnPropSet_ClothMass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
-        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim);
-        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oFlexSkinnedSpringDriver._nNumMappingsSkinToSim; nPar++)
+        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim);
+        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim; nPar++)
             _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
         Debug.LogFormat("Cloth Mass {0}", nValueNew);
     }
@@ -185,8 +172,8 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
     //---------------------------------------------------------------------------	Flex
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
         //=== Bake the baked part of our cloth.  We need its periphery verts to pin our simulated part of the cloth! ===
-        _oFlexSkinnedSpringDriver._oMeshSoftBodyRim.Baking_UpdateBakedMesh();     // Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
-        _oFlexSkinnedSpringDriver.UpdateFlexParticleToSkinnedMesh();
+        _oPinnedParticles._oMeshSoftBodyPinnedParticles.Baking_UpdateBakedMesh();     // Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
+        _oPinnedParticles.UpdatePositionsOfPinnedParticles();
 
         if (Input.GetKeyDown(KeyCode.F10)) {			//####TEMP			####OBS ####CLEAN
             for (int nVert = 0; nVert < _oBMeshClothAtStartup._memVerts.L.Length; nVert++) {		// Copy each vert from the 'backup' mesh to this simulated cloth...

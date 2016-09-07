@@ -83,7 +83,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public float linkStiffness = 0.0f;                  // (The stiffness of distance links)
     public float skinFalloff = 1.0f;                    // (The speed at which the bone's influence on a vertex falls off with distance)
     public float skinMaxDistMult = 6.0f;                // (The maximum distance a bone can be from a vertex before it will not influence it any more)
-    public float nRimTetraVertHuntDistanceMult = 0.8f;
+    public float nDistParticlesFromBackmeshMult = 0.8f;
     public float nSoftBodyFlexColliderShrinkRatio = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
     public float nMassSoftBody = 2.0f;              //###TUNE
     public float nMassCloth = 1.0f;
@@ -185,6 +185,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public uFlex.FlexSolver _oFlexSolver;                //###MOD
     public bool             _bBodiesAreKinematic;        // When set propert sets to pose nodes will also directly move the attached PhysX object (used during pose loading)
 
+    [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
 
 
     #region === INIT
@@ -194,6 +195,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
 		Debug.Log("=== CGame.StartGame() ===");
         INSTANCE = this;
+        _nTimeAtStart = Time.time;
         _oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
         GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
         if (oSceneGO != null) 
@@ -387,6 +389,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
         ChangeGameMode(_GameModeAtStartup);             // Set the initial game mode as statically requested
 
+        Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
         //ScenePose_Load("Standing", false);          // Load the default scene pose
     }
 

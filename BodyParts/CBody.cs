@@ -225,10 +225,16 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 
+
+
+
+
+
+
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            //_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
+            _aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
             _aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
@@ -237,12 +243,21 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
-        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        _aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
         ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));
         ////_aCloths.Add(CBCloth.Create(this, "BodySuit-Top-Trimmed"));
         ////////////###DEV _aCloths.Add(CBCloth.Create(this, "FullShirt"));
+
+
+
+
+
+
+
+
+
 
 
 
@@ -277,7 +292,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         //_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
         _oBodyFlexCldr = (CBSkin)CBMesh.Create(null, this, "oMeshFlexCldr", typeof(CBSkin));
-        _oBodyFlexCldr.gameObject.AddComponent<CFlexSkinned>();
+        _oBodyFlexCldr.gameObject.AddComponent<CFlexSkinnedBody>();
         _oBodyFlexCldr.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
         //=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
@@ -402,8 +417,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//if (_oVagina != null)
 		//	_oVagina.OnSimulatePre();
 	
-		foreach (CSoftBody oSoftBody in _aSoftBodies)
-			oSoftBody.OnSimulatePre();
+		//foreach (CSoftBody oSoftBody in _aSoftBodies)
+		//	oSoftBody.OnSimulatePre();
 
 		_oHeadLook.OnSimulatePre();
 
@@ -483,20 +498,20 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
             oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
     }
 
-    public void OnSimulateBetweenPhysX23() {
-		//foreach (CSoftBody oSoftBody in _aSoftBodies)					// First simulate the PhysX2 soft bodies
-		//	oSoftBody.OnSimulateBetweenPhysX23();
-		foreach (CBCloth oBCloth in _aCloths)					// Simulate the PhysX3 cloths from the just-updated colliders above
-			oBCloth.OnSimulateBetweenPhysX23();
-		//if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
-		//	_oBodyCol.OnSimulatePre();		//###CHECK: Move to later breaks anything??
-	}
+ //   public void OnSimulateBetweenPhysX23() {
+	//	//foreach (CSoftBody oSoftBody in _aSoftBodies)					// First simulate the PhysX2 soft bodies
+	//	//	oSoftBody.OnSimulateBetweenPhysX23();
+	//	foreach (CBCloth oBCloth in _aCloths)					// Simulate the PhysX3 cloths from the just-updated colliders above
+	//		oBCloth.OnSimulateBetweenPhysX23();
+	//	//if (_oBodyCol != null)			//###NOTE: CBodyCol needs to simulate AFTER breasts as these have to push their global colliders for per-frame CBodyCol code to pick them up for this frame.
+	//	//	_oBodyCol.OnSimulatePre();		//###CHECK: Move to later breaks anything??
+	//}
 
 	public void OnSimulatePost() {
-		foreach (CSoftBody oSoftBody in _aSoftBodies)			//###CHECK: Cloth fitting mode needs breast to run, but others???
-			oSoftBody.OnSimulatePost();
-		foreach (CBCloth oBCloth in _aCloths)
-			oBCloth.OnSimulatePost();
+		//foreach (CSoftBody oSoftBody in _aSoftBodies)			//###CHECK: Cloth fitting mode needs breast to run, but others???
+		//	oSoftBody.OnSimulatePost();
+		//foreach (CBCloth oBCloth in _aCloths)
+		//	oBCloth.OnSimulatePost();
 	}
 
 
@@ -676,8 +691,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {        //###DEV
-		foreach (CSoftBody oSoftBody in _aSoftBodies)
-			oSoftBody.OnChangeGameMode(eGameModeNew, eGameModeOld);
+		//foreach (CSoftBody oSoftBody in _aSoftBodies)
+		//	oSoftBody.OnChangeGameMode(eGameModeNew, eGameModeOld);
 		foreach (CActor oActor in _aActors)
 			oActor.OnChangeGameMode(eGameModeNew, eGameModeOld);
 	}

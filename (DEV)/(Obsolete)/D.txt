@@ -19,7 +19,7 @@
 - Lucky Break!: Latest vagina (with slit) and enhanced geometry fixed most of the problems!  SBDetail35, mIsoSingle1, copyIsoSurface, .005f tetra range -> Still has patchy pins but look really nice!!!
 	- Bad carving of tetramesh however... including some rogue connections between sides!  Not sure this can be fixed?
 - Idea: also pin by proximity to soft body edge... just 1/4, 1/2, 3/4 points ok for now...
-- Our biggest problem is obvious skip of tetraverts between the long edges... FIX FIRST!!
+- Our biggest problem is obvious skip of particles between the long edges... FIX FIRST!!
 
 -- world-space morphs of breasts & top clothing --
 - A *MAJOR* breakthrough.  We invest heavily in world-space modifications of all kinds: move, scale, rotate (from different point)
@@ -89,7 +89,7 @@
 - Add quick colliders to the hand for feedback to the soft body! :)
 
 -- Misc --
-- If we implement a softbody vagina, then we *need* to remove tetravertices where the opening is.  -> Same functionality can separate the breasts!
+- If we implement a softbody vagina, then we *need* to remove particleices where the opening is.  -> Same functionality can separate the breasts!
 
 -- PROPERTY DESIGN --
 - Need to know when it has changed from the last time it was sent over the network, so need an 'intelligent object' that manages itself
@@ -244,7 +244,7 @@
 - 2:50: mIsoSingle0, copyIso, .004 - new pin by vertex = starting to look better but too much edge overlay, and solid collapsing as empty inside!
 - 2:55: mIsoSingle1, copySurf, .004
 - 5:11: High graph geo, narrowed vagina, dens50, .004, cloth
-- Final solution: Go with mIsoSingle0 and pin every tetravert on the graphical mesh border (including the 'depth' one underneath skin)
+- Final solution: Go with mIsoSingle0 and pin every particle on the graphical mesh border (including the 'depth' one underneath skin)
 - Concept: Reducing graphic geo and beefing up tetra geo makes for automatic damping at the border!  NO
 - Bottom line: Need more geometry on skinned side to properly attract and guide the thinnest row of tetrapins near the edge of soft body.
 - Adding x and y drive to thighs and extending x by .07 and y by .13 still gives nice sexy body but more area for penetration and stretching!
@@ -384,7 +384,7 @@
 	- Probably related to the 'debug wireframe mesh' shown -> it still knows how to draw these so large data structure are left for sure!
 - Bug with CPinSkinned connecting if CBody root is not at origin!  (Surprised this much works tho!) -> Global coordinates during pinning???
 - PhysX core implementation returns the mBuffer vertices as NaN when too many meshes are created.  THIS COULD HAVE SERIOUS LIMITATIONS ON HOW MANY SOFT BODIES WE HAVE IN GAME AND HOW COMPLEX!!
-- Weird bug with PhysX moving tetraverts randomly... WTF???
+- Weird bug with PhysX moving particles randomly... WTF???
 - Game still updates 3D cursor even when it has lost focus.
 - Walker are instantiate with 0.2 scale because of relation to CHarnessSphere... can cause problem??
 - Visible differences between the halves of CHarnessSphere and walker
@@ -427,7 +427,7 @@
 - For smart & easy camera targets, create a new CCamTarget script to dynamically calculate its position (e.g. halfway between tip of cock and vagina entry, etc...)
 - For most of the editors, we could improve their visual feedback past Debug.DrawLine by storing positions of debug objects and drawing with the more powerful Gizmo.xxx
 - Can now easily display visual feedback for vertex editing... makes a really neat game feature possible -> soft move of mesh areas! :)
-+ 'ISO SINGLE' mode of constructing tetramesh makes it truly solid!  (not makes it hollow!!) -> Weird it takes less tetraverts tho???  TEST!!
++ 'ISO SINGLE' mode of constructing tetramesh makes it truly solid!  (not makes it hollow!!) -> Weird it takes less particles tho???  TEST!!
 + For volume expansion, study the cube example where a tetramesh is generated programmatically... try to expand that one!!
 - Soft body twists the mesh out of shape per triangle... smooth out the normals so it doesn't look as bad under lighting??
 - Pass 'metainfo' from 3dsMax by creaing 'dummy nodes' under a Unity-known node at a known location with the metainfo in their names!! -> Useful for things like collider definition!
@@ -614,7 +614,7 @@
 - Why the texture break on each side of breasts & cleavage??
 - BUG: Why the bad bounds on breasts & clothing??  (Manually updated)
 - Algorithm to find pins by distance highly error prone.  Iterate through edge of soft body to avoid the many problems! -> Set backface to material #2?
-- Weird bug that appears intermitently with a tetravert dancing... goes away if you change detail level of tetramesh -> will cause nasty problems to users!!
+- Weird bug that appears intermitently with a particle dancing... goes away if you change detail level of tetramesh -> will cause nasty problems to users!!
 - BUG!!!: Why does changing physx properties recreates the mesh colliders??
 - BUG!: Clothing broken... One side worse!  And skinned part not moving!  Vert cols??
 - CHECK: Why is woman's body mesh center so far off??  (Reset it but can appear again?)
@@ -859,7 +859,7 @@
 - Decisions to simplify breast collisions -
 	- Hand to breast:
 		- Have hand wrap around breast mesh with the help of blender and keep it glued to breast as it moves.
-		- Apply various 'hand push' vectors to the neighboring tetraverts to the hand to simulate breast motion without local breast deformations
+		- Apply various 'hand push' vectors to the neighboring particles to the hand to simulate breast motion without local breast deformations
 	- Breast to environment (body of partner, furniture, etc)
 		- have to go with cubes and capsules... but will be difficult to make look nice.
 	- Smoothing is critical																

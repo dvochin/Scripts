@@ -51,10 +51,10 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern IntPtr	SoftBody_Create(string szNameObject, int nNumProps, IntPtr pVerts, int nVerts, IntPtr pTris, int nTris, IntPtr pNormals, int nTetraMeshDetailLevel, float nDensity, bool bCollisionSelf, bool bCollisionTwoWay, int eColGroup);
 	[DllImport(ErosDll)] public static extern void		SoftBody_Destroy(IntPtr pSoftBodyPtr);
 	[DllImport(ErosDll)] public static extern int		SoftBody_GetTetraTri(IntPtr pSoftBodyPtr, int nTetraIndex);		// Accesses inside the tetramesh triangle index to find and constuct CPinTetras
-	[DllImport(ErosDll)] public static extern Vector3	SoftBody_GetTetraVert(IntPtr pSoftBodyPtr, int nVertTetra);		// Accesses inside the tetramesh vertices to find and constuct CPinTetras
-	[DllImport(ErosDll)] public static extern int		SoftBody_GetTetraVertCount(IntPtr pSoftBodyPtr);					// Accesses inside the tetramesh vertices to find number of tetraverts
+	[DllImport(ErosDll)] public static extern Vector3	SoftBody_GetParticle(IntPtr pSoftBodyPtr, int nVertTetra);		// Accesses inside the tetramesh vertices to find and constuct CPinTetras
+	[DllImport(ErosDll)] public static extern int		SoftBody_GetParticleCount(IntPtr pSoftBodyPtr);					// Accesses inside the tetramesh vertices to find number of particles
 	[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreast(IntPtr pBodyColBreastPtr, IntPtr pVerts, IntPtr pNormals, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);
-	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachTetraVertToPos(IntPtr pSoftBodyPtr, int nVertTetra, Vector3 vecPinPos);		//####TODO: Rename?
+	[DllImport(ErosDll)] public static extern int 		PinTetra_AttachParticleToPos(IntPtr pSoftBodyPtr, int nVertTetra, Vector3 vecPinPos);		//####TODO: Rename?
 	
 	//---------------------------------------------------------------------------	COLLIDERS
 	[DllImport(ErosDll)] public static extern IntPtr	Collider_Box_Create		(string szName, uint nFlags, Vector3 vecPos, Quaternion quatRot, Vector3 vecBoxSize, float nDensityOrMass, int eColGroup);

@@ -88,11 +88,11 @@ public class CPenis_OBS : CSoftBody, IObject, IHotSpotMgr {
 
 
 	public CPenis_OBS() {
-		_nRangeTetraPinHunt_OBS = 0.012f;           //15###TUNE!!: Sensitive & important!		//###CHECK: Why the sudden range increase requirement???
-		_SoftBodyDetailLevel = 15;				//###OPT!!!: Reduce if quality can be maintained at base
+        ///_nRangeTetraPinHunt_OBS = 0.012f;           //15###TUNE!!: Sensitive & important!		//###CHECK: Why the sudden range increase requirement???
+        ///_SoftBodyDetailLevel = 15;				//###OPT!!!: Reduce if quality can be maintained at base
 	}
 
-	public override void OnDeserializeFromBlender() {
+    public override void OnDeserializeFromBlender() {
 		base.OnDeserializeFromBlender();
 
 		_oObjDriver = new CObject(this, _oBody._nBodyID, typeof(EPenis), "Penis", "Penis");		//###IMPROVE: Name of soft body to GUI
@@ -113,12 +113,12 @@ public class CPenis_OBS : CSoftBody, IObject, IHotSpotMgr {
 		_oNodePenisScaleDampCenter = _oNodePenisRootBone.FindChild("PenisScaleDampCenter");
 		_oNodePenisScaleDampCenter.position = vecPenisScaleDampCenter;
 		_oNodePenisRootBone.rotation = Quaternion.identity;
-		_vecPenisRootBoneStartPos = _oNodePenisRootBone.localPosition;		// Remember start position of penis root bone for CBClothUnderwear fitting procedure.
+		_vecPenisRootBoneStartPos = _oNodePenisRootBone.localPosition;      // Remember start position of penis root bone for CBClothUnderwear fitting procedure.
 
-		_eColGroup = EColGroups.eLayerPenisI;
-		//####DEV!!!!!!! base.OnStart(oBody);
+        ///_eColGroup = EColGroups.eLayerPenisI;
+        //####DEV!!!!!!! base.OnStart(oBody);
 
-		_oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
+        _oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
 
 		//###DESIGN: Most interesting properties in this secondary-name?  Can shift softbody to 2nd???
 		_oObjDriver.PropGroupBegin("", "", true);
@@ -155,61 +155,61 @@ public class CPenis_OBS : CSoftBody, IObject, IHotSpotMgr {
 		base.OnDestroy();
 	}
 
-	public override void OnSimulatePre() {
-		base.OnSimulatePre();
+	//public override void OnSimulatePre() {
+	//	base.OnSimulatePre();
 
-		//=== Calculate physical penis size from the current percentage stored in global gameplay property ===
-		CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
-		CProp oPropPenisScale = _oObjDriver.PropFind(EPenis.PenisScale);
-		float nPenisScale = oPropPenisScale._nMin + oPropPenisScale._nMinMaxRange * oPropPenisSizePercent._nValueLocal / 100.0f;
-		_oObjDriver.PropSet(EPenis.PenisScale, nPenisScale);
-		_nRadiusNow	= _nRadiusStart * nPenisScale;		// Calculate the current penis radius and segment lenght for this frame.  Vagina guide track needs this to open at right size and penis tip needs to properly position fluid emitter
-		_nSegLenNow			= _nSegLenStart * nPenisScale;
+	//	//=== Calculate physical penis size from the current percentage stored in global gameplay property ===
+	//	CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
+	//	CProp oPropPenisScale = _oObjDriver.PropFind(EPenis.PenisScale);
+	//	float nPenisScale = oPropPenisScale._nMin + oPropPenisScale._nMinMaxRange * oPropPenisSizePercent._nValueLocal / 100.0f;
+	//	_oObjDriver.PropSet(EPenis.PenisScale, nPenisScale);
+	//	_nRadiusNow	= _nRadiusStart * nPenisScale;		// Calculate the current penis radius and segment lenght for this frame.  Vagina guide track needs this to open at right size and penis tip needs to properly position fluid emitter
+	//	_nSegLenNow			= _nSegLenStart * nPenisScale;
 
-		//=== Calculate physical penis erection from the current percentage stored in global gameplay property ===	###DESIGN ###SIMPLIFY: This drive strength complexity really required??? Try to simplify!!
-		CProp oPropPenisErectionPercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisErectionMax);
-		CProp oPropDriveStrength = _oObjDriver.PropFind(EPenis.DriveStrength);
-		float nDriveStrengthMax = _oObjDriver.PropGet(EPenis.DriveStrengthMax) / 100;
-		float nDriveStrength = oPropDriveStrength._nMin + oPropDriveStrength._nMinMaxRange * oPropPenisErectionPercent._nValueLocal / 100.0f * nDriveStrengthMax;
-		_oObjDriver.PropSet(EPenis.DriveStrength, nDriveStrength);
+	//	//=== Calculate physical penis erection from the current percentage stored in global gameplay property ===	###DESIGN ###SIMPLIFY: This drive strength complexity really required??? Try to simplify!!
+	//	CProp oPropPenisErectionPercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisErectionMax);
+	//	CProp oPropDriveStrength = _oObjDriver.PropFind(EPenis.DriveStrength);
+	//	float nDriveStrengthMax = _oObjDriver.PropGet(EPenis.DriveStrengthMax) / 100;
+	//	float nDriveStrength = oPropDriveStrength._nMin + oPropDriveStrength._nMinMaxRange * oPropPenisErectionPercent._nValueLocal / 100.0f * nDriveStrengthMax;
+	//	_oObjDriver.PropSet(EPenis.DriveStrength, nDriveStrength);
 
-		ErosEngine.Penis_Update(_oObjDriver._hObject, _oNodePenisRootBone.position, _oNodePenisRootBone.rotation, _oPenisTip._memTransformPhysX.P, nPenisScale, CGame.INSTANCE._bPenisInVagina);
+	//	ErosEngine.Penis_Update(_oObjDriver._hObject, _oNodePenisRootBone.position, _oNodePenisRootBone.rotation, _oPenisTip._memTransformPhysX.P, nPenisScale, CGame.INSTANCE._bPenisInVagina);
 
-		_oPenisTip.OnSimulatePre();
-	}
-	public override void OnSimulatePost() {
-		float nPenisScale = _oObjDriver.PropGet(EPenis.PenisScale);
-		if (nPenisScale != 1) {
-			Vector3 vecPenisBaseNow = _oNodePenisRootBone.position;
-			Vector3 vecPenisScaleDampCenter = _oNodePenisScaleDampCenter.position;
-			float nScaleDampSizeRange = _nScaleDampSizeEnd - _nScaleDampSizeStart;
-			float nPenisScaleLessOne = (nPenisScale - 1);
+	//	_oPenisTip.OnSimulatePre();
+	//}
+	//public override void OnSimulatePost() {
+	//	float nPenisScale = _oObjDriver.PropGet(EPenis.PenisScale);
+	//	if (nPenisScale != 1) {
+	//		Vector3 vecPenisBaseNow = _oNodePenisRootBone.position;
+	//		Vector3 vecPenisScaleDampCenter = _oNodePenisScaleDampCenter.position;
+	//		float nScaleDampSizeRange = _nScaleDampSizeEnd - _nScaleDampSizeStart;
+	//		float nPenisScaleLessOne = (nPenisScale - 1);
 
-			int nVerts = _memVerts.L.Length;
-			for (int nVert = 0; nVert < nVerts; nVert++) {				//###OPT!!!!!: Expensive operation that really should be done in C++!  Costs about 1ms per frame!!
-				Vector3 vecVert = _memVerts.L[nVert];
-				float nDistFromScaleDampCenter = Vector3.Distance(vecVert, vecPenisScaleDampCenter);		// The distance of this 2D vert from the damping center... how close our 2D pos is to this 2D pos determines damping of scaling near penis mount.
-				float nDistFromScaleDampCenterLessStart = nDistFromScaleDampCenter - _nScaleDampSizeStart;
+	//		int nVerts = _memVerts.L.Length;
+	//		for (int nVert = 0; nVert < nVerts; nVert++) {				//###OPT!!!!!: Expensive operation that really should be done in C++!  Costs about 1ms per frame!!
+	//			Vector3 vecVert = _memVerts.L[nVert];
+	//			float nDistFromScaleDampCenter = Vector3.Distance(vecVert, vecPenisScaleDampCenter);		// The distance of this 2D vert from the damping center... how close our 2D pos is to this 2D pos determines damping of scaling near penis mount.
+	//			float nDistFromScaleDampCenterLessStart = nDistFromScaleDampCenter - _nScaleDampSizeStart;
 
-				float nScaleThisVert;
-				if (nDistFromScaleDampCenterLessStart < 0) {						// If this vert's 2D position (viewed fror left or right) is in the inner range of the scale damp center we don't modify it at all.
-					nScaleThisVert = 1;
-				} else if (nDistFromScaleDampCenterLessStart < nScaleDampSizeRange) {		// If this vert's 2D position (viewed from left or right) is in the outer range of the scale damp center we scale down its scaling to taper scaling in the ranged area
-					nScaleThisVert = 1 + Mathf.Sin(G.C_PiDiv2 * nDistFromScaleDampCenterLessStart / nScaleDampSizeRange) * nPenisScaleLessOne;	// Perform normal-like smoothing on curve for best blending look
-				} else {															// If this vert's 2D position (viewed from left or right) is outside the range of the scale damp center we scale it full strength
-					nScaleThisVert = nPenisScale;
-				}
+	//			float nScaleThisVert;
+	//			if (nDistFromScaleDampCenterLessStart < 0) {						// If this vert's 2D position (viewed fror left or right) is in the inner range of the scale damp center we don't modify it at all.
+	//				nScaleThisVert = 1;
+	//			} else if (nDistFromScaleDampCenterLessStart < nScaleDampSizeRange) {		// If this vert's 2D position (viewed from left or right) is in the outer range of the scale damp center we scale down its scaling to taper scaling in the ranged area
+	//				nScaleThisVert = 1 + Mathf.Sin(G.C_PiDiv2 * nDistFromScaleDampCenterLessStart / nScaleDampSizeRange) * nPenisScaleLessOne;	// Perform normal-like smoothing on curve for best blending look
+	//			} else {															// If this vert's 2D position (viewed from left or right) is outside the range of the scale damp center we scale it full strength
+	//				nScaleThisVert = nPenisScale;
+	//			}
 
-				if (nScaleThisVert != 1) {
-					Vector3 vecFromBase = vecVert - vecPenisBaseNow;
-					vecFromBase *= nScaleThisVert;
-					vecVert = vecPenisBaseNow + vecFromBase;
-					_memVerts.L[nVert] = vecVert;
-				}
-			}
-		}
-		base.OnSimulatePost();
-	}
+	//			if (nScaleThisVert != 1) {
+	//				Vector3 vecFromBase = vecVert - vecPenisBaseNow;
+	//				vecFromBase *= nScaleThisVert;
+	//				vecVert = vecPenisBaseNow + vecFromBase;
+	//				_memVerts.L[nVert] = vecVert;
+	//			}
+	//		}
+	//	}
+	//	base.OnSimulatePost();
+	//}
 
 
 	//--------------------------------------------------------------------------	COBJECT CALLBACK EVENTS

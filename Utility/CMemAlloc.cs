@@ -59,6 +59,6 @@ public enum EPhysReq {				// Message request types sent by Phys in OnPhys_
 
 public enum EPhysType {				// Message request data types sent by Phys in OnPhys_
 	None,
-	TetraVertices,
+	Particleices,
 	TetraIndices
 };

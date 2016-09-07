@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
+public class CFlexSkinnedBody : uFlex.FlexParticles, IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
 
     SkinnedMeshRenderer _oSMR;
     Mesh _oMeshSkinBaked;
@@ -58,11 +58,11 @@ public class CFlexSkinned : uFlex.FlexParticles, IFlexProcessor {       // CFlex
     }
 
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
-        //=== Bake rim skinned mesh and update position of softbody tetravert pins ===
+        //=== Bake rim skinned mesh and update position of softbody particle pins ===
         _oSMR.BakeMesh(_oMeshSkinBaked);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
         Vector3[] aVerts = _oMeshSkinBaked.vertices;
 
-        for (int nVert = 0; nVert < _nVerts; nVert++)
+        for (int nVert = 0; nVert < _nVerts; nVert++)       //###OPT!!  Expensive loop per frame that is unfortunately required because different memory footprints... :-(
             m_particles[nVert].pos = aVerts[nVert];
     }
 }

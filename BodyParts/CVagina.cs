@@ -43,7 +43,7 @@ public class CVagina : CSoftBody
 
 //=== PROBLEMS: ASSETS ===
 // * Vagina meshes still have all materials!!
-// * Pose of new capping vert important to avoid wasting tetraverts!!
+// * Pose of new capping vert important to avoid wasting particles!!
 // * Far too much softbody above slit
 // * Need to re-UV new vagina in ZBrush and draw in pussy slit.
 
