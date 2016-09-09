@@ -233,8 +233,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            _aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
+            //_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
         }
         if (eBodySex == EBodySex.Woman) {
             _aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
@@ -243,7 +243,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         }
 
         ////####TEMP ####DESIGN ####TEMP ####MOVE
-        _aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
+        //_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "HACK-Cloth-TankTop", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ///_aCloths.Add(CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //_ClothSkinnedArea_Top
         ////_aCloths.Add(CBCloth.Create(this, "Rough1-Holds"));
         ////_aCloths.Add(CBCloth.Create(this, "Rough2-Spreads"));

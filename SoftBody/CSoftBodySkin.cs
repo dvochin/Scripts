@@ -1,17 +1,30 @@
 ﻿/*
+=== TODAY ===
+
+=== QUESTIONS ===
+- 
+
+
+=== Overview of the entire CSoftBodySkin workflow ===
+- A 'backmesh' is created from the Blender soft body submesh.  (Both presentation, Flex collider and backmesh have same topology)
+- For now this backmesh is user created, soon it will hopefully be programmatically generated from source body
+- Q: What to do about virgin body not having holes for vagina / anus?
+    - Programmatically remove those during body init for now?
+- The technique below assumes that the vertex IDs of the user-created backmesh and the flex collider geometry will remain in lock-step!  (Be careful about hole opening above)
+    - Of course flex collider is different than presentation mesh!
+- We need to decide on how to properly form extra geometry for vagina / anus holes (with uv modification) soon.
+    - Try to generate backmesh programmatically... saves code!
+
+
+
+
 === CSoftBodySkin design decisions ===
-- CSoftBodySkin skinning:
-    - Done in Blender by distance. (not geometry)
-    - Q: Do we need to 'push back' near Flex collider mesh temporarily to skin depth during pose binding?
-        - Try this as a last resort... might work with collider a particle distance away.
 
 === NEEDS ===
 - Need to modify virgin body for vagina hole with proper UV mapping.
 
 === WISHLIST ===
 - Would be awesome if we can programatically generate vagina/anus colliders straight from virgin body mesh... (prevents body morphs)
-
-
 
 === Vagina collider generation ===
 - Returning back to DAZ body, we're now sliding verts one ring outward (so no longer a need to clean up mesh)
@@ -42,9 +55,7 @@
 - Skinning presentation mesh to near particles (or shapes?) = orifice will probably skin to particles on both sides
     - Decouple those by removing cross-side bone influences (and re-scale bones on same side)
 
-=== QUESTIONS ===
-- Do we operate on half-meshes or full mesh??
-    - Half-mesh makes it easier for quality skinning of presentation mesh to near collider... also enforces symmetry during 'limited dissolve'
+
 
 === IDEAS ===
 - Compute a 'center of opening' along with 'penetration angle' and base penetration tunnel from that.

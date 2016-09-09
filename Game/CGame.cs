@@ -1,4 +1,29 @@
-/*###DISCUSSION: Panels
+/*# New DAZ3D mesh based on G3F:
+- IDEA: Have colliders be defined in Blender and serialized during
+
+=== TODO ===
+- Need to create Unity bones in Editor from scratch.
+- Q: Do we define colliders in Unity or Blender??
+- Need to change the actors to add D6 joints that are appropriate
+- We need to create a BodyA, BodyB, BodyC collider groups
+- Previous implementation reversed bones to have chest as root.  Can we adapt DAZ's bone structure?
+- We'll need to re-calibrate each bone movement again
+- Q: How about hands: Do we go with intricate bones or softbody the whole hand?
+- Need to remove existing face implementation and re-implement facial expressions by driving bones!
+- Need to centralize all modifications applied to incoming DAZ body in one function:
+    - We need to keep a vanilla DAZ body in main Blender file.  This is where our custom vertex groups go... morphed body inputs have no custom groups!
+    - Glue vagina to base mesh
+    - Add geometry to breasts
+    - Move penis to position and morph base for seamless connection.
+
+
+- PROBLEM: Right thigh twist is out of position!
+- PROBLEM: Vagina mesh is shipped as 2nd mesh!  Also it does not coincide perfectly on some morphs!
+
+- AFTER: One new DAZ body works perfectly, go back to vagina creation and CSoftBodySkin!
+
+*/
+ /*###DISCUSSION: Panels
 
 
 === LAST ===
