@@ -37,13 +37,13 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		aSkinBindPoses = new Matrix4x4[nVertGroupsMesh];
 
 		//=== Find the root of our skinning bones from our body's main skinned mesh ===
-		Transform oNodeBoneParentRoot = _oBody._oBodyRootGO.transform.FindChild("Bones/chest");
+		Transform oNodeBoneParentRoot = _oBody._oBodyRootGO.transform.FindChild("Bones");       //###NOW###
 
 		if (oNodeBoneParentRoot == null)
 			throw new CException("CBMesh is attempting to reconstruct a skinned mesh but was not able to find root node of bones!");
 		for (byte nVertGroup = 0; nVertGroup < nVertGroupsMesh; nVertGroup++) {
 			string sVertGroup = CUtility.BlenderStream_ReadStringPascal(ref oBA, ref nPosBA);
-			Transform oNodeBone = CUtility.FindNodeByName(oNodeBoneParentRoot, sVertGroup);
+			Transform oNodeBone = CUtility.FindNodeByName(oNodeBoneParentRoot, sVertGroup);     //###OPT: Recursive on hundreds of bones for hundreds of bones = O squared!!  ###IMPROVE: Find by direct path!
 			if (oNodeBone != null) {
 				//Debug.Log("Bone found for '" + sVertGroup + "'");	
 				aSkinBones[nVertGroup] = oNodeBone;

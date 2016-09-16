@@ -33,6 +33,4 @@ public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : 
 				break;
 		}
 	}
-
-	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 }

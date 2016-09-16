@@ -83,7 +83,6 @@ public class CFace : CBMesh, IObject {
 		}
 	}
 
-	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 	public void OnPropSet_MouthOpen(float nValueOld, float nValueNew) { _oMorphMouthOpen.ApplyMorph(nValueNew); }
 	public void OnPropSet_EyesClosed(float nValueOld, float nValueNew) { _oMorphEyesClosed.ApplyMorph(nValueNew); }
 	public void OnPropSet_BrowInner(float nValueOld, float nValueNew) { _oMorphBrowInner.ApplyMorph(nValueNew); }

@@ -1,7 +1,17 @@
 /*# New DAZ3D mesh based on G3F:
+- Bones are inverted!  Invert verts in gBlender C?  (Set vert in Blender to see)
+- Actors are pulling from wrong bones... redo the whole lot
+- Broke head look, head, hair
+- Missing texture on eyes.
+
+
+
 - IDEA: Have colliders be defined in Blender and serialized during
 
 === TODO ===
+- Blender breast needs to be separated during original import method?
+- What to do about Flex collider?
+
 - Need to create Unity bones in Editor from scratch.
 - Q: Do we define colliders in Unity or Blender??
 - Need to change the actors to add D6 joints that are appropriate
@@ -23,7 +33,7 @@
 - AFTER: One new DAZ body works perfectly, go back to vagina creation and CSoftBodySkin!
 
 */
- /*###DISCUSSION: Panels
+/*###DISCUSSION: Panels
 
 
 === LAST ===
@@ -32,13 +42,13 @@
 
 - Problem with depth of cursor and GUI... when far we get greater depth... Is this a problem between the overlay cam and main one?  (Or just for VR / Space Navigator??)
 -###IMPROVE: Add various 'cursor depth traps' around major body parts so cursor has a max depth?
-    - Or... use body PhysX colliders?  BETTER! -> map to cursors??
+   - Or... use body PhysX colliders?  BETTER! -> map to cursors??
 
 
 - Rethink anchor points now that we can clip a little bit.
 - Can't select a widget without unselecting first one
 - Move canvas center or owning pin?
-    - Finalize pin
+   - Finalize pin
 - Cleanup panel creation
 - Panel center mesh
 - Panel divider sucks
@@ -295,7 +305,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//=== Spawn Blender process ===
 		Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
 		_hWnd_Unity = (IntPtr)GetActiveWindow();			// Just before we start Blender obtain the HWND of our Unity editor / player window.  We will need this to re-activate our window.  (Starting blender causes it to activate and would require user to alt-tab back to game!!)
-		_oProcessBlender = CGame.LaunchProcessBlender();
+		_oProcessBlender = CGame.LaunchProcessBlender("Erotic9.blend");
 		if (_oProcessBlender == null)
 			throw new CException("ERROR: Could not start Blender!  Game unusable.");
         //_nWnd_Blender_HACK = (IntPtr)GetActiveWindow();
@@ -309,7 +319,18 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
         //=== Set Blender global variables ===
         CGame.gBL_SendCmd("G", "CGlobals.SetFlexParticleSpacing(" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
+
+
         
+        string s = CGame.gBL_SendCmd("CObject", "CObject.FUCKOFF_HACK('Body Mesh Shape Keys', 'WomanA')");
+
+        CObjectBlender oObj = new CObjectBlender(this, "cm_oObjectMeshShapeKeys_HACK", -1);
+
+
+
+
+
+
         //=== Start PhysX ===
         Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
@@ -1042,9 +1063,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		return oProc;		//###CHECK: Will above throw if there was an error??  We need to throw if error!
 	}
 
-	public static System.Diagnostics.Process LaunchProcessBlender(System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
+	public static System.Diagnostics.Process LaunchProcessBlender(string sNameBlenderFile, System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
 		string sFileProcess = CGame.GetPathBlenderApp();
-        string sArguments = string.Format("\"{0}/Main.blend\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends());       //###IMPROVE: Don't show console during releases!
+        string sArguments = string.Format("\"{0}/{1}\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends(), sNameBlenderFile);       //###IMPROVE: Don't show console during releases!
 		System.Diagnostics.Process oProcess = CGame.LaunchProcess(sFileProcess, sArguments, false, eWinStyle);	//###IMPROVE: Try to redirect!
 		oProcess.Exited				+= oProcess_Exited;
 		oProcess.OutputDataReceived += oProcess_OutputDataReceived;
@@ -1116,10 +1137,10 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	//---------------------------------------------------------------------------	UTILITY
 	public void CreateBody(int nBodyID) {
 		//=== Destroy the body's head look controller as we cannot look at the 'other body' while the bodies are changing in the scene ===
-		if (_aBodies[0] != null)
-			_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
-		if (_aBodies[1] != null)
-			_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
+		//if (_aBodies[0] != null)
+		//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
+		//if (_aBodies[1] != null)
+		//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
 
 		//=== Destroy the entire tree of object a body is by simply destroying its root gameObject!  (Needs DestroyImmediate as lazy Destroy causes rebuild problems)
 		if (_aBodies[nBodyID] != null)
@@ -1129,16 +1150,16 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		_aBodies[nBodyID].DoInitialize();
 
         //####HACK!!!!
-        if (_aBodies[0] != null)
-            _aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
-        if (_aBodies[1] != null)
-            _aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
+        //if (_aBodies[0] != null)
+        //    _aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
+        //if (_aBodies[1] != null)
+        //    _aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
 
         //=== Reconnect the head look controller to look at the other body only if the scene now has two valid bodies ===
-        if (_aBodies[0] != null && _aBodies[1] != null) {
-			_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[1]);
-			_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[0]);
-		}
+  //      if (_aBodies[0] != null && _aBodies[1] != null) {
+		//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[1]);
+		//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[0]);
+		//}
 		//CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = null;				//###BROKEN!!  How to display before lenghty blocking calls below??? CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = "Rebuilding Body.  Please Wait...";
 	}
 
@@ -1289,10 +1310,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		Scene_ApplyPoseRoot(ePoseRootPos);
 	}
 
-	//--------------------------------------------------------------------------	IObject interface
-
-	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }			//###DESIGN!!!!: GET RID OF THIS! Called when a property created with the 'NeedReset' flag gets changed so owning object can adjust its global state
-
+	
 	//--------------------------------------------------------------------------	IHotspot interface
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }

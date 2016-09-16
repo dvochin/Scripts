@@ -177,6 +177,4 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
             _oBody._oBreastR.OnPropSet_SoftBodyMass(nValueOld, nValueNew);
         //Debug.LogFormat("SoftBody Mass {0}", nValueNew);
     }
-
-    public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }      //###SOON### Get rid of this crap!
 }

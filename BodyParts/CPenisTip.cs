@@ -49,10 +49,6 @@ public class CPenisTip : MonoBehaviour, IObject, IHotSpotMgr {			//###DESIGN: CP
 	}
 
 
-	//--------------------------------------------------------------------------	IOBJECT INTERFACE
-
-	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) {}
-
 
 	//--------------------------------------------------------------------------	IHotspot interface
 

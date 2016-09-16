@@ -729,8 +729,8 @@ public class CUtility {         // Collection of static utility functions
 			return null;
 		}
 		sPythonListOutput = sPythonListOutput.Substring(1, sPythonListOutput.Length - 2);		// Remove the [ and ] from the python output
-		string[] aseparators = new string[] { ", " };
-		string[] aElements = sPythonListOutput.Split(aseparators, StringSplitOptions.RemoveEmptyEntries);     // Python str(aMyList) separates each item with comma and a space
+		string[] aSeparators = new string[] { ", " };       //###IMPROVE: Remove space after comma to save bandwidth??
+		string[] aElements = sPythonListOutput.Split(aSeparators, StringSplitOptions.RemoveEmptyEntries);     // Python str(aMyList) separates each item with comma and a space
 		for (int nElement = 0; nElement < aElements.Length; nElement++)			// Remove the single quotes (') that python inserted at the beginning and end of each element
 			aElements[nElement] = aElements[nElement].Substring(1, aElements[nElement].Length - 2);
 		return aElements;

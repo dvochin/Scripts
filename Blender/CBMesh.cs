@@ -36,7 +36,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	
 	
 	//---------------------------------------------------------------------------	INIT
-
+    //###SOON: Redo the crappy static create to just create component with a separate Initialize() with the proper arguments
 	public static CBMesh Create(GameObject oBMeshGO, CBody oBody, string sNameCBodyInstanceMember, Type oTypeBMesh, Boolean bKeepBlenderShare = false) {
 		//===== Important static function that reads a Blender mesh definition stream and create the requested CBMesh-derived entity on the provided gameObject node =====
 

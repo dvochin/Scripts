@@ -95,8 +95,6 @@
 //        Debug.LogFormat("Cloth Tightness {0}", nValueNew);
 //    }
 
-//    public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
-
     
 //    //---------------------------------------------------------------------------	Flex
 //    public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) { }      //###CLEANUP: Needed??

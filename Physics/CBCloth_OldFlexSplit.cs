@@ -165,8 +165,6 @@
 
 
 
-//    public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
-
 //	//--------------------------------------------------------------------------	IHotspot interface
 
 //	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }

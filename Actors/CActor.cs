@@ -220,8 +220,6 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.z = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
 
 
-	public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
-
 
 	//---------------------------------------------------------------------------	HOTSPOT EVENTS
 
@@ -293,7 +291,9 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 
 		if (_oJointDrvParent == null) {				// If we have a null parent then we're the root and we're kinematic with no joint to anyone!
 			_oTransform = _oActor._oBody._oBodyRootGO.transform.FindChild("Bones/" + sChildNodeName);		//###TEMP!!!: Connect to root soon!
-			_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(Rigidbody));		//###TODO: Add a "CRigidBodyWake"???
+            if (_oTransform == null)
+                throw new CException("CJointDriver() cannot find bone " + sChildNodeName);
+            _oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(Rigidbody));		//###TODO: Add a "CRigidBodyWake"???
 			_oRigidBody.isKinematic = true;
 			_oRigidBody.mass = nMass;
 			_vecStartingPos			= _oTransform.localPosition;
@@ -468,7 +468,6 @@ public enum EActorAnchor_OBS {
 	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.z = nValueNew; transform.rotation = quatRot; }
 	//public void OnPropSet_RotW(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.w = nValueNew; transform.rotation = quatRot; }
 
-	//public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 
 
 	////---------------------------------------------------------------------------	HOTSPOT EVENTS

@@ -139,7 +139,6 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
     }
 
-    public void OnPropSet_NeedReset(CProp oProp, float nValueOld, float nValueNew) { }
 
 	//--------------------------------------------------------------------------	IHotspot interface
 
