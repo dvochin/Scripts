@@ -1,4 +1,24 @@
 /*###DISCUSSION: ACTORS
+=== NEW BODY ===  ###NOW###
+- Poses all corrupt now.  Throw away??    (Load disabled)
+
+- WTF wrong with pins now?  Inverted?  Back??  Why at second time?  Reset does something bad?  Pins should be dist only??
+- Missing textures!  Improve in Blender too!  (Genitals change all the time!)
+- PROBLEM: Blender now showing extra armatures!!
+
+- Changed joint behavior to no longer invert Y & Z!  Poses now fucked!  Can fix?
+- Go through Daz and extract the damn angles!
+- Do the colliders
+
+- Huge hack with CProp name!!!!!
+- Add warning when clipping y,z in joint driver!
+- How to handle joint axis rotation?  What about L/R of body??
+- How to handle different y,z rotations??  Switch axis??
+
+
+
+
+
 === NEXT ===
  * Reparenting of hands a big issue now for good pose creation... have to make them relative to something!!
  * Add more hand targets all over to test the simple design's viability...
@@ -24,7 +44,7 @@
 
 === PROBLEMS??? ===
  * We only display hotspot at bone, never where pin is (causes non-intuitive behavior when pinning and extremity snaps to some location user doesn't see
-
+ * Pins oriented along X of extremities but this looks weird for most bones... orient towards Y+?
 === WISHLIST ===
  * Need to pin actors to bones, etc (e.g. hands to breasts, hands to back of head, etc)
 
@@ -85,14 +105,12 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	[HideInInspector]	public 	EBodySide		_eBodySide;								// Left side =  0 , right side =  1
 	[HideInInspector]	public 	string 			_sSidePrefixL, _sSidePrefixU;		// Left side = 'l", right side = "r".  Used to locate our bone structure by string name
 
-	[HideInInspector]	public 	CJointDriver 	_oJointMidLimb;						//###MOVE? This is the 'halfway point' of the limb (elbow for arm and knee for leg).  Kept here so CHarnessSphereActorWalker can orient itself to our knee / elbow for more natural hand and toe placement
 	[HideInInspector]	public 	CJointDriver 	_oJointExtremity;					//###MOVE? This is the 'extremity point' of the limb (hand for arm and foot for leg).  Kept here so CHarnessSphereActorWalker can orient itself to our knee / elbow for more natural hand and toe placement
 	[HideInInspector]	public 	List<CJointDriver> _aJoints = new List<CJointDriver>();		// The array of joints defined for this actor.  Duplicated in there for easy enable/disable as we change game mode
 	[HideInInspector]	public 	ConfigurableJoint _oConfJoint_Extremity;			// The joint of our extremity.  Stored for faster pin/unpin
 	
 	[HideInInspector]	public	float			_nDrivePos = C_DrivePos;			// The strength of the spring force pulling actor to its pin position
 
-						public 	const float		C_DriveAng = 0.1f;					// The default angular drive for all bones... Hugely important.  multipled by some bones		//###SOON: IMPORTANT!!!!  ###TUNE
 						public	const float		C_DrivePos = 200f;					// The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
 						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
 						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
@@ -113,13 +131,9 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 		
 		OnStart_DefineLimb();
 
-		//if (/*_ResetPinPosAtStart_BROKEN) {			//###DESIGN!!!! ####SOON!  Which for what situation?  External flag??
-		if (_oJointExtremity != null) {			//###CHECK
-			transform.position = _oJointExtremity._oTransform.position;			// Reset pin to extremity at startup
-			transform.rotation = _oJointExtremity._oTransform.rotation;
-			//_oJointExtremity._oTransform.position = transform.position;			// Reset pin to extremity at startup
-			//_oJointExtremity._oTransform.rotation = transform.rotation;
-		}
+        _oObj.PropSet(EActorNode.Pinned, 1);            //###NOW### Pin by default??
+
+        SetActorPosToBonePos();         //###CHECK
 	}
 
 	public virtual void OnDestroy() {}
@@ -151,9 +165,16 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 		//}
 	}
 
-	//---------------------------------------------------------------------------	COBJECT EVENTS
+    public void SetActorPosToBonePos() {
+		if (_oJointExtremity != null) {
+            transform.position = _oJointExtremity.transform.position;           // Reset this actor's pin to where the bone extremity is right now
+            transform.rotation = _oJointExtremity.transform.rotation;
+        }
+    }
 
-	public void OnPropSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
+    //---------------------------------------------------------------------------	COBJECT EVENTS
+
+    public void OnPropSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
 		if (_oJointExtremity == null)			//###CHECK
 			return;
 
@@ -161,18 +182,20 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 			throw new CException("*Err: CActor.PinOrUnpin() called with no extremity joint set!");
 
 		bool bPinned = nValueNew == 1;
+        //if (GetType() != typeof(CActorChest))           //###NOW###
+        //    bPinned = false;
 		if (bPinned) {		// How pinning init works: 1) Remember current location/rotation, 2) set to where extremity is now, 3) activate joint, 4) move back to old pos/rot = extremity's spring will gradually move & rotate toward current position of pin!  (just what we want!)
 			//###IMPROVE: When user pins make pin location where limb extremity is (ie. no movement)
 			Vector3 vecPosOld = transform.position;
 			Quaternion quatRotOld = transform.rotation;
-			Transform oAnchorT = _oJointExtremity._oTransform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
+			Transform oAnchorT = _oJointExtremity.transform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
 			Transform oAnchorChildT = oAnchorT.FindChild("Anchor");
 			if (oAnchorChildT != null)
 				oAnchorT = oAnchorChildT;
 			transform.position = oAnchorT.position;			//? Doesn't matter as it gets calculated every frame anyway but just to be cleaner in 3D scene...
 			transform.rotation = oAnchorT.rotation;			
 			_oConfJoint_Extremity.connectedBody = _oJointExtremity._oRigidBody;
-			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime??
+			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime?? ###TUNE?
             oJointLimit.limit = 0.001f;				//###LEARN: If this is zero there is NO spring functionality!!
 			SoftJointLimitSpring oJointLimitSpring = new SoftJointLimitSpring();    //###WEAK: Do everytime??		//####MOD: To Unity5
             oJointLimitSpring.spring = _nDrivePos;
@@ -266,94 +289,119 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 
 
 
-public class CJointDriver {			// CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
+public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
+    //###MOVE?: Proper file for joint driver?
+    [HideInInspector] public CActor				_oActor;			                // The actor who owns us
+	[HideInInspector] public CJointDriver		_oJointDrvParent;                   // The parent joint driver (and bone) we connect to
+	[HideInInspector] public Rigidbody			_oRigidBody;                        // Our rigid body (also a component of our same game object)
+	[HideInInspector] public ConfigurableJoint	_oConfJoint;                        // Our D6 configurable joint.  Responsibly for PhysX processing to keep our two bone extremities at their proper rotation
+	                  Vector3					_vecStartingPos;					// Pose and rotation stored so we can return to 'configure' game mode at any time
+	                  Quaternion 				_quatStartingRotation;              // The starting rotation.  Used to return joint to its starting position.
+                      public float              _X, _Y, _Z;                         // Our current rotation
+    [HideInInspector] public float              _Xold, _Yold, _Zold;                // 'Old' version of rotation.  Used to auto-update bone rotation in 'C_BoneDebugMode' debug mode 
+                      public float              _XL, _XH, _YHL, _ZHL;               // Our configuration parameters.  X = main bone bend (has a low and high), Y = twist, Z = 'side-to-side' bend (Y&Z only have Low/High combined)
+                      public float              _nDriveStrengthMult;
 
-	public CActor				_oActor;			//###DESIGN!!: Proper base class for joint?
-	public CJointDriver			_oJointDrvParent;
-	public Transform			_oTransform;
-	public Rigidbody			_oRigidBody;
-	public ConfigurableJoint	_oConfJoint;
-	Vector3						_vecStartingPos;					// Pose and rotation stored so we can return to 'configure' game mode at any time
-	Quaternion 					_quatStartingRotation;				
-	public float				_X, _Y, _Z, _XL, _XH, _YL, _YH, _ZL, _ZH;
-	
-	public CJointDriver(CActor oActor, CJointDriver oJointDrvParent, string sChildNodeName, float nDriveStrength, float nMass, float XL, float XH, float YL, float YH, float ZL, float ZH) {
+    public static CJointDriver Create(CActor oActor, CJointDriver oJointDrvParent, string sNameBone, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL) {
+        Transform oTransform;
+        if (oJointDrvParent == null)
+            oTransform = oActor._oBody._oBonesT.FindChild(sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
+        else
+            oTransform = oJointDrvParent.transform.FindChild(sNameBone);
+
+        if (oTransform == null)
+            throw new CException("CJointDriver.Create() cannot find bone " + sNameBone);
+        CJointDriver oJointDriver = CUtility.FindOrCreateComponent(oTransform.gameObject, typeof(CJointDriver)) as CJointDriver;
+        oJointDriver.Initialize(oActor, oJointDrvParent, nDriveStrengthMult, nMass, XL, XH, YHL, ZHL);
+        return oJointDriver;
+    }
+
+
+    public void Initialize(CActor oActor, CJointDriver oJointDrvParent, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL) {
 		_oActor = oActor;
 		_oJointDrvParent = oJointDrvParent;
-		_XL = XL;	_XH = XH;
-		_YL = YL;	_YH = YH;
-		_ZL = ZL;	_ZH = ZH;
+        _nDriveStrengthMult = nDriveStrengthMult;
+        _XL = XL;	_XH = XH;
+		_YHL = YHL;
+		_ZHL = ZHL;
+        _vecStartingPos         = transform.localPosition;
+        _quatStartingRotation   = transform.localRotation;
+
+        //=== Create the rigid body for our bone ===
+        _oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(gameObject, typeof(Rigidbody));     //###TODO: Add a "CRigidBodyWake"???
+        _oRigidBody.mass = nMass;
+        _oRigidBody.drag = 1.5f;                            //###TODO!! //###DESIGN: Which drag??		//###TUNE!!!!!	###IMPROVE: Different settings for arms & legs???
+        _oRigidBody.angularDrag = 1.5f;                     //###TUNE!!!!
+        _oRigidBody.sleepThreshold = 0;                     // Ensure the rigid body never sleeps!
+
+
+        //=== Process special handling needed when we are root (we are kinematic and we have no joint to parent) ===
+        if (_oJointDrvParent == null) {             // If we have a null parent then we're the root and we're kinematic with no joint to anyone!
+
+            _oRigidBody.isKinematic = true;
+
+        }
+        else {
+
+            //=== If we have a parent then we are not kinematic and rotate by PhysX simulation ===
+            _oRigidBody.isKinematic = false;
+
+            //=== Create the D6 configurable joint between our parent and us ===
+		    _oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
+		    _oConfJoint.connectedBody = _oJointDrvParent._oRigidBody;
+
+            //=== Set the joint limits as per our arguments ===
+            bool bInvertX = (_XL > _XH);					// If the logical range is inverted we can't send this to PhysX as lowAngularXLimit MUST be < than highAngularXLimit!
+		    SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
+            if (CGame.INSTANCE.BoneDebugMode) {                   // Set debug limits if in debug mode (so we can fully rotate along all axis for game-time tuning
+                oJL.limit = -177;
+                _oConfJoint.lowAngularXLimit  = oJL;
+                oJL.limit = 177;
+                _oConfJoint.highAngularXLimit = oJL;
+                _oConfJoint.angularYLimit = oJL;
+                _oConfJoint.angularZLimit = oJL;
+            } else { 
+		        oJL.limit = bInvertX ? _XH : _XL;	_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
+		        oJL.limit = bInvertX ? _XL : _XH;	_oConfJoint.highAngularXLimit = oJL;
+		        oJL.limit = _YHL;	                _oConfJoint.    angularYLimit = oJL;        //###NOTE! Hugely inconvenient feature of D6 joint is Y & Z must be symmetrical!!  Make sure bone is oriented so X is used for the assymetrical rotation!!
+		        oJL.limit = _ZHL;	                _oConfJoint.    angularZLimit = oJL;
+            }
+            //=== Set joint axis defaults (before overriding some of them) ===
+            _oConfJoint.xMotion = _oConfJoint.yMotion = _oConfJoint.zMotion = ConfigurableJointMotion.Locked;
+		    _oConfJoint.angularXMotion = _oConfJoint.angularYMotion = _oConfJoint.angularZMotion = ConfigurableJointMotion.Limited;		//###DESIGN? Limited vs Free?
+
+            //=== Free the axis that don't need driving ===  ###CHECK: Safe???
+		    if (_XL == 0f && _XH == 0f) _oConfJoint.angularXMotion = ConfigurableJointMotion.Free;		// If an axis is unused set it //free to reduce PhysX workload  ###CHECK: Is this ever invoked?  Does it make joint fail if not all three axis driven??
+		    if (_YHL == 0f)             _oConfJoint.angularYMotion = ConfigurableJointMotion.Free;		//###DESIGN: Verify unsetting!
+		    if (_ZHL == 0f)             _oConfJoint.angularZMotion = ConfigurableJointMotion.Free;		//###NOTE: SLERP needs all three axis by definition... But Limited of little / no use if we drive all the time (less PhysX overhead))
 		
-		if (_oActor._eBodySide == EBodySide.Right) { 						// If we're the right body side invert the Y and Z axis.  //###WEAK: Not sure why we invert BOTH Y and Z but hey it works!
-			_YL = -_YL; _YH = -_YH; 
-			_ZL = -_ZL; _ZH = -_ZH; 
-		}
+            //=== Set the configurable joint drive strength ===
+		    JointDrive oDrive = new JointDrive();
+		    oDrive.positionSpring = _nDriveStrengthMult * CGame.INSTANCE.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
+            oDrive.positionDamper = 0;							//###TODO!!!!! ###TUNE?
+		    oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
+		    //oDrive.mode = JointDriveMode.Position;
+		    _oConfJoint.slerpDrive = oDrive;
+		    _oConfJoint.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
 
-		if (_oJointDrvParent == null) {				// If we have a null parent then we're the root and we're kinematic with no joint to anyone!
-			_oTransform = _oActor._oBody._oBodyRootGO.transform.FindChild("Bones/" + sChildNodeName);		//###TEMP!!!: Connect to root soon!
-            if (_oTransform == null)
-                throw new CException("CJointDriver() cannot find bone " + sChildNodeName);
-            _oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(Rigidbody));		//###TODO: Add a "CRigidBodyWake"???
-			_oRigidBody.isKinematic = true;
-			_oRigidBody.mass = nMass;
-			_vecStartingPos			= _oTransform.localPosition;
-			_quatStartingRotation 	= _oTransform.localRotation;
-			return;
-		}
-
-		_oTransform = _oJointDrvParent._oTransform.FindChild(sChildNodeName);
-		if (_oTransform == null)
-			throw new CException("CJointDriver() cannot find child node " + sChildNodeName);
-		_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(Rigidbody));		//###TODO: Add a "CRigidBodyWake"???
-		_oRigidBody.mass = nMass;
-		_oRigidBody.drag = 1.5f;							//###TODO!! //###DESIGN: Which drag??		//###TUNE!!!!!	###IMPROVE: Different settings for arms & legs???
-		_oRigidBody.angularDrag = 1.5f;
-		_vecStartingPos			= _oTransform.localPosition;
-		_quatStartingRotation 	= _oTransform.localRotation;
-
-		_oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(_oTransform.gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
-		_oConfJoint.connectedBody = _oJointDrvParent._oRigidBody;
-		
-		bool bInvertX = (_XL > _XH);					// If the logical range is inverted we can't send this to PhysX as lowAngularXLimit MUST be < than highAngularXLimit!
-		SoftJointLimit oJL = new SoftJointLimit();
-		oJL.limit = bInvertX ? _XH : _XL;						_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
-		oJL.limit = bInvertX ? _XL : _XH;						_oConfJoint.highAngularXLimit = oJL;
-		oJL.limit = Mathf.Max(Mathf.Abs(_YL), Mathf.Abs(_YH));	_oConfJoint.    angularYLimit = oJL;
-		oJL.limit = Mathf.Max(Mathf.Abs(_ZL), Mathf.Abs(_ZH));	_oConfJoint.    angularZLimit = oJL;
-		
-		_oConfJoint.xMotion 		= _oConfJoint.yMotion 			= _oConfJoint.zMotion 			= ConfigurableJointMotion.Locked;
-		//_oConfJoint.angularXMotion 	= _oConfJoint.angularYMotion 	= _oConfJoint.angularZMotion 	= ConfigurableJointMotion.Limited;
-		_oConfJoint.angularXMotion = _oConfJoint.angularYMotion = _oConfJoint.angularZMotion = ConfigurableJointMotion.Limited;		//###DESIGN!!!!! Limited vs Free!!!
-
-		if (_XL == 0f && _XH == 0f) _oConfJoint.angularXMotion = ConfigurableJointMotion.Free;		// If an axis is unused set it //free to reduce PhysX workload
-		if (_YL == 0f && _YH == 0f) _oConfJoint.angularYMotion = ConfigurableJointMotion.Free;		//###DESIGN: Verify unsetting!
-		if (_ZL == 0f && _ZH == 0f) _oConfJoint.angularZMotion = ConfigurableJointMotion.Free;		//###CHECK: Free vs locked!  Slerp won't work with locked?  But we need locked!!  (Revised: SLERP needs all three axis by definition... But Limited of little / no use if we drive all the time (less PhysX overhead))
-		
-		JointDrive oDrive = new JointDrive();
-		oDrive.positionSpring = nDriveStrength;
-		oDrive.positionDamper = 0;							//###TODO!!!!!
-		oDrive.maximumForce = float.MaxValue;
-		//oDrive.mode = JointDriveMode.Position;
-		_oConfJoint.slerpDrive = oDrive;
-		_oConfJoint.rotationDriveMode = RotationDriveMode.Slerp;
-
-        //=== If we're a node on the right side, copy the collider defined on our twin node on the left side === //###WEAK: Bit of a hack.  //###MOVE??
-        if (_oActor._eBodySide == EBodySide.Right) {
-			Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(_oTransform.gameObject);
-            //Debug.Log("Collider copy " + oNodeSrc.name);
-            Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
-            if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
-				CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
-				CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(CapsuleCollider));
-				oColDst.center 		= oColSrc.center;
-				oColDst.radius 		= oColSrc.radius;
-				oColDst.height 		= oColSrc.height;
-				oColDst.direction 	= oColSrc.direction;
-            } else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
-				BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
-				BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(_oTransform, typeof(BoxCollider));
-				oColDst.center 		= oColSrc.center;
-				oColDst.size 		= oColSrc.size;
+            //=== If we're a node on the right side, copy the collider defined on our twin node on the left side ===
+            if (_oActor._eBodySide == EBodySide.Right) {
+			    Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(transform.gameObject);
+                //Debug.Log("Collider copy " + oNodeSrc.name);
+                Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
+                if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
+				    CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
+				    CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(transform, typeof(CapsuleCollider));
+				    oColDst.center 		= oColSrc.center;
+				    oColDst.radius 		= oColSrc.radius;
+				    oColDst.height 		= oColSrc.height;
+				    oColDst.direction 	= oColSrc.direction;
+                } else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
+				    BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
+				    BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
+				    oColDst.center 		= oColSrc.center;
+				    oColDst.size 		= oColSrc.size;
+                }
             }
         }
     }
@@ -362,21 +410,41 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		// Joint becomes kinematic and reverts to starting position upon configure mode, becomes PhysX-simulated during gameplay
 		switch (eGameModeNew) {
 			case EGameModes.Configure:
-				_oRigidBody.isKinematic = true;
-				_oTransform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
-				_oTransform.localRotation = _quatStartingRotation;          //###NOW###
+                _X = _Y = _Z = 0;
+                UpdateRotation();
+                _oRigidBody.isKinematic = true;
+				transform.localPosition = _vecStartingPos;				// Restore the joint to its startup position / orientation
+				transform.localRotation = _quatStartingRotation;
 				break;
 			case EGameModes.Play:
-				_oRigidBody.isKinematic = false;
-				break;
+                if (_oConfJoint != null) { 
+                    JointDrive oDrive = _oConfJoint.slerpDrive;
+                    oDrive.positionSpring = _nDriveStrengthMult * CGame.INSTANCE.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
+                    _oConfJoint.slerpDrive = oDrive;
+                }
+                _oRigidBody.isKinematic = false;
+                _X = _Y = _Z = 0;
+                UpdateRotation();
+                break;                  //###IMPROVE: Add a new game mode for kinematic but 'reset pose to T'?
 		}
 	}
 
-	public Rigidbody GetRB() { return _oConfJoint.GetComponent<Rigidbody>(); /* GetComponent<Rigidbody>();*/ }
+    void Update() {
+        if (CGame.INSTANCE.BoneDebugMode) {                           // In 'bone debug mode' trap any change of our rotation values to update rotation right away.  (Makes it possible to quickly tune at gametime realistic bone rotations)
+            if (_X != _Xold || _Y != _Yold || _Z != _Zold) {
+                UpdateRotation();
+                _Xold = _X;  _Yold = _Y;  _Zold = _Z;
+                //_oRigidBody.WakeUp();           //###CHECK: Needed?
+            }
+        }
+    }
+
+	//public Rigidbody GetRB() { return _oConfJoint.GetComponent<Rigidbody>(); /* GetComponent<Rigidbody>();*/ }
 	
-	void UpdateRotation() {
-		_oConfJoint.targetRotation = Quaternion.Euler(_X, _Y, _Z);
-	}
+	void UpdateRotation() {     // Update X, Y, Z rotation
+        if (_oConfJoint != null)
+		    _oConfJoint.targetRotation = Quaternion.Euler(_X, _Y, _Z);      // Rotate as specified by X,Y,Z  (z, x, y in that order) (Joint already starts from its starting rotation)
+    }
 
 	public void DumpBonePos_DEV() {		//###NOTE: For development... Enables to dump the position of a joint as it is now to enable hard-coding of desirable states (useful to properly position arm)
 		//float nXP = 100.0f * (_X - _XL) / (_XH - _XL);		// Not working as we have two formulas for single/dual range
@@ -385,38 +453,40 @@ public class CJointDriver {			// CJointDriver: Encapsulates common usage of the 
 		//Debug.Log(string.Format("{0}.{1} at {2:F0},{3:F0},{4:F0}", _oActor.transform.name, _oTransform.name, nXP, nYP, nZP));
 		//Vector3 vecRot = _oTransform.localRotation.eulerAngles;
 		//Debug.Log(string.Format("{0}.{1} at {2:F0},{3:F0},{4:F0}", _oActor.transform.name, _oTransform.name, vecRot.x, vecRot.y, vecRot.z));
-		Quaternion quatRot = _oTransform.localRotation;
-		Debug.Log(string.Format("{0}.{1} at {2:F3}f,{3:F3}f,{4:F3}f,{5:F3}f", _oActor.transform.name, _oTransform.name, quatRot.x, quatRot.y, quatRot.z, quatRot.w));
+		Quaternion quatRot = transform.localRotation;
+		Debug.Log(string.Format("{0}.{1} at {2:F3},{3:F3},{4:F3},{5:F3}", _oActor.transform.name, transform.name, quatRot.x, quatRot.y, quatRot.z, quatRot.w));
 	}
 
-	public void RotateX(float nAnglePercent) { _X = _XL + (nAnglePercent/100f) * (_XH-_XL); UpdateRotation(); }
-	public void RotateY(float nAnglePercent) { _Y = _YL + (nAnglePercent/100f) * (_YH-_YL); UpdateRotation(); }
-	public void RotateZ(float nAnglePercent) { _Z = _ZL + (nAnglePercent/100f) * (_ZH-_ZL); UpdateRotation(); }
+    //=== Rotation where source value goes from 0% to 100% ===
+    public void RotateX1(float nAnglePercent) { _X = _XL  + (nAnglePercent/100f) * (_XH-_XL);   UpdateRotation(); }
+	public void RotateY1(float nAnglePercent) { _Y = (nAnglePercent/100f) * _YHL;               UpdateRotation(); }
+	public void RotateZ1(float nAnglePercent) { _Z = (nAnglePercent/100f) * _ZHL;               UpdateRotation(); }
 
-	public void RotateX_DualRange(float nAnglePercent) { _X = (nAnglePercent/100f) * ((nAnglePercent>0) ? _XH : -_XL); UpdateRotation(); }
-	public void RotateY_DualRange(float nAnglePercent) { _Y = (nAnglePercent/100f) * ((nAnglePercent>0) ? _YH : -_YL); UpdateRotation(); }
-	public void RotateZ_DualRange(float nAnglePercent) { _Z = (nAnglePercent/100f) * ((nAnglePercent>0) ? _ZH : -_ZL); UpdateRotation(); }
+    //=== Rotation where source value goes from -100% to 100% ===
+    public void RotateX2(float nAnglePercent) { _X = (nAnglePercent/100f) * ((nAnglePercent<0) ? -_XL : -_XH); UpdateRotation(); }       //###DESIGN!!!: Not linear if low and high are not opposite... the desired behavior??
+	public void RotateY2(float nAnglePercent) { _Y = (nAnglePercent/100f) * _YHL; UpdateRotation(); }       // Low and high are symmetrical, so simpler than X
+	public void RotateZ2(float nAnglePercent) { _Z = (nAnglePercent/100f) * _ZHL; UpdateRotation(); }
 
 	//public void SetRotationRaw_HACK(float X, float Y, float Z) { _X = X; _Y = Y; _Z = Z; UpdateRotation(); }		// Hack call to bypass our calibration setting and set in direct angles (extracted by observing body limbs in scene for e.g. arm placement)
 	//public void SetRotationRaw_HACK(Quaternion quatRot) { _oConfJoint.targetRotation = _quatStartingRotation; }		// Hack call to bypass our calibration setting and set in direct angles (extracted by observing body limbs in scene for e.g. arm placement)
 	//public void SetRotationDefault_HACK() { _oConfJoint.targetRotation = _quatStartingRotation; }
 
-	public void Enable() {				//###DESIGN!!!!??? ###BROKEN?? Not working...redo enable / disable design of actor??
-		_oRigidBody.isKinematic = false;
-	}
-	public void Disable() {
-		_oRigidBody.isKinematic = true;
-		_oTransform.localPosition	= _vecStartingPos;
-		_oTransform.localRotation 	= _quatStartingRotation;		// Restore rotation the way it was when we got created...  should return body to T-pose.
-	}
+	//public void Enable() {				//###DESIGN!!!!??? ###BROKEN?? Not working...redo enable / disable design of actor??
+	//	_oRigidBody.isKinematic = false;
+	//}
+	//public void Disable() {
+	//	_oRigidBody.isKinematic = true;
+	//	_oTransform.localPosition	= _vecStartingPos;
+	//	_oTransform.localRotation 	= _quatStartingRotation;		// Restore rotation the way it was when we got created...  should return body to T-pose.
+	//}
 };
 
 
-public enum EActorAnchor_OBS {
-	HandPalmCenter,
-	MidFingerMidway,
-	MidFingerTip
-};
+//public enum EActorAnchor_OBS {
+//	HandPalmCenter,
+//	MidFingerMidway,
+//	MidFingerTip
+//};
 
 
 

@@ -1,8 +1,59 @@
+/*###DISCUSSION: CBody rewrite
+=== TODAY ===
+
+=== NEXT ===
+
+=== TODO ===
+- Blender CBody redo
+    - Only three sexes: Woman, Man, Shemale.  Remove argument for genitals
+    - Now reacts to 'OnChangeGameMode' to properly configure / cleanup
+- Changing character sex requires going back to central menu (which cleans everything)
+- Rem out the whole breast morph thing now?
+- Rename FlexSkin to represent softbody more?
+- Shemale (and possibly male if not DAZ penis) needs sophisticated penis vert adjustment after morphs
+- Do we still need to map verts between the different bodies??
+- Q: Body in configure mode COULD move around and animate!  It just doesn't have softbodies!  +++++
+    - Still has cloth, Flex collider (different ones between the two modes), pins, head movement, etc
+    - Still a large visual difference to user (scene dissapears, one body only, body in T) but body could be 'tested' in that mode with some animations??
+- Separate pose / animated mode versus body state = orthogonal
+
+- What is the same
+    - Actors and bones are there, same with scripting objects, same prefab, canvas panels
+    - Can still go between pose mode and animated mode
+
+- What changes:
+    - Only hotspot in configure is main one
+    - Flex colliders are different: 
+        - Configure is most body without head and extremities at natural geometry
+        - Play is remeshed, does not contain removed softbodies and has head and feet (hands are softbodies?)
+    - 
+
+
+=== LATER ===
+
+=== IMPROVE ===
+
+=== DESIGN ===
+
+=== QUESTIONS ===
+
+=== IDEAS ===
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+
+=== PROBLEMS??? ===
+
+=== WISHLIST ===
+
+*/
+
 /*###DISCUSSION: Dual-mode game functionality: Morphing and gameplay
 === REWRITE TODO ===
 - Finally get fucking mesh in... too many vert groups per bone! (Because bad body morph??)
 - Continue CBody ctor to split everything
-- Swtich to real body... work on other meshes
+- Switch to real body... work on other meshes
 
 === NEXT ===
 
@@ -132,7 +183,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	CKeyHook _oKeyHook_ChestUpDown;
 
 	//---------------------------------------------------------------------------	MISC
-	CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
+	///CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
 	//CClothEdit _oClothEdit_HACK;
     //CFlexCloth_OBS _oFlexCloth_HACK;
@@ -381,11 +432,11 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		_aActors.Add(_oActor_Base	= _oBodyRootGO.transform.FindChild("Base")				.GetComponent<CActorNode>());
 		_aActors.Add(_oActor_Torso	= _oBodyRootGO.transform.FindChild("Base/Torso")		.GetComponent<CActorNode>());
 		_aActors.Add(_oActor_Chest	= _oBodyRootGO.transform.FindChild("Base/Torso/Chest")	.GetComponent<CActorChest>());
-		_aActors.Add(_oActor_Pelvis	= _oBodyRootGO.transform.FindChild("Base/Torso/Pelvis").GetComponent<CActorPelvis>());
-		_aActors.Add(_oActor_ArmL	= _oBodyRootGO.transform.FindChild("Base/ArmL")		.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_ArmR	= _oBodyRootGO.transform.FindChild("Base/ArmR")		.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_LegL	= _oBodyRootGO.transform.FindChild("Base/LegL")		.GetComponent<CActorLeg>());
-		_aActors.Add(_oActor_LegR	= _oBodyRootGO.transform.FindChild("Base/LegR")		.GetComponent<CActorLeg>());
+		_aActors.Add(_oActor_Pelvis	= _oBodyRootGO.transform.FindChild("Base/Torso/Pelvis") .GetComponent<CActorPelvis>());
+		_aActors.Add(_oActor_ArmL	= _oBodyRootGO.transform.FindChild("Base/ArmL")		    .GetComponent<CActorArm>());
+		_aActors.Add(_oActor_ArmR	= _oBodyRootGO.transform.FindChild("Base/ArmR")		    .GetComponent<CActorArm>());
+		_aActors.Add(_oActor_LegL	= _oBodyRootGO.transform.FindChild("Base/LegL")		    .GetComponent<CActorLeg>());
+		_aActors.Add(_oActor_LegR	= _oBodyRootGO.transform.FindChild("Base/LegR")		    .GetComponent<CActorLeg>());
 
 		foreach (CActor oActor in _aActors)
 			oActor.OnStart(this);
@@ -424,22 +475,22 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		///_oHeadLook.OnSimulatePre();
 
-		//=== Arm pinning key state preocessing ===  Space = set close to camera arm, LeftAlt = faraway from camera arm
-		if (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.LeftAlt)) {		// If we begin press to its key we begin the mode, optionally getting an arm to update.  we keep updating while the key is pressed and end the state on key up
-			if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.LeftAlt)) {
-				CActorArm oArm = FindCloseOrFarArmFromCamera(Input.GetKeyDown(KeyCode.LeftAlt));	
-				if (oArm != null) {
-					_oArm_SettingRaycastPin = oArm;
-					_oArm_SettingRaycastPin.ArmRaycastPin_Begin();
-				}
-			}
-			if (_oArm_SettingRaycastPin != null)
-				_oArm_SettingRaycastPin.ArmRaycastPin_Update();
-		}
-		if (_oArm_SettingRaycastPin != null && (Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.LeftAlt))) {	//###LEARN: When GetKeyUp is true GetKey is false!
-			_oArm_SettingRaycastPin.ArmRaycastPin_End();
-			_oArm_SettingRaycastPin = null;
-		}
+		////=== Arm pinning key state preocessing ===  Space = set close to camera arm, LeftAlt = faraway from camera arm
+		//if (Input.GetKey(KeyCode.Space) || Input.GetKey(KeyCode.LeftAlt)) {		// If we begin press to its key we begin the mode, optionally getting an arm to update.  we keep updating while the key is pressed and end the state on key up
+		//	if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.LeftAlt)) {
+		//		CActorArm oArm = FindCloseOrFarArmFromCamera(Input.GetKeyDown(KeyCode.LeftAlt));	
+		//		if (oArm != null) {
+		//			_oArm_SettingRaycastPin = oArm;
+		//			_oArm_SettingRaycastPin.ArmRaycastPin_Begin();
+		//		}
+		//	}
+		//	if (_oArm_SettingRaycastPin != null)
+		//		_oArm_SettingRaycastPin.ArmRaycastPin_Update();
+		//}
+		//if (_oArm_SettingRaycastPin != null && (Input.GetKeyUp(KeyCode.Space) || Input.GetKeyUp(KeyCode.LeftAlt))) {	//###LEARN: When GetKeyUp is true GetKey is false!
+		//	_oArm_SettingRaycastPin.ArmRaycastPin_End();
+		//	_oArm_SettingRaycastPin = null;
+		//}
 
 		_oActor_ArmL.OnSimulatePre();		//###OBS? Arms need per-frame update to handle pinning to bodycol verts
 		_oActor_ArmR.OnSimulatePre();
@@ -481,7 +532,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//	}
 		//}
 		if (Input.GetKeyDown(KeyCode.R))		//###DESIGN: Selected only??
-			ResetPinsToBones();
+			SetActorPosToBonePos();
     }
 
     public void SetBodiesAsKinematic(bool bBodiesAreKinematic) {       // Set body as kinematic or not (used for pose loading / teleportation)
@@ -517,66 +568,31 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	}
 
 
-	//---------------------------------------------------------------------------	EDIT-TIME BONE UPDATE FROM BLENDER
-
-	public void UpdateBonesFromBlender() {						// Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
-		_oBonesT = _oBodyRootGO.transform.FindChild("Bones");
-
-		string sNameBodySrc = _sBodyPrefix;			//####BROKEN?
-		if (sNameBodySrc.StartsWith("Prefab") == false)
-			throw new CException("UpdateBonesFromBlender could not recognize PrefabXXX game object name " + sNameBodySrc);
-		sNameBodySrc = sNameBodySrc.Substring(6);			// Remove 'Prefab' to obtain Blender body source name (a bit weak)
-		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetBones('" + sNameBodySrc + "')", ref memBA);		//###TODO: get body type from enum in body plus type!	//oBody._sMeshSource + 
-		byte[] oBA = (byte[])memBA.L;
-		int nPosBA = 0;
-
-		//=== Decrypt the bytes array that Blender Python prepared for us in 'gBL_GetBones()' ===
-		ushort nMagicBegin = BitConverter.ToUInt16(oBA, nPosBA); nPosBA += 2;		// Read basic sanity check magic number at start
-		if (nMagicBegin != G.C_MagicNo_TranBegin)
-			throw new CException("ERROR in CBodyEd.UpdateBonesFromBlender().  Invalid transaction begin magic number!");
-
-		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
-		ReadBone(ref oBA, ref nPosBA, _oBonesT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)
-
-		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
-
-		Debug.Log("+++ UpdateBonesFromBlender() OK +++");
-	}
-
-	void ReadBone(ref byte[] oBA, ref int nPosBA, Transform oBoneParent) {							// Precise opposite of gBlender.Stream_SendBone(): Reads a bone from Blender, finds (or create) equivalent Unity bone and updates position
-		string sBoneName = CUtility.BlenderStream_ReadStringPascal(ref oBA, ref nPosBA);
-		Vector3	vecBone = CUtility.ByteArray_ReadVector(ref oBA, ref nPosBA);
-		Transform oBone = oBoneParent.FindChild(sBoneName);
-		if (oBone == null) {
-			oBone = new GameObject(sBoneName).transform;
-			oBone.parent = oBoneParent;
-			Debug.LogWarning(string.Format("ReadBone created new bone '{0}' under parent '{1}' and set to position {2:F3},{3:F3},{4:F3}", sBoneName, oBoneParent.name, vecBone.x, vecBone.y, vecBone.z));
-		} else {
-			Debug.Log(string.Format("ReadBone updated bone '{0}' under parent '{1}' and set position {2:F3},{3:F3},{4:F3}", sBoneName, oBoneParent.name, vecBone.x, vecBone.y, vecBone.z));
-		}
-		oBone.position = vecBone;
-		int nBones = oBA[nPosBA++];
-		for (int nBone = 0; nBone < nBones; nBone++)
-			ReadBone(ref oBA, ref nPosBA, oBone);
-	}
-
 
 	//---------------------------------------------------------------------------	UTILITY
 
-	public void ResetPinsToBones() {
-		ResetPinToBone("Torso", "chest/abdomen");
-		ResetPinToBone("Torso/Chest", "chest");
-		ResetPinToBone("Torso/Pelvis", "chest/abdomen/hip");		//###NOTE: DAZ's hip bone = our pelvis
-		ResetPinToBone("Torso", "chest/abdomen");					//###WEAK: ###CHECK???  Do it twice because of different parent child relationhips between the two trees... needed???
-		ResetPinToBone("Torso/Chest", "chest");
-		ResetPinToBone("Torso/Pelvis", "chest/abdomen/hip");		
-	}
-	public void ResetPinToBone(string sPathPin, string sPathBone) {		//###IMPROVE: Fix to run during play-time... Have to re-root from CPoseRoot
+	public void SetActorPosToBonePos() {                    // Places the actor pins to where the 'extremity' of each actor is now.
+        //###IMPROVE: Reset doesn't account for the 'drop' that occurs from the influence of gravity on each actor pin... compensate somehow?
+        //=== Temporarily remove Chest and Pelvis as child of Torso so we can easily reset Torso to be between Chest and Pelvis below ===
+        _oActor_Chest. transform.SetParent(_oActor_Base.transform);
+        _oActor_Pelvis.transform.SetParent(_oActor_Base.transform);
+
+        //=== Reset all our actor pins to their extremity's bone position ===
+        foreach (CActor oActor in _aActors)
+            oActor.SetActorPosToBonePos();
+
+        //=== Manually place Torso to be halfway between Chest and Pelvis ===
+        _oActor_Torso.transform.position = (_oActor_Chest.transform.position + _oActor_Pelvis.transform.position) / 2;
+        _oActor_Torso.transform.rotation = _oActor_Chest.transform.rotation;        // Set Torso to same rotation as chest.
+
+        //=== Return Chest and Pelvis to being child of Torso as before ===
+        _oActor_Chest. transform.SetParent(_oActor_Torso.transform);
+        _oActor_Pelvis.transform.SetParent(_oActor_Torso.transform);
+    }
+    public void ResetPinToBone(string sPathPin, string sPathBone) {		//###IMPROVE: Fix to run during play-time... Have to re-root from CPoseRoot
 		Transform oRootPinT = (_oActor_Base != null) ? _oActor_Base.transform : _oBodyRootGO.transform.FindChild("Base");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
-		Transform oRootBoneT = _oBodyRootGO.transform.FindChild("Bones");
 		Transform oPinT = oRootPinT.FindChild(sPathPin);
-		Transform oBoneT = oRootBoneT.FindChild(sPathBone);
+		Transform oBoneT = FindBone(sPathBone);
 		oPinT.position = oBoneT.position;
 	}
 	public Transform FindBone(string sBonePath) {
@@ -603,10 +619,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	public bool IsBodySelected() {
 		return CGame.INSTANCE._nSelectedBody == _nBodyID;
 	}
-	public CActorArm FindCloseOrFarArmFromCamera(bool bInvert) {		// Used by hand placement functionality to auto-select the hand to move without user selection
+	public CActorArm FindCloseOrFarArmFromCamera(bool bInvert) {		//###OBS? Used by hand placement functionality to auto-select the hand to move without user selection
 		if (IsBodySelected()) {		// Only the closest arm of the selected body responds
-			float nDistL = (_oActor_ArmL._oJointShoulder._oTransform.position - Camera.main.transform.position).magnitude;
-			float nDistR = (_oActor_ArmR._oJointShoulder._oTransform.position - Camera.main.transform.position).magnitude;
+			float nDistL = (_oActor_ArmL._oJointShoulderBend.transform.position - Camera.main.transform.position).magnitude;
+			float nDistR = (_oActor_ArmR._oJointShoulderBend.transform.position - Camera.main.transform.position).magnitude;
 			if (bInvert)
 				return (nDistL < nDistR) ? _oActor_ArmR : _oActor_ArmL;
 			else
@@ -637,7 +653,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
     public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
         _oBodySkinnedMesh._oSkinMeshRendNow.enabled = bShowPresentation;
         ///_oFace.GetComponent<MeshRenderer>().enabled = bShowPresentation;
-        _oHairGO.GetComponent<MeshRenderer>().enabled = bShowPresentation;
+        if (_oHairGO != null)
+            _oHairGO.GetComponent<MeshRenderer>().enabled = bShowPresentation;
         if (_oBodyFlexCldr != null) { 
             _oBodyFlexCldr._oSkinMeshRendNow.enabled = bShowFlexColliders;
             if (_oBodyFlexCldr.GetComponent<uFlex.FlexParticlesRenderer>() != null)
@@ -655,6 +672,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
     //---------------------------------------------------------------------------	LOAD / SAVE
     public bool Pose_Load(string sNamePose) {
+        return false;       //###NOW### ###BROKEN Poses!
+
+
 		string sPathPose = CGame.GetPathPoseFile(sNamePose);
 		if (File.Exists(sPathPose) == false) {
 			Debug.LogError("CBody.Pose_Load() could not find file " + sPathPose);

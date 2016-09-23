@@ -116,8 +116,8 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 		//=== Conveniently reset skinned mesh renderer flags we always keep constant... makes it easier to override the defaults which go the other way ===
 		_oSkinMeshRendNow.updateWhenOffscreen = true;                               //###OPT: Should some mesh have this off?
-        _oSkinMeshRendNow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-        _oSkinMeshRendNow.receiveShadows = false;
+        _oSkinMeshRendNow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;       //###PERF: Runtime performance of shadows?  (All done in different quality settings?)
+        _oSkinMeshRendNow.receiveShadows = true;
 		if (_oSkinMeshRendNow.GetComponent<Collider>() != null)						//###CHECK: ReleaseGlobalHandles mesh collider here if it exists at gameplay
 			Destroy(_oSkinMeshRendNow.GetComponent<Collider>());
 	}

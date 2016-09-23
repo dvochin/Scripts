@@ -4,9 +4,11 @@ using System.Collections;
 
 public class CActorChest : CActor {
 
-	[HideInInspector]	public 	CJointDriver 		_oJointAbdomen1;
-	[HideInInspector]	public 	CJointDriver 		_oJointHip;
-	[HideInInspector]	public 	CJointDriver 		_oJointPelvis;
+	[HideInInspector]	public 	CJointDriver 		_oJointChestLower;
+	[HideInInspector]	public 	CJointDriver 		_oJointAbdomenUpper;
+	[HideInInspector]	public 	CJointDriver 		_oJointAbdomenLower;
+    [HideInInspector]	public 	CJointDriver 		_oJointHip;
+	//[HideInInspector]	public 	CJointDriver 		_oJointPelvis;
 
 	const float C_RndPose_ValShift = 10.0f;			// Randomization applied to important chest properties to avoid a still character		//###TUNE
 	const float C_RndPos_TimeBetweenShifts = 3.0f;
@@ -16,10 +18,12 @@ public class CActorChest : CActor {
 
 	public override void OnStart_DefineLimb() {
 		//=== Init Bones and Joints ===
-		_aJoints.Add(_oJointExtremity	= new CJointDriver(this, null,					"chest",		50.0f, 10.0f, -000f, 000f, -000f, 000f, -000f, 000f));
-		_aJoints.Add(_oJointAbdomen1	= new CJointDriver(this, _oJointExtremity,		"abdomen",		50.0f, 06.0f, -020f,  020f, -040f,  040f, -040f,  040f));	//###BUG: Hip = zero?	//###SOON: Drives of spine... linked to C_DriveAng??
-		_aJoints.Add(_oJointHip			= new CJointDriver(this, _oJointAbdomen1,		"hip",			50.0f, 07.0f, -020f,  020f, -030f,  030f, -030f,  030f));	//###IMPROVE //###SOON: Calibrate spine!!
-		_aJoints.Add(_oJointPelvis		= new CJointDriver(this, _oJointHip,			"sex",			50.0f, 10.0f, -020f,  020f, -030f,  030f, -030f,  030f));	//###WEAK: Namespace differences pelvis / sex!
+		_aJoints.Add(_oJointExtremity	    = CJointDriver.Create(this, null,					"chestUpper",		50f,  10f, -000f,  000f,  010f,  020f));
+		_aJoints.Add(_oJointChestLower      = CJointDriver.Create(this, _oJointExtremity,		"chestLower",		50f,  10f, -000f,  000f,  010f,  020f));
+		_aJoints.Add(_oJointAbdomenUpper	= CJointDriver.Create(this, _oJointChestLower,      "abdomenUpper",	    50f,  06f, -020f,  020f,  010f,  020f));
+		_aJoints.Add(_oJointAbdomenLower    = CJointDriver.Create(this, _oJointAbdomenUpper,    "abdomenLower",	    50f,  06f, -020f,  020f,  010f,  020f));
+		_aJoints.Add(_oJointHip			    = CJointDriver.Create(this, _oJointAbdomenLower,	"hip",			    50f,  07f, -020f,  020f,  010f,  020f));
+		//_aJoints.Add(_oJointPelvis		    = CJointDriver.Create(this, _oJointHip,			"pelvis",			50.0f, 10.0f, -020f,  020f, -030f,  030f, -030f,  030f));
 
 		_oJointExtremity._oRigidBody.isKinematic = (CGame.INSTANCE._GameMode == EGameModes.Configure);		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
 		//_oJointExtremity._oRigidBody.isKinematic = false;				// We need to disable kinematic on bone as we're driving it with our pin!
@@ -39,6 +43,7 @@ public class CActorChest : CActor {
 		_oObj.PropAdd(EActorChest.Chest_Twist,		"Chest-Twist",		0,	-100,	100,	"", CProp.Local);
 		_oObj.FinishInitialization();
 
+        //###CHECK??
 		_oObj.PropSet(EActorChest.Pinned, 1);           // Manually set pinned to 1 on torso so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
 
         if (CGame.INSTANCE.EnableIdlePoseMovement)
@@ -47,7 +52,7 @@ public class CActorChest : CActor {
 
 	IEnumerator Coroutine_ChangeRandomPose() {	// Simple coroutine to efficiently apply randomization to some of our property values	###MOVE: Move to utility?
 		float nTimeBetweenSmoothUpdates = C_RndPos_TimeBetweenShifts / (float)C_RndPose_SmoothSteps;
-
+        //###BROKEN
 		for (; ; ) {
 			_oObj.PropFind(EActorChest.Chest_LeftRight)	.Randomize_SetNewRandomTarget(-C_RndPose_ValShift/2, C_RndPose_ValShift/2);		//###TUNE!!
 			_oObj.PropFind(EActorChest.Chest_UpDown)	.Randomize_SetNewRandomTarget(-C_RndPose_ValShift, C_RndPose_ValShift);
@@ -68,19 +73,25 @@ public class CActorChest : CActor {
 	
 	//---------------------------------------------------------------------------	COBJECT EVENTS
 
-	public void OnPropSet_Chest_LeftRight(float nValueOld, float nValueNew) {		//###BUG!!!: Broken look to these rotations now that we are centered on abdomen bone!
-		_oJointPelvis.RotateY_DualRange(nValueNew);
-		_oJointHip.RotateY_DualRange(nValueNew);
-		_oJointAbdomen1.RotateY_DualRange(nValueNew);
-	}
-	public void OnPropSet_Chest_UpDown   (float nValueOld, float nValueNew) {
-		_oJointPelvis.RotateX_DualRange(nValueNew);
-		_oJointHip.RotateX_DualRange(nValueNew);
-		_oJointAbdomen1.RotateX_DualRange(nValueNew);
-	}
-	public void OnPropSet_Chest_Twist    (float nValueOld, float nValueNew) {
-		_oJointPelvis.RotateZ_DualRange(nValueNew);
-		_oJointHip.RotateZ_DualRange(nValueNew);
-		_oJointAbdomen1.RotateZ_DualRange(nValueNew);
-	}
+	public void OnPropSet_Chest_LeftRight(float nValueOld, float nValueNew) {
+        _oJointChestLower.  RotateY2(nValueNew);
+        _oJointAbdomenUpper.RotateY2(nValueNew);
+        _oJointAbdomenLower.RotateY2(nValueNew);
+		_oJointHip.         RotateY2(nValueNew);
+		//_oJointPelvis.      RotateY_DualRange(nValueNew);
+    }
+    public void OnPropSet_Chest_UpDown   (float nValueOld, float nValueNew) {
+        _oJointChestLower.  RotateX2(nValueNew);
+        _oJointAbdomenUpper.RotateX2(nValueNew);
+        _oJointAbdomenLower.RotateX2(nValueNew);
+		_oJointHip.         RotateX2(nValueNew);
+        //_oJointPelvis.      RotateX_DualRange(nValueNew);
+    }
+    public void OnPropSet_Chest_Twist    (float nValueOld, float nValueNew) {
+        _oJointChestLower.  RotateZ2(nValueNew);
+		_oJointAbdomenUpper.RotateZ2(nValueNew);
+        _oJointAbdomenLower.RotateZ2(nValueNew);
+		_oJointHip.         RotateZ2(nValueNew);
+        //_oJointPelvis.      RotateZ_DualRange(nValueNew);
+    }
 }

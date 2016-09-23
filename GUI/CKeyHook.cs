@@ -27,7 +27,7 @@ public class CKeyHook : IDisposable {
 	}
 
 	public void Dispose() {									//###IMPROVE!!! Possibly to auto dispose without explicit calling??? Annoying!!
-		CGame.INSTANCE._aKeyHooks.Remove(_oWeakRef);		//###CHECK: Keep or just autodelete in CGame??
+		CGame.INSTANCE._aKeyHooks.Remove(_oWeakRef);		//###CHECK: Keep or just autodelete in CGame??      ###NOW### BUG!
 	}
 	
 	public void OnUpdate() {		//###DESIGN: OnUpdate??? From CGame??? Game mode sensitive??

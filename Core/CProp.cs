@@ -61,9 +61,9 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		_sDescription		= sDescription;
 		_nPropFlags			= nPropFlags;
 		_oTypeChoice		= oTypeChoice;
-        //###NOW###
-		//FieldInfo[] aFieldsEnum = _oObject._oTypeFieldsEnum.GetFields();
-        _sNameProp = "###BROKEN";   //= aFieldsEnum[nPropEnumOrdinal + 1].Name;		// For some reason reflection on enums returns '_value' for index zero with the real enum fields starting at index 1
+
+        //FieldInfo[] aFieldsEnum = _oObject._oTypeFieldsEnum.GetFields();
+        _sNameProp = sLabel;    //###NOW### "###BROKEN";   //= aFieldsEnum[nPropEnumOrdinal + 1].Name;		// For some reason reflection on enums returns '_value' for index zero with the real enum fields starting at index 1
 
 		//if ((_nPropFlags & Local) == 0 && (_nPropFlags & Blender) == 0) {		// We only have a remote property to connect to if we're non-local
 		//	int nError_PropConnect = ErosEngine.Object_PropConnect(_oObject._hObject, _nPropEnumOrdinal, _sNameProp);

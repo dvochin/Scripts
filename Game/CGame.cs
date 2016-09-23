@@ -3,7 +3,7 @@
 - Actors are pulling from wrong bones... redo the whole lot
 - Broke head look, head, hair
 - Missing texture on eyes.
-
+-###LEARN: Unity is a 'left handed coordinate system' while Blender is 'right handed' = unfortunate!!
 
 
 - IDEA: Have colliders be defined in Blender and serialized during
@@ -128,6 +128,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public float tetherStiffness = 0.0f;
     public float tetherGive = 0.0f;
 
+    public bool BoneDebugMode = true;                   // All joint drivers limits are set to be as big as possible when this is set.  Used for runtime bone angle tuning
+    public float BoneDriveStrength = 0.1f;				// The default angular drive for all bones.  Multiplied by a per-bone multiplier.  Hugely important.  ###TUNE
+
     //---------------------------------------------------------------------------	VISIBLE GAME OPTIONS
     public bool			_DemoVersion;		// When defined, the app builds for demo mode (no penetration)		###MOVE!
 						public	EGameModes	_GameModeAtStartup = EGameModes.Configure;
@@ -221,7 +224,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public bool             _bBodiesAreKinematic;        // When set propert sets to pose nodes will also directly move the attached PhysX object (used during pose loading)
 
     [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
-
 
     #region === INIT
     public void Awake() {
@@ -320,17 +322,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //=== Set Blender global variables ===
         CGame.gBL_SendCmd("G", "CGlobals.SetFlexParticleSpacing(" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
 
-
-        
-        string s = CGame.gBL_SendCmd("CObject", "CObject.FUCKOFF_HACK('Body Mesh Shape Keys', 'WomanA')");
-
-        CObjectBlender oObj = new CObjectBlender(this, "cm_oObjectMeshShapeKeys_HACK", -1);
-
-
-
-
-
-
         //=== Start PhysX ===
         Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
@@ -414,19 +405,19 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //    return;
 
         //=== Create the body publicly-editable body definitions that can construct and reconstruct CBody instances ===
-        CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
+        //CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
 
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
 		CreateBody(0);
-        //CreateBody(1);
+  //      //CreateBody(1);
         _aBodies[0].SelectBody();
 
 		TemporarilyDisablePhysicsCollision();
 
-		SetPenisInVagina(false);		// We initialize the penis in vagina state to false so vagina track colliders don't kick in at scene init
+		///SetPenisInVagina(false);		// We initialize the penis in vagina state to false so vagina track colliders don't kick in at scene init
 
-		//if (CGame.INSTANCE._GameMode == EGameModes.Play)
-		//	ScenePose_Load("Standing", false);          // Load the default scene pose
+		if (CGame.INSTANCE._GameMode == EGameModes.Play)
+			ScenePose_Load("Standing", false);          // Load the default scene pose
 
         //###TODO ##NOW: Init GUI first!!
         //iGUISmartPrefab_WndPopup.WndPopup_Create(new CObject[] { oObj }, "Game Play", 0, 0);		//###TEMP
@@ -961,7 +952,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
                 ScenePose_Load("Standing", false);      //###G ###DESIGN!!
         		break;
         	case EGameModes.Configure:
-        		break;
+                break;
         }
         HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }

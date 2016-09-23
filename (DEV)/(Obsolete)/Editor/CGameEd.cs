@@ -54,7 +54,7 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 	public void UpdateBonesFromBlender() {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
         //StartBlender();
 
-        GameObject oBoneRootGO = GameObject.Find("Resources/PrefabWoman/Bones");      //###WEAK: Hardcoded path.  ###IMPROVE: Support man & woman body
+        GameObject oBoneRootGO = GameObject.Find("Resources/PrefabWomanA/Bones");      //###WEAK: Hardcoded path.  ###IMPROVE: Support man & woman body
         oBoneRootGO.SetActive(true);
         Transform oBoneRootT = oBoneRootGO.transform;
 
@@ -79,24 +79,22 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 
 	void ReadBone(ref byte[] oBA, ref int nPosBA, Transform oBoneParent) {							// Precise opposite of gBlender.Stream_SendBone(): Reads a bone from Blender, finds (or create) equivalent Unity bone and updates position
 		string sBoneName = CUtility.BlenderStream_ReadStringPascal(ref oBA, ref nPosBA);
-		Vector3	vecBone = CUtility.ByteArray_ReadVector(ref oBA, ref nPosBA);
-		Transform oBone = oBoneParent.FindChild(sBoneName);
+        Vector3 vecBone  = CUtility.ByteArray_ReadVector(ref oBA, ref nPosBA);              // Bone position itself.
+        Quaternion quatBone = CUtility.ByteArray_ReadQuaternion(ref oBA, ref nPosBA);       // And its quaternion rotation (in Blender's 90-degree rotated about x domain)
+
+        Transform oBone = oBoneParent.FindChild(sBoneName);
 		if (oBone == null) {
 			oBone = new GameObject(sBoneName).transform;
 			oBone.parent = oBoneParent;
-			Debug.LogWarning(string.Format("ReadBone created new bone '{0}' under parent '{1}' and set to position {2:F3},{3:F3},{4:F3}", sBoneName, oBoneParent.name, vecBone.x, vecBone.y, vecBone.z));
-		} else {
-			Debug.Log(string.Format("ReadBone updated bone '{0}' under parent '{1}' and set position {2:F3},{3:F3},{4:F3}", sBoneName, oBoneParent.name, vecBone.x, vecBone.y, vecBone.z));
 		}
-		oBone.position = vecBone;
-		int nBones = oBA[nPosBA++];
+        Debug.LogFormat("ReadBone created bone '{0}' under '{1}' with rot:{2:F3},{3:F3},{4:F3},{5:F3} / pos:{6:F3},{7:F3},{8:F3}", sBoneName, oBoneParent.name, quatBone.x, quatBone.y, quatBone.z, quatBone.w, vecBone.x, vecBone.y, vecBone.z);
+        oBone.position = vecBone;
+        oBone.rotation = quatBone;
+        oBone.Rotate(new Vector3(1, 0, 0),  90, Space.World);           //###LEARN!!!: How to rotate about a global x-axis!
+        oBone.Rotate(new Vector3(0, 0, 1), 180, Space.Self);            // Rotate about Z axis so bone points +Y from parent bone to child ###CHECK!
+
+        int nBones = oBA[nPosBA++];
 		for (int nBone = 0; nBone < nBones; nBone++)
 			ReadBone(ref oBA, ref nPosBA, oBone);
 	}
-	
-	//public override void OnInspectorGUI() {
-	//	GUI.Label(new Rect (25, 25, 100, 30), "MouseIns: " + Event.current.mousePosition);
-	//	oGame._SphereRadius = EditorGUILayout.Slider("Sphere Radius", oGame._SphereRadius, 0.01f, 0.3f);
-	//	if (GUILayout.Button("")
-	//}
 }

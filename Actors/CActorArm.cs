@@ -86,7 +86,10 @@ using System;
 public class CActorArm : CActor {
 
 	[HideInInspector]	public 	CJointDriver 	_oJointCollar;
-	[HideInInspector]	public 	CJointDriver 	_oJointShoulder;							// Hand joint is called _oJointExtremity and elbow joint _oJointMidLimb in base class as they require base-class processing
+	[HideInInspector]	public 	CJointDriver 	_oJointShoulderBend;
+	[HideInInspector]	public 	CJointDriver 	_oJointShoulderTwist;
+    [HideInInspector]	public 	CJointDriver 	_oJointForearmBend;
+    [HideInInspector]	public 	CJointDriver 	_oJointForearmTwist;
 
 	[HideInInspector]	public 	CJointDriver[,] _aaFingers = new CJointDriver[5,3];			// Array of the three bones for each five fingers of this hand
 
@@ -111,10 +114,13 @@ public class CActorArm : CActor {
 		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
 
 		//=== Init Bones and Joints ===
-		_aJoints.Add(_oJointCollar	 = new CJointDriver(this, _oBody._oActor_Chest._oJointExtremity,	_sSidePrefixL+"Collar",	50.0f*C_DriveAng, 1.5f, -000f,  070f,  030f, -030f,  030f, -015f));		//###IMPROVE: Could go to -10 on x for getting hands lower still...  ####MOD: Stiffened, was 5*
-		_aJoints.Add(_oJointShoulder = new CJointDriver(this, _oJointCollar,		_sSidePrefixL+"Shldr",			1.0f*C_DriveAng, 2.5f, -082f,  020f,  030f, -080f,  040f, -045f));		//###BUG: Shoulder Y goes forward much more than back... leaving the Y negative range very large if we don't slerp drive!!   What to do with no drive to prevent this??
-		_aJoints.Add(_oJointMidLimb	 = new CJointDriver(this, _oJointShoulder,		_sSidePrefixL+"ForeArm",		1.0f*C_DriveAng, 1.5f,  020f, -130f,  000f,  000f, -030f,  030f));
-		_aJoints.Add(_oJointExtremity= new CJointDriver(this, _oJointMidLimb,		_sSidePrefixL+"Hand",			1.0f*C_DriveAng, 0.5f, -080f,  070f, -030f,  030f, -050f,  050f));		//###TODO: Might have to negate some axis
+        CJointDriver oJointChestUpper = _oBody._oActor_Chest._oJointExtremity;
+		_aJoints.Add(_oJointCollar	        = CJointDriver.Create(this, oJointChestUpper,	    _sSidePrefixL+"Collar",	        50f, 1.5f, -000f,  070f,  030f,  015f));		//###IMPROVE: Could go to -10 on x for getting hands lower still...  ####MOD: Stiffened, was 5*
+		_aJoints.Add(_oJointShoulderBend    = CJointDriver.Create(this, _oJointCollar,		    _sSidePrefixL+"ShldrBend",	    01f, 2.5f, -082f,  020f,  030f,  040f));		//###BUG: Shoulder Y goes forward much more than back... leaving the Y negative range very large if we don't slerp drive!!   What to do with no drive to prevent this??
+		_aJoints.Add(_oJointShoulderTwist   = CJointDriver.Create(this, _oJointShoulderBend,    _sSidePrefixL+"ShldrTwist",	    01f, 2.5f, -082f,  020f,  030f,  040f));		//###BUG: Shoulder Y goes forward much more than back... leaving the Y negative range very large if we don't slerp drive!!   What to do with no drive to prevent this??
+		_aJoints.Add(_oJointForearmBend	    = CJointDriver.Create(this, _oJointShoulderTwist,	_sSidePrefixL+"ForearmBend",	01f, 1.5f,  000f,  000f,  030f,  000f));
+		_aJoints.Add(_oJointForearmTwist    = CJointDriver.Create(this, _oJointForearmBend,	    _sSidePrefixL+"ForearmTwist",	01f, 1.5f,  020f, -130f,  000f, -030f));
+		_aJoints.Add(_oJointExtremity       = CJointDriver.Create(this, _oJointForearmTwist,	_sSidePrefixL+"Hand",			01f, 0.5f,  000f,  000f,  030f,  000f));		//###TODO: Might have to negate some axis
 		
 		//ConfigFingerRoot(1, "Index");			// Thumb is handled below		###DESIGN!!! Fingers in Unity PhysX is just a no-go because of extremely poor latency... what to do?????
 		//ConfigFingerRoot(2, "Mid");
@@ -127,10 +133,10 @@ public class CActorArm : CActor {
 		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 2, "Thumb", 010f, -015f,  000f,  000f);
 
 		//=== Init Hotspot ===
-		if (_eBodySide == 0)	//###IMPROVE: Find one side bone from the other's string?
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest/lCollar/lShldr/lForeArm/lHand"), "Left Hand", true, new Vector3(0, 0, 0));
+		if (_eBodySide == 0)
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));
 		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest/rCollar/rShldr/rForeArm/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
 		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorArm), "Arm", "Arm" + _sSidePrefixU);
@@ -149,38 +155,39 @@ public class CActorArm : CActor {
 		_oHandTarget_RaycastPin = CActorArm.FindHandTarget(_oBody, EHandTargets.RaycastPin, _eBodySide == EBodySide.Right);	// Find the raycast pin hand target as we use it heavily and it is reparented
 	}
 
-	void ConfigFingerRoot(int nFingerID, string sFingerName) {							//###WEAK: 3dsMax bone rotation for fingers need massive rework... these ranges kept limited to compensate... FIX MODEL!
-		CJointDriver oJointFingerBoneParent = _oJointExtremity;
-		oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 0, sFingerName, 020f, -020f, -009f,  000f);		// First  bone: Can twist about y also
-		oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 1, sFingerName, 010f, -020f,  000f,  000f);		// Second bone: Only X
-		oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 2, sFingerName, 010f, -020f,  000f,  000f);		// Third  bone: Only X (more limited)		//###CHECK: Joint free vs fixed affecting these??
-	}
+	//void ConfigFingerRoot(int nFingerID, string sFingerName) {		//###OBS?					//###WEAK: 3dsMax bone rotation for fingers need massive rework... these ranges kept limited to compensate... FIX MODEL!
+	//	CJointDriver oJointFingerBoneParent = _oJointExtremity;
+	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 0, sFingerName, 020f, -020f, -009f,  000f);		// First  bone: Can twist about y also
+	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 1, sFingerName, 010f, -020f,  000f,  000f);		// Second bone: Only X
+	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 2, sFingerName, 010f, -020f,  000f,  000f);		// Third  bone: Only X (more limited)		//###CHECK: Joint free vs fixed affecting these??
+	//}
 	
-	CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {
-		CJointDriver oJointDrv = new CJointDriver(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f*C_DriveAng, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
-		_aJoints.Add(oJointDrv);
-		JointDrive oDrive = oJointDrv._oConfJoint.slerpDrive;
-		oDrive.positionSpring = 1;						//###TUNE
-		oDrive.positionDamper = 0;// .001f;				//***NOW!
-		oJointDrv._oConfJoint.slerpDrive = oDrive;
+	//CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {
+	//	CJointDriver oJointDrv = CJointDriver.Create(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
+	//	_aJoints.Add(oJointDrv);
+	//	JointDrive oDrive = oJointDrv._oConfJoint.slerpDrive;
+	//	oDrive.positionSpring = 1;						//###TUNE
+	//	oDrive.positionDamper = 0;// .001f;				//***NOW!
+	//	oJointDrv._oConfJoint.slerpDrive = oDrive;
 		
-		oJointDrv._oRigidBody.mass = 0.0001f;			//###TODO!
-		oJointDrv._oRigidBody.drag = 0;					// Remove all damping so finger joint gets the least stress as possible to avoid 'disjointed rubber fingers'
-		oJointDrv._oRigidBody.angularDrag = 0;
-		CapsuleCollider oCollCap = (CapsuleCollider)CUtility.FindOrCreateComponent(oJointDrv._oTransform.gameObject, typeof(CapsuleCollider));
-		oCollCap.direction = 2;			// z = 2 as per docs at http://docs.unity3d.com/Documentation/ScriptReference/CapsuleCollider-direction.html
-		oCollCap.radius = 0.011f;
-		oCollCap.height = 0.04f;		
-		_aaFingers[nFingerID, nFingerBoneID] = oJointDrv;		
-		return oJointDrv;
-	}
+	//	oJointDrv._oRigidBody.mass = 0.0001f;			//###TODO!
+	//	oJointDrv._oRigidBody.drag = 0;					// Remove all damping so finger joint gets the least stress as possible to avoid 'disjointed rubber fingers'
+	//	oJointDrv._oRigidBody.angularDrag = 0;
+	//	CapsuleCollider oCollCap = (CapsuleCollider)CUtility.FindOrCreateComponent(oJointDrv._oTransform.gameObject, typeof(CapsuleCollider));
+	//	oCollCap.direction = 2;			// z = 2 as per docs at http://docs.unity3d.com/Documentation/ScriptReference/CapsuleCollider-direction.html
+	//	oCollCap.radius = 0.011f;
+	//	oCollCap.height = 0.04f;		
+	//	_aaFingers[nFingerID, nFingerBoneID] = oJointDrv;		
+	//	return oJointDrv;
+	//}
 	public static CHandTarget FindHandTarget(CBody oBody, EHandTargets eHandTarget, bool bRightSideOfBody) {
-		string sNameHandTarget = "CHandTarget-" + eHandTarget.ToString();				// The enum name of hand target is prefixed by 'CHandTarget-' in the bone tree
-		Transform oHandTargetT = oBody.SearchBone(oBody._oBonesT, sNameHandTarget);
-		CHandTarget oHandTarget = oHandTargetT.GetComponent<CHandTarget>();
-		if (bRightSideOfBody)		// The right side of body has 'create as needed' hand targets that are mirrored from the left side...
-			oHandTarget = CHandTarget.FindOrCreateRightSideHandTarget(oHandTarget);
-		return oHandTarget;
+        //string sNameHandTarget = "CHandTarget-" + eHandTarget.ToString();				// The enum name of hand target is prefixed by 'CHandTarget-' in the bone tree
+        //Transform oHandTargetT = oBody.SearchBone(oBody._oBonesT, sNameHandTarget);
+        //CHandTarget oHandTarget = oHandTargetT.GetComponent<CHandTarget>();
+        //if (bRightSideOfBody)		// The right side of body has 'create as needed' hand targets that are mirrored from the left side...
+        //	oHandTarget = CHandTarget.FindOrCreateRightSideHandTarget(oHandTarget);
+        //return oHandTarget;
+        return null;        //###BROKEN
 	}
 
 	//---------------------------------------------------------------------------	ARM RAYCAST PINNING: User selecting where to place the closest arm of the selected body on a body surface through raycasting
@@ -188,7 +195,7 @@ public class CActorArm : CActor {
 	public void ArmRaycastPin_Begin() {
 		_oHandTarget = _oHandTarget_RaycastPin;
 		_oHandTarget.ConnectHandToHandTarget(this);
-		_oHandTarget.transform.position = _oJointExtremity._oTransform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
+		_oHandTarget.transform.position = _oJointExtremity.transform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
 		_oBodyArmPin = null;
 		//_nArmPinBodyColVert = -1;
 		//_nTimeStartPinSet = 0;			// Reset our start-of-slerp time to zero so it's initialize at first real pin position
@@ -288,9 +295,9 @@ public class CActorArm : CActor {
 		//}
 	}
 
-	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oJointExtremity.RotateX_DualRange(nValueNew); }
-	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oJointExtremity.RotateY_DualRange(nValueNew); }
-	public void OnPropSet_Hand_Twist	(float nValueOld, float nValueNew) { _oJointExtremity.RotateZ_DualRange(nValueNew); }
+	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oJointExtremity.RotateX2(nValueNew); }
+	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oJointExtremity.RotateY2(nValueNew); }
+	public void OnPropSet_Hand_Twist	(float nValueOld, float nValueNew) { _oJointExtremity.RotateZ2(nValueNew); }
 	//public void OnPropSet_Fingers_Close	(float nValueOld, float nValueNew) {
 	//	for (int nFingerID = 1; nFingerID < 5; nFingerID++)												// Thumb excluded
 	//		for (int nFingerBoneID = 0; nFingerBoneID < 3; nFingerBoneID++)

@@ -33,9 +33,6 @@
 */
 
 using UnityEngine;
-using System;
-using System.Collections;
-using System.Collections.Generic;
 
 public class CActorPelvis : CActor {		// The important 'pelvis driver' that is extensively used by the user to manipulate & animate the woman and man's genitals area toward penetration and teasing animations
 
@@ -51,10 +48,10 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 
 	public override void OnStart_DefineLimb() {
-		_aJoints.Add(_oJointExtremity = new CJointDriver(this, _oBody._oActor_Chest._oJointHip, "sex", 1.0f * C_DriveAng, 1.0f, -0f, 0, -0f, 0f, -0f, 0f));
+		//###NOW### _aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip, "sex", 1.0f, 1.0f, -0f, 0, -0f, 0f, -0f, 0f));
+		_aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip,	"pelvis", 50f, 10.0f, -020f,  020f,  030f,  030f));
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
-		//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest/abdomen/hip/sex"), "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_TorsoNodes);
 
 		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorPelvis), "Pelvis", "Pelvis");
 		_oObj.PropGroupBegin("", "", true);
