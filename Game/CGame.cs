@@ -158,7 +158,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	[HideInInspector]	public 	CPoseRoot		_oPoseRoot;
 
-	[HideInInspector]	public 	static CCollider[]	s_aColliders_Scene;		// List of CCollider components that are children of the 'SceneColliders' top node.  Pulled in at init
+	///[HideInInspector]	public 	static CCollider_OBS[]	s_aColliders_Scene;		// List of CCollider components that are children of the 'SceneColliders' top node.  Pulled in at init
 
 	//---------------------------------------------------------------------------	CONFIGURATION
 	
@@ -225,18 +225,33 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
 
+	public class CFuckOff : MonoBehaviour {         // CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
+		public string s;
+		public void Update() { Debug.Log("FUCKOFF" + s); }
+	}
+
     #region === INIT
-    public void Awake() {
-        StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
-    }
-    public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
+    public void Start() {
+		//    StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
+		//}
+		//public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
+
 		Debug.Log("=== CGame.StartGame() ===");
-        INSTANCE = this;
-        _nTimeAtStart = Time.time;
+		INSTANCE = this;
+		_nTimeAtStart = Time.time;
+
+		//GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CSoftBody));     //###NOW###
+		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CSoftBodyBase));     //###NOW###
+		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CB));     //###NOW###
+		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CFuckOff));
+		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CJointDriver));
+		//return;
+
+
         _oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
         GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
-        if (oSceneGO != null) 
-            s_aColliders_Scene = oSceneGO.GetComponentsInChildren<CCollider>();
+        //if (oSceneGO != null) 
+        //    s_aColliders_Scene = oSceneGO.GetComponentsInChildren<CCollider_OBS>();
 
         _bRunningInEditor = true;       //###HACK ####REVA Application.isEditor
         _DemoVersion = (_bRunningInEditor == false);		//###CHECK? If dev has Unity code they are non-demo
@@ -267,7 +282,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 
 		float nDelayForGuiCatchup = _bRunningInEditor ? 0.2f : 0.01f;		//###HACK? ###TUNE: Adjustable delay to give iGUI time to update 'Game is Loading' message, with some extra time inserted to make Unity editor appear more responsive during game awake time
-		yield return new WaitForSeconds(nDelayForGuiCatchup);
+		///yield return new WaitForSeconds(nDelayForGuiCatchup);
 
 		//=== Send async call to authentication so it is ready by the time game has initialized ===
 //		WWW oWWW = null;
@@ -293,7 +308,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
 				
 		//####OBS? GameObject oGuiGO = GameObject.Find("iGUI");			//###TODO!!! Update game load status... ###IMPROVE: Async load so OnGUI gets called???  (Big hassle for that!)
-		Debug.Log("0. Game Awake");	yield return new WaitForSeconds(nDelayForGuiCatchup);
+		Debug.Log("0. Game Awake"); ///yield return new WaitForSeconds(nDelayForGuiCatchup);
 		int n123 = ErosEngine.Utility_Test_Return123_HACK();			// Dummy call just to see if DLL will load with Unity
         if (n123 != 123)
             throw new CException("ERROR: Failure to get 123 from ErosEngine.dll call to Utility_Test_Return123_HACK.");
@@ -323,13 +338,13 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         CGame.gBL_SendCmd("G", "CGlobals.SetFlexParticleSpacing(" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
 
         //=== Start PhysX ===
-        Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
-		ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
+  //      Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		//ErosEngine.PhysX3_Create();						// *Must* occur before any call to physics library...  So make sure this object is listed with high priority in Unity's "Script Execution Order"
 
-		Debug.Log("5. PhysX2 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
-		ErosEngine.PhysX2_Create();						//###IMPROVE!!! Return argument ###NOTROBUST
+		//Debug.Log("5. PhysX2 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		//ErosEngine.PhysX2_Create();						//###IMPROVE!!! Return argument ###NOTROBUST
 
-		Debug.Log("6. OpenCL Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
+		//Debug.Log("6. OpenCL Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 //		if (System.Environment.CommandLine.Contains("-DisableOpenCL") == false)	//###TODO More / better command line processing?		//###SOON ####BROKEN!!!!! OpenCL breaks cloth GPU!
 //			ErosEngine.MCube_Init();		//###IMPROVE: Log message to user!
 
@@ -366,9 +381,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		//=== Find the static scene colliders in 'SceneColliders' node and initialize them ===
 		//Debug.Log("CGame.StartGame() Registering Static Colliders: " + s_aColliders_Scene.Length);
-        if (s_aColliders_Scene != null)
-		    foreach (CCollider oColStatic in s_aColliders_Scene)		// Colliders that are marked as static registered themselves to us in their Awake() so we can start and destroy them
-			    oColStatic.OnStart();
+      //  if (s_aColliders_Scene != null)
+		    //foreach (CCollider_OBS oColStatic in s_aColliders_Scene)		// Colliders that are marked as static registered themselves to us in their Awake() so we can start and destroy them
+			   // oColStatic.OnStart();
 
 		//StartCoroutine(Coroutine_Update100ms());
 		StartCoroutine(Coroutine_Update500ms());
@@ -454,8 +469,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //####REVA         DestroyImmediate(oColStatic.gameObject);		//####CHECK
 
         //=== Destory the PhysX scenes ===
-        ErosEngine.PhysX3_Destroy();		//###BUG ###IMPROVE: How can we be sure we're the last thing we do???  Every other object should have destroyed itself and disconnected from FastPhysics first...
-		ErosEngine.PhysX2_Destroy();
+        //ErosEngine.PhysX3_Destroy();
+		//ErosEngine.PhysX2_Destroy();
 		
 		//=== Destroy Blender ===
         if (_oProcessBlender != null) {
@@ -723,7 +738,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //CGame.INSTANCE._oFluid.OnSimulatePre();			//###MOVE!?!?!
 
         //###F ###OBS!!!!  ###CLEANUP
-        _oFlexSolver.DoFixedUpdate();
+		if (_oFlexSolver.m_cntr != null)		//###WEAK
+			_oFlexSolver.DoFixedUpdate();
         
         ////=== Extract our information from the soft body simulation ===
         foreach (CBody oBody in _aBodies)
@@ -748,9 +764,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			if (_GameIsRunning) {					//####CHECK?
 				if (_ShowSysInfo) {
 				    string sMsgs = _sFPS + "\r\n";              //###IMPROVE: FPS in different text widget
-                    sMsgs += Marshal.PtrToStringAnsi(ErosEngine.Dev_GetDevString(0)) + "\r\n";      //###IMPROVE: Combine in C++?
-                    sMsgs += Marshal.PtrToStringAnsi(ErosEngine.Dev_GetDevString(1)) + "\r\n";
-                    foreach (string sMsg in _aGuiMessages)
+                    //sMsgs += Marshal.PtrToStringAnsi(ErosEngine.Dev_GetDevString(0)) + "\r\n";      //###IMPROVE: Combine in C++?
+                    //sMsgs += Marshal.PtrToStringAnsi(ErosEngine.Dev_GetDevString(1)) + "\r\n";
+                    foreach (string sMsg in _aGuiMessages)  //###OBS?
 						if (sMsg != null && sMsg.Length > 0)
 							sMsgs += sMsg + "\r\n";
 				    _oTextUL.text = sMsgs;		// Combine all the GUI messages into one string for display in iGUI

@@ -257,10 +257,11 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 
 		//===== CREATE THE BODY IN BLENDER =====  
-		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "')");		// This new instance is an extension of this Unity CBody instance and contains most instance members
+		CGame.gBL_SendCmd("CBody", "CBody_Create(" + _nBodyID.ToString() + ", '" + sMeshSource + "', '" + eBodySex.ToString() + "','" + sNameSrcGenitals + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
+		_sBodyPrefix = "Body" + _nBodyID.ToString();		//###CHECK!!!  ###DESIGN!
 
-        //=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
-        GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
+		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
+		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + sMeshSource, typeof(GameObject)) as GameObject;		//###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.SetActive(true);			// Prefab is stored with top object deactivated to ease development... activate it here...
 
@@ -282,8 +283,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (eBodySex != EBodySex.Man) {
-            //_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chest"));        //###DEVNOW
-            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chest"));
+			_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
+            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
         }
         if (eBodySex == EBodySex.Woman) {
             //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
@@ -384,7 +385,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//		_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
 		//	}
 		//}
-		_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Chest_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
+		_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Create the face and its associated morph channels ===
 		///_oFace = (CFace)CBMesh.Create(null, this, "oMeshFace", typeof(CFace));
@@ -422,8 +423,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         ///CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + _nBodyID.ToString() + ").Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (1.6, 1.6, 1.6, 0), None)");       //###F ###HACK!!!
 
         //=== Create the left and right canvases on each side of the body so that panels have a place to be pinned for close-to-body editing ===
-        _aUICanvas[0] = CUICanvas.Create(_oActor_Torso.transform.FindChild("_CanvasPin_Left"));        //###HACK
-        _aUICanvas[1] = CUICanvas.Create(_oActor_Torso.transform.FindChild("_CanvasPin_Right"));
+        _aUICanvas[0] = CUICanvas.Create(_oActor_Chest.transform.FindChild("_CanvasPin_Left"));        //###HACK
+        _aUICanvas[1] = CUICanvas.Create(_oActor_Chest.transform.FindChild("_CanvasPin_Right"));		//###DESIGN: Which pin?  Torso or chest?
     }
 
 

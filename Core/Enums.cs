@@ -94,9 +94,9 @@ public enum EActorChest {
 	RotY,
 	RotZ,
 	RotW,
-	Chest_LeftRight,
-	Chest_UpDown,
-	Chest_Twist,
+	Torso_LeftRight,
+	Torso_UpDown,
+	Torso_Twist,
 };
 
 public enum EActorPelvis {

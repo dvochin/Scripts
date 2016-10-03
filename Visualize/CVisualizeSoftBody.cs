@@ -72,10 +72,12 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
 
     void OnDestroy() {
         Debug.Log("CVisualizeSoftBody.OnDestroy() cleaning up.");
-        foreach (CVisualizeParticle oVisParticle in _aVisParticles)
-            GameObject.Destroy(oVisParticle.gameObject);
-        foreach (CVisualizeShape oVisShape in _aVisShapes)
-            GameObject.Destroy(oVisShape);          // Destroy component only        ###F###NOW###: Not owned by us... destroy by owner!
+		if (_aVisParticles != null)
+			foreach (CVisualizeParticle oVisParticle in _aVisParticles)
+				GameObject.Destroy(oVisParticle.gameObject);
+		if (_aVisShapes != null)
+			foreach (CVisualizeShape oVisShape in _aVisShapes)
+				GameObject.Destroy(oVisShape);          // Destroy component only        ###F###NOW###: Not owned by us... destroy by owner!
     }
 
     //public virtual void OnDrawGizmos() {

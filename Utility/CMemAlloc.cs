@@ -22,17 +22,23 @@ public class CMemAlloc<T> {									// Important helper class used throughout to
 	public void AssignAndPin(T[] a) {
 		L = a;
 		PinInMemory();
-	}		
-	public T[] AllocateFromArrayList(ArrayList aList) {
-		L = (T[])aList.ToArray(typeof(T));
-		PinInMemory();
-		return L;
-	}
-	public T[] AllocateFromList(List<T> aList) {
-		L = aList.ToArray();
-		PinInMemory();
-		return L;
-	}
+	}	
+	
+	//public T[] AllocateFromArrayCopy(T[] aArray) {
+	//	L = (T[])aArray.Clone();
+	//	PinInMemory();
+	//	return L;
+	//}
+	//public T[] AllocateFromArrayList(ArrayList aList) {
+	//	L = (T[])aList.ToArray(typeof(T));
+	//	PinInMemory();
+	//	return L;
+	//}
+	//public T[] AllocateFromList(List<T> aList) {
+	//	L = aList.ToArray();
+	//	PinInMemory();
+	//	return L;
+	//}
 	public void PinInMemory() {
 		H = GCHandle.Alloc(L, GCHandleType.Pinned);
 		P = H.AddrOfPinnedObject();

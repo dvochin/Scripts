@@ -115,12 +115,12 @@ public class CActorArm : CActor {
 
 		//=== Init Bones and Joints ===
         CJointDriver oJointChestUpper = _oBody._oActor_Chest._oJointExtremity;
-		_aJoints.Add(_oJointCollar	        = CJointDriver.Create(this, oJointChestUpper,	    _sSidePrefixL+"Collar",	        50f, 1.5f, -000f,  070f,  030f,  015f));		//###IMPROVE: Could go to -10 on x for getting hands lower still...  ####MOD: Stiffened, was 5*
-		_aJoints.Add(_oJointShoulderBend    = CJointDriver.Create(this, _oJointCollar,		    _sSidePrefixL+"ShldrBend",	    01f, 2.5f, -082f,  020f,  030f,  040f));		//###BUG: Shoulder Y goes forward much more than back... leaving the Y negative range very large if we don't slerp drive!!   What to do with no drive to prevent this??
-		_aJoints.Add(_oJointShoulderTwist   = CJointDriver.Create(this, _oJointShoulderBend,    _sSidePrefixL+"ShldrTwist",	    01f, 2.5f, -082f,  020f,  030f,  040f));		//###BUG: Shoulder Y goes forward much more than back... leaving the Y negative range very large if we don't slerp drive!!   What to do with no drive to prevent this??
-		_aJoints.Add(_oJointForearmBend	    = CJointDriver.Create(this, _oJointShoulderTwist,	_sSidePrefixL+"ForearmBend",	01f, 1.5f,  000f,  000f,  030f,  000f));
-		_aJoints.Add(_oJointForearmTwist    = CJointDriver.Create(this, _oJointForearmBend,	    _sSidePrefixL+"ForearmTwist",	01f, 1.5f,  020f, -130f,  000f, -030f));
-		_aJoints.Add(_oJointExtremity       = CJointDriver.Create(this, _oJointForearmTwist,	_sSidePrefixL+"Hand",			01f, 0.5f,  000f,  000f,  030f,  000f));		//###TODO: Might have to negate some axis
+		_aJoints.Add(_oJointCollar	        = CJointDriver.Create(this, oJointChestUpper,	    _sSidePrefixL+"Collar",	        30, 2.5f, -010,  050,  030,  021, 1));		// X = Collar Up/Down OK, Z has 17 back and 25 forward (avg looks ok)
+		_aJoints.Add(_oJointShoulderBend    = CJointDriver.Create(this, _oJointCollar,		    _sSidePrefixL+"ShldrBend",	    15, 2.0f, -085,  035,  000,  110, 1));		// X = Shoulder Up/Down OK, Z = Back goes to -40, Forward to 110!!!  (###IMPROVE: Another joint?)
+		_aJoints.Add(_oJointShoulderTwist   = CJointDriver.Create(this, _oJointShoulderBend,    _sSidePrefixL+"ShldrTwist",	    20, 1.5f, -000,  000,  080,  000, 1));		// Y = Shoulder twist goes from -95 to 80 so max.  ###PROBLEM: Shimmer in high rotation!
+		_aJoints.Add(_oJointForearmBend	    = CJointDriver.Create(this, _oJointShoulderTwist,	_sSidePrefixL+"ForearmBend",	10, 1.5f, -020,  135,  000,  000, 1));		// X = Elbow bend from -20 to 135. ok.
+		_aJoints.Add(_oJointForearmTwist    = CJointDriver.Create(this, _oJointForearmBend,	    _sSidePrefixL+"ForearmTwist",	20, 1.0f, -000,  000,  080,  000, 1));		// Y = Forearm twist from -90 to 80 so max.		###IMPROVE: Could rotate the axes on the twists so we use XL/XH
+		_aJoints.Add(_oJointExtremity       = CJointDriver.Create(this, _oJointForearmTwist,	_sSidePrefixL+"Hand",			10, 0.5f, -070,  080,  010,  029, 1));		// X = Hand -down(-70) / +up (+80), Y = Hand twist +/-10, Z = Hand side-to-side -28 to +30
 		
 		//ConfigFingerRoot(1, "Index");			// Thumb is handled below		###DESIGN!!! Fingers in Unity PhysX is just a no-go because of extremely poor latency... what to do?????
 		//ConfigFingerRoot(2, "Mid");
@@ -142,13 +142,13 @@ public class CActorArm : CActor {
 		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorArm), "Arm", "Arm" + _sSidePrefixU);
 		_oObj.PropGroupBegin("", "", true);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.PropAdd(EActorArm.HandTarget,			"HandTarget",			typeof(EHandTargets), (int)EHandTargets.ManualPosition, "", CProp.Local);
+		//_oObj.PropAdd(EActorArm.HandTarget,			"HandTarget",			typeof(EHandTargets), (int)EHandTargets.ManualPosition, "", CProp.Local);
 		_oObj.PropAdd(EActorArm.Hand_UpDown,		"Hand-UpDown",			0,	-100,	100, "", CProp.Local);
 		_oObj.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight",		0,	-100,	100, "", CProp.Local);
 		_oObj.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist",			0,	-100,	100, "", CProp.Local);
-		_oObj.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Local + CProp.Hide);		//###BROKEN
-		_oObj.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Local + CProp.Hide);
-		_oObj.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Local + CProp.Hide);
+		//_oObj.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Local + CProp.Hide);		//###BROKEN
+		//_oObj.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Local + CProp.Hide);
+		//_oObj.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Local + CProp.Hide);
 		//_oObj.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "", CProp.Local);
 		_oObj.FinishInitialization();
 
@@ -162,7 +162,7 @@ public class CActorArm : CActor {
 	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 2, sFingerName, 010f, -020f,  000f,  000f);		// Third  bone: Only X (more limited)		//###CHECK: Joint free vs fixed affecting these??
 	//}
 	
-	//CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {
+	//CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {		//###OBS?
 	//	CJointDriver oJointDrv = CJointDriver.Create(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
 	//	_aJoints.Add(oJointDrv);
 	//	JointDrive oDrive = oJointDrv._oConfJoint.slerpDrive;
@@ -254,28 +254,28 @@ public class CActorArm : CActor {
 
 	//---------------------------------------------------------------------------	COBJECT EVENTS
 
-	public void OnPropSet_HandTarget(float nValueOld, float nValueNew) {
-		if (_oHandTarget != null) {
-			_oHandTarget.ConnectHandToHandTarget(null);		// If we were previously connected drop the connection now to let the hand go idle
-			_oHandTarget = null;
-		}
-		EHandTargets eHandTarget = (EHandTargets)nValueNew;
+	//public void OnPropSet_HandTarget(float nValueOld, float nValueNew) {
+	//	if (_oHandTarget != null) {
+	//		_oHandTarget.ConnectHandToHandTarget(null);		// If we were previously connected drop the connection now to let the hand go idle
+	//		_oHandTarget = null;
+	//	}
+	//	EHandTargets eHandTarget = (EHandTargets)nValueNew;
 		
-		switch (eHandTarget) {
-			case EHandTargets.ManualPosition:
-				//###BROKEN!!! Conflict during init! _oObj.PropSet(EActorArm.Pinned, 1);				// Manual position means pinned
-				_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// Enable angular contraint so user can fully define hand pos/rot
-				transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-				break;
-			case EHandTargets.Idle:
-				_oObj.PropSet(EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
-				transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-				break;
-			default:
-				_oHandTarget = CActorArm.FindHandTarget(_oBody, eHandTarget, _eBodySide == EBodySide.Right);
-				_oHandTarget.ConnectHandToHandTarget(this);
-				break;
-		}
+	//	switch (eHandTarget) {
+	//		case EHandTargets.ManualPosition:
+	//			//###BROKEN!!! Conflict during init! _oObj.PropSet(EActorArm.Pinned, 1);				// Manual position means pinned
+	//			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// Enable angular contraint so user can fully define hand pos/rot
+	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
+	//			break;
+	//		case EHandTargets.Idle:
+	//			_oObj.PropSet(EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
+	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
+	//			break;
+	//		default:
+	//			_oHandTarget = CActorArm.FindHandTarget(_oBody, eHandTarget, _eBodySide == EBodySide.Right);
+	//			_oHandTarget.ConnectHandToHandTarget(this);
+	//			break;
+	//	}
 
 		//} else if (eHandTarget == EHandTargets.DumpPos_TEMP) {		//###OBS? Keep??
 		//	_oJointShoulder	.DumpBonePos_DEV();
@@ -293,7 +293,7 @@ public class CActorArm : CActor {
 		//	_oJointMidLimb	.SetRotationDefault_HACK();
 		//	_oJointExtremity.SetRotationDefault_HACK();
 		//}
-	}
+	//}
 
 	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oJointExtremity.RotateX2(nValueNew); }
 	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oJointExtremity.RotateY2(nValueNew); }

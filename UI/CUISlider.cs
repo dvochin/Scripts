@@ -29,12 +29,14 @@ public class CUISlider : CUIWidget {
     public override void SetValue(float nValueNew) {
         _oSlider.value = nValueNew;
         string sValue;
-        if (Mathf.Abs(nValueNew) < 1.0f)                                    // Provide extra precision when the number is small
-            sValue = string.Format("{0:F2}", nValueNew + 0.005f);
-        else if (Mathf.Abs(nValueNew) < 10.0f)
-            sValue = string.Format("{0:F1}", nValueNew + 0.05f);
-        else
-            sValue = string.Format("{0:F0}", nValueNew + 0.5f);
+		if (nValueNew == 0f)
+			sValue = "0";
+		else if (Mathf.Abs(nValueNew) < 1.0f)                                    // Provide extra precision when the number is small
+			sValue = string.Format("{0:F2}", nValueNew);
+		else if (Mathf.Abs(nValueNew) < 10.0f)
+			sValue = string.Format("{0:F1}", nValueNew);
+		else
+			sValue = string.Format("{0:F0}", nValueNew);
         _oTextValue.text = sValue;          //####IMPROVE: Connect to format options of CProp
     }
 }

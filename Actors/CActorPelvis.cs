@@ -48,8 +48,8 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 
 	public override void OnStart_DefineLimb() {
-		//###NOW### _aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip, "sex", 1.0f, 1.0f, -0f, 0, -0f, 0f, -0f, 0f));
-		_aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip,	"pelvis", 50f, 10.0f, -020f,  020f,  030f,  030f));
+		//###CHECK _aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip, "sex", 1.0f, 1.0f, -0f, 0, -0f, 0f, -0f, 0f));
+		_aJoints.Add(_oJointExtremity = CJointDriver.Create(this, _oBody._oActor_Chest._oJointHip,	"pelvis", 15, 8, -025,  025,  010,  015, 1));
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
 

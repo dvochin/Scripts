@@ -57,11 +57,11 @@ public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     }
 
     public void OnPointerEnter(PointerEventData eventData) {
-        Debug.LogFormat("UI Enter: " + eventData.ToString());
+        //Debug.LogFormat("UI Enter: " + eventData.ToString());
         CGame.INSTANCE._oCursor._oCurrentGuiObject_HACK = transform;        //###HACK: Let cursor know user is over this panel (needed for depth adjustments)  ###IMPROVE: Can find a way to get this info in CCursor??
     }
     public void OnPointerExit(PointerEventData eventData) {
-        Debug.LogFormat("UI Exit: " + eventData.ToString());
-        CGame.INSTANCE._oCursor._oCurrentGuiObject_HACK = null;
+		//Debug.LogFormat("UI Exit: " + eventData.ToString());
+		CGame.INSTANCE._oCursor._oCurrentGuiObject_HACK = null;
     }
 }

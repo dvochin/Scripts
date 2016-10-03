@@ -41,9 +41,10 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		//===== Important static function that reads a Blender mesh definition stream and create the requested CBMesh-derived entity on the provided gameObject node =====
 
 		//=== Create the game object that will host our component ===
-		if (oBMeshGO == null) {						// When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
-			oBMeshGO = new GameObject(sNameCBodyInstanceMember, oTypeBMesh);		// If we're here it means we're rim or a body part.  Create a new game object...		####DEV ####NOW: Name problem here!
-			oBMeshGO.transform.parent = oBody._oBodyRootGO.transform;			//... Parent it to the body if specified (body is always specified for rim or body parts)
+		if (oBMeshGO == null) {                     // When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
+			oBMeshGO = new GameObject(sNameCBodyInstanceMember);        // If we're here it means we're rim or a body part.  Create a new game object...		####DEV ####NOW: Name problem here!
+			CUtility.FindOrCreateComponent(oBMeshGO, oTypeBMesh);
+			oBMeshGO.transform.parent = oBody._oBodyRootGO.transform;           //... Parent it to the body if specified (body is always specified for rim or body parts)
 		}
 
 		//=== Create our component (of the requested type) from the above-created game object ===
@@ -281,9 +282,18 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
     public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
         if (_bSharedFromBlender == false)
             throw new CException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
-        int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
+
+		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
 		if (nError != 0)
 			throw new CException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
+
+		//###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
+		//CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>();
+		//memVertsCopy.AllocateFromArrayCopy(_memVerts.L);
+		//int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
+		//if (nError != 0)
+		//	throw new CException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
+		//memVertsCopy = null;
 	}	
 
 	public void UpdateNormals() {		// Unity must split Blender's verts at the seam.  Blender provides the '' map for us to average out these normals in order to display seamlessly accross seams.  

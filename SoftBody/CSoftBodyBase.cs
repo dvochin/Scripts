@@ -25,7 +25,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
     [HideInInspector]	public	static string _sNameBoneAnchor_HACK;        // Horrible hack method of passing bone name to class instance... forced by CBMesh calling init code too early.  ###IMPROVE!
     //---------------------------------------------------------------------------	MISC
 	List<ushort> _aMapRimVerts = new List<ushort>();    // Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
-    Transform _oBoneAnchor;                     // The bone this softbody 'anchors to' = Resets to the world-space position / rotation during reset
+    Transform _oBoneAnchor;                     // The bone this softbody 'anchors to' = Resets Flex softbody particles to the world-space position / rotation during reset.  Makes teleportation & rapid movement possible
 
 
     //---------------------------------------------------------------------------	INIT
@@ -105,7 +105,8 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
         }
         _oMeshNow.vertices  = aVertsSoftBodyMesh;               // Set our visible mesh's verts and normals to what we calculated above.
         _oMeshNow.normals   = aNormalsSoftBodyMesh;
-    }
+		_oMeshNow.RecalculateBounds();                          //###LEARN: Unity will complain about 'Expanding invalid MinMaxAABB' if we have invalid bounds.  ###OPT!!!!: Too expensive?  Since we have verts just cludge to yuge size?
+	}
 
 
 
