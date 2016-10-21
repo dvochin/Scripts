@@ -99,7 +99,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 	public CProp PropFind(object oPropEnumOrdinal) {
 		int nPropEnumOrdinal = (int)oPropEnumOrdinal;
 		if (nPropEnumOrdinal < 0 || nPropEnumOrdinal >= _aProps.Length)
-			throw new CException(string.Format("ERROR: CProp.PropFind() obtained invalid ordinal {0} while searching properties on object of type {1}", nPropEnumOrdinal, _sNameFull));
+			CUtility.ThrowException(string.Format("ERROR: CProp.PropFind() obtained invalid ordinal {0} while searching properties on object of type {1}", nPropEnumOrdinal, _sNameFull));
 		CProp oProp = _aProps[nPropEnumOrdinal];
 		return oProp;
 	}
@@ -148,7 +148,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 			byte nPropsInStream = (byte)oStream.ReadByte();
 			byte nPropsInProp	= GetNumProps();
 			if (nPropsInStream != nPropsInProp)
-				throw new CException(string.Format("ERROR: CProp.Serialize_Actors_OBS() attempted to load {0} properties on object of type '{1}' which has {2} properties", nPropsInStream, _sNameFull, nPropsInProp));
+				CUtility.ThrowException(string.Format("ERROR: CProp.Serialize_Actors_OBS() attempted to load {0} properties on object of type '{1}' which has {2} properties", nPropsInStream, _sNameFull, nPropsInProp));
 		}
 		foreach (CProp oProp in _aProps)
 			oProp.Serialize(oStream);
@@ -156,55 +156,46 @@ public class CObject {				// Centrally-important base class (with matching imple
 		if (_nBodyID != 0 && _sNameScriptHandle != null)	// We only write property set to script recorder on objects that have provided their script-access handle
 			CGame.INSTANCE._oScriptRecordUserActions.WriteObject(this);
 	}
+
+
+	//---------------------------------------------------------------------------	EVENTS
+
+	public void Notify_PropertyValueChanged(CProp oProp, float nValueOld) {			//###LEARN: How to implement events
+		EventArgs_PropertyValueChanged oEventArgs = new EventArgs_PropertyValueChanged();
+		oEventArgs.Property = oProp;
+		oEventArgs.PropertyID = oProp._nPropEnumOrdinal;
+		oEventArgs.PropertyName = oProp._sNameProp;
+		oEventArgs.ValueNew = oProp._nValueLocal;
+		oEventArgs.ValueOld = nValueOld;
+		EventHandler<EventArgs_PropertyValueChanged> oHandler = Event_PropertyValueChanged;
+		if (oHandler != null)
+			oHandler(this, oEventArgs);
+	}
+
+	public event EventHandler<EventArgs_PropertyValueChanged> Event_PropertyValueChanged;
 }
 
-public interface IObject {          //###SOON: Useful?
+public class EventArgs_PropertyValueChanged : EventArgs {
+	public CProp Property { get; set; }
+	public int PropertyID { get; set; }
+	public string PropertyName { get; set; }
+	public float ValueNew { get; set; }
+	public float ValueOld { get; set; }
+}
+
+public interface IObject {          //###DESIGN#10: Useful?  No members!
 	//Type GetFieldsEnum();
 };
 
-     
 
 
 
-public class CObjectBlender : CObject {     // CObjectBlender: Specialized version of CObject that mirrors an equivalent CObject structure in Blender.  Used for remote Blender property access
-    public string _sBlenderAccessString;    // The fully-qualified 'Blender Access String' where we can obtain our Blender-based CObject equivalent designed to communicate with this Unity-side object.
 
-    public CObjectBlender(IObject iObj, string sBlenderAccessString, int nBodyID) : base(iObj, nBodyID, sBlenderAccessString) {     //###NOW object name!
-        _sBlenderAccessString = sBlenderAccessString;
 
-        string sSerializedCSV = CGame.gBL_SendCmd("CObject", "CObject." + _sBlenderAccessString + ".Serialize()");
-
-        string[] aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
-
-        _sNameObject = aFields[0];
-        int nProps = int.Parse(aFields[1]);
-        _aProps = new CProp[nProps];
-
-        for (int nProp = 0; nProp < nProps; nProp++) {
-            sSerializedCSV = CGame.gBL_SendCmd("CObject", "CObject." + _sBlenderAccessString + ".SerializeProp(" + nProp.ToString() + ")");
-            aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
-            string sName            = aFields[0];
-            string sDescription     = aFields[1];
-            float nValue            = float.Parse(aFields[2]);
-            float nMin              = float.Parse(aFields[3]);
-            float nMax              = float.Parse(aFields[4]);
-            //int eFlags              = int  .Parse(aFields[5]);
-            _aProps[nProp] = new CProp(this, nProp, sName, nValue, nMin, nMax, sDescription, CProp.Blender, null);
-            _aProps[nProp]._sNameProp = sName;              //###HACK!!!
-            _aProps[nProp]._nValueLocal = nValue;              //###HACK!!!
-        }
-        //float nValue2 = _aProps[1].PropGet();
-        //nValue2 = _aProps[1].PropSet(4);
-        //nValue2 = _aProps[0].PropSet(0);
-        //nValue2 = _aProps[0].PropSet(4);
-    }
-}
-
-/*###NOW### CObject
+/*###TODO#10: CObjectBlender
 - Invert local flag
 - IObject still of use?
 - Class member accessor is temporary
-- 
 - 
 - Start working on new CGameModeConfigure (for now just crap out CGame)
 - Get skinned mesh over... fixing bones... and updatable!
@@ -213,19 +204,41 @@ public class CObjectBlender : CObject {     // CObjectBlender: Specialized versi
 - Create hotspot and CObject in Unity connecting to shape keys
 - Demonstrate morphing on skinned body!
 - Then... start implementing full body CFlexCollider to repell bodysuit!
-- 
-- 
-- 
-- 
 */
 
+public class CObjectBlender : CObject {     // CObjectBlender: Specialized version of CObject that mirrors an equivalent CObject structure in Blender.  Used for remote Blender property access
+    public string _sBlenderAccessString;    // The fully-qualified 'Blender Access String' where we can obtain our Blender-based CObject equivalent designed to communicate with this Unity-side object.
 
+    public CObjectBlender(IObject iObj, string sBlenderAccessString, int nBodyID) : base(iObj, nBodyID, sBlenderAccessString) {     //###NOW object name!
+        _sBlenderAccessString = sBlenderAccessString;
 
+        string sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".Serialize()");            //###MOVE#11 to another blender codefile?
 
+		string[] aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
 
+        _sNameObject = aFields[0];
+        int nProps = int.Parse(aFields[1]);
+        _aProps = new CProp[nProps];
+		CPropGroup oPropGrp = PropGroupBegin("", "", true);			//###CHECK#11: OK?  Group name?  Change default group functionality to auto insert of zero?
 
-
-
-
-
+		for (int nProp = 0; nProp < nProps; nProp++) {
+            sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".SerializeProp(" + nProp.ToString() + ")");
+            aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
+            string sName            = aFields[0];
+            string sDescription     = aFields[1];
+            float nValue            = float.Parse(aFields[2]);
+            float nMin              = float.Parse(aFields[3]);
+            float nMax              = float.Parse(aFields[4]);
+			//int eFlags              = int  .Parse(aFields[5]);
+			_aProps[nProp] = new CProp(this, nProp, sName, nValue, nMin, nMax, sDescription, 0, null);//, CProp.Blender, null);	//###NOTE: No longer a Blender property as we don't update every slider value change for better performance (we batch update during mode change now)
+			oPropGrp._aPropIDs.Add(nProp);
+			_aProps[nProp]._sNameProp = sName;              //###HACK!!!
+            _aProps[nProp]._nValueLocal = nValue;              //###HACK!!!
+        }
+        //float nValue2 = _aProps[1].PropGet();
+        //nValue2 = _aProps[1].PropSet(4);
+        //nValue2 = _aProps[0].PropSet(0);
+        //nValue2 = _aProps[0].PropSet(4);
+    }
+}
 

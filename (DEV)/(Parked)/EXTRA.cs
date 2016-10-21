@@ -157,7 +157,7 @@
 //			case "Cloth Cutting":	CGame.INSTANCE.ChangeGameMode(EGameModes.Morph);	break;
 //			case "Cloth Fitting":	CGame.INSTANCE.ChangeGameMode(EGameModes.ClothFit);	break;		//###DESIGN: Consider rename to 'Morph' throughout??
 //			case "Game":			CGame.INSTANCE.ChangeGameMode(EGameModes.Play);		break;		//###DESIGN: Game or Play??
-//			default:				throw new CException("Exception in iGUI OnTabChange: Could not recognize tab caption '" + sTabCaption + "'");
+//			default:				CUtility.ThrowException("Exception in iGUI OnTabChange: Could not recognize tab caption '" + sTabCaption + "'");
 //		}
 //	}
 
@@ -190,7 +190,7 @@
 	//	int nFileVersion 	= (int)oBF.Deserialize(oFile);
 	//	int nCurvePts 		= (int)oBF.Deserialize(oFile);
 	//	if (nFileVersion != G.C_FileVersion_CurveDefinition)
-	//		throw new CException("Exception in SaveCurrentFile().  Unrecognized file version " + nFileVersion + ".  Can only read version " + G.C_FileVersion_CurveDefinition);
+	//		CUtility.ThrowException("Exception in SaveCurrentFile().  Unrecognized file version " + nFileVersion + ".  Can only read version " + G.C_FileVersion_CurveDefinition);
 		
 	//	ResetCurve();				// Reset / destroy the curve before the load
 

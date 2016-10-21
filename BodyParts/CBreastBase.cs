@@ -40,7 +40,7 @@ public class CBreastBase : CSoftBody/*, IHotSpotMgr*/ {    //###OBS!
 
 	public override void OnDeserializeFromBlender() {
 		base.OnDeserializeFromBlender();
-		///_eColGroup = (EColGroups)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._nBodyID);     // Breast softbody (and their associated rigid body kinematic colliders to repel other breasts) each get their own group for their own body so each breast softbody doesn't collide with its own colliders (designed to repel other breasts)
+		///_eColGroup = (EColGroups)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._oBodyBase._nBodyID);     // Breast softbody (and their associated rigid body kinematic colliders to repel other breasts) each get their own group for their own body so each breast softbody doesn't collide with its own colliders (designed to repel other breasts)
 
 		//=== Define the breast collider from the datamember of our CSoftBodyBreast instance managing oMeshColBreast collider mesh ===
 		///_oBodyColBreast = (CBodyColBreast)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshColBreast", typeof(CBodyColBreast));
@@ -54,7 +54,7 @@ public class CBreastBase : CSoftBody/*, IHotSpotMgr*/ {    //###OBS!
 	//			_oObj.PropSet(ESoftBody.VolumeStiffness, 0.4f);             //####MOD: Was .9, .6
 	//			_oObj.PropSet(ESoftBody.StretchingStiffness, 0.35f);        //###TUNE!!
 	//			_oObj.PropSet(ESoftBody.ParticleRadius, 0.03f);             //###TUNE!!! Hugely important to be repelled by hands as strongly as possible
-	//			//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest"), "Breasts", false, new Vector3(0, 0.09f, 0.2f));
+	//			//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper"), "Breasts", false, new Vector3(0, 0.09f, 0.2f));
 	//			break;
 	//		case EGameModes.Configure:
 	//			//Destroy(_oHotSpot);			//####IMPROVE: 'safe destroy'?

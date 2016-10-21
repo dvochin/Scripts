@@ -56,8 +56,8 @@ public class CHeadLook : MonoBehaviour {		//###LEARN: Based on code from http://
 		_oBody = oBody;						//###MOD: Init segment from code as our component is added at runtime now
 		BendingSegment oSeg = new BendingSegment();
 
-		oSeg.firstTransform		= _oBody.FindBone("chest/neck");			//###IMPROVE?  Can spine be added (or would interfere with our anim too much?)
-		oSeg.lastTransform		= _oBody.FindBone("chest/neck/head");
+		oSeg.firstTransform		= _oBody._oBodyBase.FindBone("chest/neck");			//###IMPROVE?  Can spine be added (or would interfere with our anim too much?)
+		oSeg.lastTransform		= _oBody._oBodyBase.FindBone("chest/neck/head");
 		oSeg.thresholdAngleDifference = 0;			//###???
 		oSeg.bendingMultiplier = 1.0f;				//###IMPROVE!!!: Add 'eyes' and get them to move part of the way
 		oSeg.maxAngleDifference = 90;
@@ -104,10 +104,10 @@ public class CHeadLook : MonoBehaviour {		//###LEARN: Based on code from http://
 		_aLookTargets.Add(Camera.main.transform);			// We always add the camera		//###DESIGN???
 
 		if (oBodyOther != null) {			//###IMPROVE?? Add parts of self body to look at like penis tip?
-			_aLookTargets.Add(oBodyOther.FindBone("chest/neck/head"));
-			_aLookTargets.Add(oBodyOther.FindBone("chest/abdomen"));
-			_aLookTargets.Add(oBodyOther.FindBone("chest/abdomen/hip"));
-			_aLookTargets.Add(oBodyOther.FindBone("chest/abdomen/hip/sex"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/neck/head"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen/hip"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen/hip/sex"));
 			//_aLookTargets.Add(oBodyOther.FindBone("chest/lCollar/lShldr/lForeArm/lHand"));		//###DESIGN???
 			//_aLookTargets.Add(oBodyOther.FindBone("chest/rCollar/rShldr/rForeArm/rHand"));
 		}

@@ -1,4 +1,6 @@
-/*###DISCUSSION: TEMPLATE
+/*###TEMPLATE
+=== LAST ===
+
 === NEXT ===
 
 === TODO ===
@@ -15,7 +17,7 @@
 
 === PROBLEMS ===
 
-=== PROBLEMS??? ===
+=== QUESTIONS ===
 
 === WISHLIST ===
 
@@ -59,8 +61,6 @@ public class G : MonoBehaviour {					// Global static class to store global cons
 	public const float	C_PiDiv2 = Mathf.PI / 2;
 	
 	//---------------------------------------------------------------------------	MAGIC NUMBERS: Must match Blender.
-	public const ushort C_MagicNo_TranBegin = 0x0B16;  // Magic numbers stored as unsigned shorts at the head & tail of every serialization to help sanity checks...         (MUST MATCH BLENDER SIDE!)
-	public const ushort C_MagicNo_TranEnd   = 0xB00B;
 	public const ushort C_MagicNo_EndOfFlatGroup = 65535;			// We indicate the 'end of a 'flattened group' with this invalid vertID indicating the end of the current group (for efficient serialization of variable-sized groups)
 	public const ushort C_MagicNo_EndOfArray = 12345;
 

@@ -89,7 +89,7 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern void 		gBL_Cmd_GetLastInBuf(IntPtr pBufUnityPtr, int nSize);
 
 	//---------------------------------------------------------------------------	BLENDER MESH ACCESS
-	[DllImport(ErosDll)] public static extern int		gBL_GetMeshArrays(string sNameMesh, int nMaterials, IntPtr pVertsPtr, IntPtr pNormalsPtr, IntPtr pUVsPtr);
+	[DllImport(ErosDll)] public static extern int		gBL_GetMeshArrays(string sNameMesh, int nMaterials, IntPtr pVertsPtr, IntPtr pNormalsPtr, IntPtr pUVsPtr);	//###IMPROVE#13: Ditch requirement for mesh name and somehow rely on Blender's CMesh instance??
 	[DllImport(ErosDll)] public static extern int		gBL_UpdateClientVerts(string sNameMesh, IntPtr pVertsPtr);
 	[DllImport(ErosDll)] public static extern int		gBL_UpdateBlenderVerts(string sNameMesh, IntPtr pVertsPtr);
 	[DllImport(ErosDll)] public static extern int		gBL_GetNumTrianglesAtMaterial(int nMaterial);
@@ -109,8 +109,5 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	//[DllImport(ErosDll)] public static extern IntPtr	PhysX2_Collider_CreateCapsule(Vector3 aVecPos, Quaternion aQuatRot, float nRadius, float nHeight);
 	//[DllImport(ErosDll)] public static extern void		PhysX2_Collider_UpdateCapsule(IntPtr pActorPtr, Vector3 aVecPos, Quaternion aQuatRot, float nRadius, float nHeight, bool bUpdatePosRot);
 	//[DllImport(ErosDll)] public static extern void		PhysX2_Collider_EnableDisable(IntPtr pActorPtr, bool bEnable);
-	//[DllImport(ErosDll)] public static extern void		Morph_ApplyMorphOpToMesh(IntPtr aVertsBasePtr, IntPtr aVertsOutPtr, int nVerts, IntPtr aMorphDeltaVertsPtr, int nMorphDeltaVerts, float nMorphStrength);
+	[DllImport(ErosDll)] public static extern void		Morph_ApplyMorphOpToMesh(IntPtr aVertsBasePtr, IntPtr aVertsOutPtr, int nVerts, IntPtr aMorphDeltaVertsPtr, int nMorphDeltaVerts, float nMorphStrength);
 }
-
-
-	//[DllImport(ErosDll)] public static extern void		SoftBody_Breasts_UpdateCBodyColBreast_PhysX3(IntPtr pSoftBodyPtr, IntPtr pBodyColBreastPtr, float nRadiusSphereBase, float nOutsideProtusion, int eColGroup);

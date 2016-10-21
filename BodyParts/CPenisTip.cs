@@ -15,7 +15,7 @@ using System.Runtime.InteropServices;
 
 //	public void OnAwake(CPenis_OBS oPenis) {
 //		_oPenis = oPenis;
-//		_oObj = new CObject(this, _oPenis._oBody._nBodyID, typeof(EPenisTip), "PenisTip");
+//		_oObj = new CObject(this, _oPenis._oBody._oBodyBase._nBodyID, typeof(EPenisTip), "PenisTip");
 //	}
 
 //	public void OnStart() {									//###DESIGN: Call from central game??

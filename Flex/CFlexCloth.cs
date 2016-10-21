@@ -54,7 +54,7 @@
 //        _oObj.PropGroupBegin("", "", true);
 //        _oObj.PropAdd(EFlexCloth.Tightness, "Tightness", 1.0f, 0.01f, 3.0f, "", CProp.Local);
 //        _oObj.FinishInitialization();
-//        _oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest"), "Cloth", false, new Vector3(0, 0.05f, 0.25f));   //###TUNE
+//        _oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper"), "Cloth", false, new Vector3(0, 0.05f, 0.25f));   //###TUNE
 
 //        _oObj.PropSet(EFlexCloth.Tightness, 2.0f);          //###TUNE
 //    }

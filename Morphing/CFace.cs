@@ -36,7 +36,7 @@ using System.Collections;
 //		_oMorphBrowOuter  = new CMorphChannel_OBS(this, "BrowOuter");
 
 //		//=== Init CObject ===
-//		_oObj = new CObject(this, _oBody._nBodyID, typeof(EFace), "Face", "Face");
+//		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EFace), "Face", "Face");
 //		_oObj.PropGroupBegin("", "", true);
 //		_oObj.PropAdd(EFace.MouthOpen,	"Mouth Open",		0,	-0.3f,	1,	"", CProp.Local);		//###TUNE: Reasonable limits on negative side
 //		_oObj.PropAdd(EFace.EyesClosed,	"Eyes Closed",		0,	-0.3f,	1,	"", CProp.Local);

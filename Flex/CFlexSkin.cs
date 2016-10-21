@@ -25,11 +25,11 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
     static string s_sNameFlexSkin_HACK;
 
     public static CFlexSkin_OBS Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
-        string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
+        string sBodyID = "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").";
         CFlexSkin_OBS.s_sNameFlexSkin_HACK = "aFlexSkins['" + sNameFlexSkin + "']";
         string sBlenderInstancePath = CFlexSkin_OBS.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
         CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
-        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody, sBlenderInstancePath, typeof(CFlexSkin_OBS));
+        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody._oBodyBase, sBlenderInstancePath, typeof(CFlexSkin_OBS));
 		return oFlexSkin;
 	}
 
@@ -40,10 +40,10 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
         _sBlenderInstancePath_CFlexSkin = CFlexSkin_OBS.s_sNameFlexSkin_HACK;
         string sBlenderInstancePath = _sBlenderInstancePath_CFlexSkin + ".oMeshFlexSkin";       // Both the visible (driven) mesh and the driving skinned Flex mesh are from the same Blender CMesh
 
-        //=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
-        CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CFlexSkin + ".SerializeCollection_aShapeVerts()",              out aShapeVerts);
-        CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CFlexSkin + ".SerializeCollection_aShapeParticleIndices()",    out aShapeParticleIndices);
-        CUtility.BlenderSerialize_GetSerializableCollection_INT("'CBody'", _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CFlexSkin + ".SerializeCollection_aShapeParticleCutoffs()",    out aShapeParticleCutoffs);
+		//=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
+		aShapeVerts				= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeVerts.Unity_GetBytes()");
+		aShapeParticleIndices	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleIndices.Unity_GetBytes()");
+		aShapeParticleCutoffs	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleCutoffs.Unity_GetBytes()");
 
         ////=== Instantiate the FlexProcessor component so we get hooks to update ourselves during game frames ===
         //uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
@@ -124,11 +124,11 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
         //oVisSB.enabled = false;
     }
 
-    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
+    public void HideShowMeshes() {
         //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
-        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
         if (GetComponent<uFlex.FlexParticlesRenderer>() != null)
-            GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
+            GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
     }
 
 
@@ -172,7 +172,7 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
 //    static string s_sNameFlexSkin_HACK;
 
 //    public static CFlexSkin Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
-//        string sBodyID = "CBody_GetBody(" + oBody._nBodyID.ToString() + ").";
+//        string sBodyID = "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").";
 //        CFlexSkin.s_sNameFlexSkin_HACK = "aFlexSkins['" + sNameFlexSkin + "']";
 //        string sBlenderInstancePath = CFlexSkin.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
 //        CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
@@ -204,15 +204,15 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
 //        //_oMeshNow.bounds.SetMinMax(new Vector3(-100, -100, -100), new Vector3(100, 100, 100));              // Set bounds very large so we always draw and not have to recalc bounds at every frame  ###IMPROVE: A flag for always draw??
 //    }
 
-//    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
+//    public void HideShowMeshes() {
 //        //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
-//        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+//        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
 //        if (_oFlexSkinnedSpringDriver != null)
-//            _oFlexSkinnedSpringDriver._oSMR_Driver.enabled = bShowPinningRims;
+//            _oFlexSkinnedSpringDriver._oSMR_Driver.enabled = CGame.INSTANCE.ShowPinningRims;
 //        if (GetComponent<uFlex.FlexParticlesRenderer>() != null)
-//            GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
+//            GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
 //        if (_oFlexSkinnedSpringDriver.GetComponent<uFlex.FlexParticlesRenderer>() != null)
-//            _oFlexSkinnedSpringDriver.GetComponent<uFlex.FlexParticlesRenderer>().enabled = bShowFlexParticles;
+//            _oFlexSkinnedSpringDriver.GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
 //    }
 
 

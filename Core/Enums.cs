@@ -32,12 +32,6 @@ public enum EBodyPartType {			// The different body parts that our soft body imp
 
 
 
-public enum EBodySex {		//###TODO ###DESIGN: Add the body type extension like WomanA, ManB, etc?
-	Man,
-	Woman,
-	Shemale					//###DESIGN!!! ###PROBLEM: Two different concepts merged into this enum!!  One is the character type (man/woman/shemale) and the other is the Blender source body used (either Penis or Body2) SPLIT UP!!
-};
-
 public enum EBodyPose_TEMP {		//###TODO ###DESIGN: Add the body type extension like WomanA, ManB, etc?
 	Standing,
 //	Squatting,

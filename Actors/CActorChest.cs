@@ -30,15 +30,15 @@ public class CActorChest : CActor {
 
 		//=== Init Hotspot ===
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Chest", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
-		//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chest"), "Chest", true, new Vector3(0, 0, 0), C_SizeHotSpot_TorsoNodes);
+		//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper"), "Chest", true, new Vector3(0, 0, 0), C_SizeHotSpot_TorsoNodes);
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorChest), "Chest", "Chest");
+		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorChest), "Chest", "Chest");
 		_oObj.PropGroupBegin("", "", true);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.PropAdd(EActorChest.Torso_LeftRight,	"Torso_LeftRight",	0,	-100,	100,	"", CProp.Local);		//###BUG: Have to recalibrate to make new abdoment-centric bones look good.
-		_oObj.PropAdd(EActorChest.Torso_UpDown,		"Torso_UpDown",		0,	-100,	100,	"", CProp.Local);		//###NOW###: Forced to enter crappy name because of new CProp restrictions with naming!
-		_oObj.PropAdd(EActorChest.Torso_Twist,		"Torso_Twist",		0,	-100,	100,	"", CProp.Local);
+		_oObj.PropAdd(EActorChest.Torso_LeftRight,	"Torso_LeftRight",	0,	-100,	100,	"");		//###BUG: Have to recalibrate to make new abdoment-centric bones look good.
+		_oObj.PropAdd(EActorChest.Torso_UpDown,		"Torso_UpDown",		0,	-100,	100,	"");		//###NOW###: Forced to enter crappy name because of new CProp restrictions with naming!
+		_oObj.PropAdd(EActorChest.Torso_Twist,		"Torso_Twist",		0,	-100,	100,	"");
 		_oObj.FinishInitialization();
 		//###PROBLEM: Base actor adds 'pinned' but chest is always pinned?
 

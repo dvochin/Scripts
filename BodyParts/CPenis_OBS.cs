@@ -95,7 +95,7 @@ using System.Collections.Generic;
 //    public override void OnDeserializeFromBlender() {
 //		base.OnDeserializeFromBlender();
 
-//		_oObjDriver = new CObject(this, _oBody._nBodyID, typeof(EPenis), "Penis", "Penis");		//###IMPROVE: Name of soft body to GUI
+//		_oObjDriver = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EPenis), "Penis", "Penis");		//###IMPROVE: Name of soft body to GUI
 
 //		//=== Get the penis collider coordinates from Blender so that we can create the PhysX string of capsule colliders that perform the real movement / collision of the penis (by driving along the slave soft body)
 //		string sResult = CGame.gBL_SendCmd("Penis", "gBL_Penis_CalcColliders('" + _sNameBlenderMesh + "')");
@@ -118,7 +118,7 @@ using System.Collections.Generic;
 //        ///_eColGroup = EColGroups.eLayerPenisI;
 //        //####DEV!!!!!!! base.OnStart(oBody);
 
-//        _oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
+//        _oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._oBodyBase._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
 
 //		//###DESIGN: Most interesting properties in this secondary-name?  Can shift softbody to 2nd???
 //		_oObjDriver.PropGroupBegin("", "", true);

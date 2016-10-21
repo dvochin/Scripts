@@ -1,10 +1,9 @@
 ﻿using UnityEngine;
 using System;
 using System.IO;
-using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
-using System.Runtime.InteropServices;
+//using System.Runtime.InteropServices;
 
 
 public class CProp {							// Important class that abstracts the concept of a 'property' and enables Unity and C++ dll to read/write this property with the other side being notified of the change.
@@ -22,7 +21,8 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	public float		_nHotSpotEdit_BeginValue;	// Our value when hotspot editing began.
 	public int			_nPropFlags;
 	public Type			_oTypeChoice;			// The type of the enum that displays the combo-box choices for this property.  Parsed by GUI to display / choose  the proper enum
-	public MethodInfo	_oMethodInfo_OnPropSet;	// The field info of a function on owning object that receives notification when this property changes.
+	public MethodInfo	_oMethodInfo_OnPropSet; // The field info of a function on owning object that receives notification when this property changes.
+	public object       _oObjectExtraFunctionality;		// Properties can have reference to extra class instances that extend their functionality.  This is currently used for morph channel caching
 
 	public float		_nRndVal;				// The actual random value added at the very end of property get/set (kept separated to not mix with user-set value)
 	public float		_nRndValSource;			// Randomization source value (at beginning of smoothing iterations)
@@ -36,12 +36,12 @@ public class CProp {							// Important class that abstracts the concept of a 'p
     public CUIWidget    _oUIWidget;             // The widget who draws our property in the Unity UI
 
 
-	public const int Local			= 1 << 0;			// Property exists in Unity only and doesn't have an equivalent CProp in the C++ dll.  (Properties that are not 'Local' and not 'Blender' are dll-side properties)		###IMPROVE: Have an enum for where property is from!!!
-	public const int Blender		= 1 << 1;			// Property exists in Blender only.  Owning CObject *must* have a valid Blender object name for '_sNameBlenderObject' (Properties that are not 'Local' and not 'Blender' are dll-side properties)
-	public const int ReadOnly		= 1 << 2;			// Read only property that user can't change through GUI.  ###CHECK: Formerly: Fake property without value or processing.  Only exists to draw a seperating header in GUI
-	public const int Hide			= 1 << 3;			// Property doesn't draw anything in GUI
-	public const int AsCheckbox		= 1 << 4;			// Property takes only the float values of 0.0f or 1.0f and is drawn on GUI as a checkbox
-	public const int AsButton		= 1 << 5;			// Property is drawn as a button and does not show a value (e.g. always zero)
+	public const int ReadOnly			= 1 << 0;   // Read only property that user can't change through GUI.  ###CHECK: Formerly: Fake property without value or processing.  Only exists to draw a seperating header in GUI
+	public const int Hide				= 1 << 1;   // Property doesn't draw anything in GUI
+	public const int Blender			= 1 << 2;   // Property exists in Blender only.  Owning CObject *must* have a valid Blender object name for '_sNameBlenderObject' (Properties that are not 'Local' and not 'Blender' are dll-side properties)
+	public const int CPlusPlusDll		= 1 << 3;	// Property exists in C++ dll.
+	public const int AsCheckbox			= 1 << 4;	// Property takes only the float values of 0.0f or 1.0f and is drawn on GUI as a checkbox
+	public const int AsButton			= 1 << 5;	// Property is drawn as a button and does not show a value (e.g. always zero)
 	//###IMPROVE: Deactivate bounds if needed with a flag?)
 
 	public const string C_Prefix_OnPropSet	= "OnPropSet_";			// Prefix name of functions of owning object that (if defined) automatically receive notification when this property changes)
@@ -75,7 +75,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		//Debug.Log(string.Format("{0} prop #{1} = '{2}'", _oObject._sNameFull, _nPropEnumOrdinal, _sNameProp));
 	}
 	public void OnDestroy() {
-		if ((_nPropFlags & Local) == 0 && (_nPropFlags & Blender) == 0) {			// We only have a remote property to destroy if we're non-local
+		if ((_nPropFlags & CPlusPlusDll) != 0) {			// We only have a remote property to destroy if we're CPlusPlusDll
 			int bSuccess = ErosEngine.Object_PropDestroy(_oObject._hObject, _nPropEnumOrdinal);
 			if (bSuccess == 0) {
 				Debug.LogError(string.Format("ERROR CProp.ReleaseGlobalHandles().  C++ returns error disconnecting property '{0}' of id {1} on object '{2}'", _sNameProp, _nPropEnumOrdinal, _oObject._sNameFull));
@@ -84,43 +84,49 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	}
 
 	//---------------------------------------------------------------------------	GET / SET
-	public float PropGet() {	
-		if ((_nPropFlags & Local) != 0) {			// In local mode we just return our local value
-			return _nValueLocal - _nRndVal;			// Remove random value off the very top.  Pushed in  / pulled in at last minute ###CHECK: Assumes we use PropGet() everywhere!  (Not true!!) ###BUG??
-		} else if ((_nPropFlags & Blender) != 0) {	// For Blender-side objects we must fetch from related CProp_PropGet() in Blender python
-            CObjectBlender oObjectBlender = (CObjectBlender)_oObject;       // Blender property means that we must be owned by a CObjectBlender
-            string sSerialized = CGame.gBL_SendCmd("CObject", "CObject." + oObjectBlender._sBlenderAccessString + ".PropGetString('" + _sNameProp + "')");
-            _nValueLocal = float.Parse(sSerialized);
-            return _nValueLocal;
-        }
-        else {
+	public float PropGet() {
+		if ((_nPropFlags & CPlusPlusDll) != 0) {            // CPlusPlusDll calls DLL for latest value.
 			return ErosEngine.Object_PropGet(_oObject._hObject, _nPropEnumOrdinal) - _nRndVal;
+		} else if ((_nPropFlags & Blender) != 0) {  // For Blender-side objects we must fetch from related CProp_PropGet() in Blender python
+			CObjectBlender oObjectBlender = _oObject as CObjectBlender;       // Blender property means that we must be owned by a CObjectBlender
+			//if ((_nPropFlags & BlenderDisabled) == 0)
+			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropGetString('" + _sNameProp + "')"));
+			return _nValueLocal;
+		} else {
+			return _nValueLocal - _nRndVal;         // Remove random value off the very top.  Pushed in  / pulled in at last minute ###CHECK: Assumes we use PropGet() everywhere!  (Not true!!) ###BUG??
 		}
 	}
 
 	public float PropSet(float nValueNew) {
-		nValueNew += _nRndVal;				// Apply separated random value at the very top
+		nValueNew += _nRndVal;					// Apply separated random value at the very top		###OBS? Random value still used??
 
+		//=== Avoid doing again if we're setting to the same value ===
+		if (_nValueLocal == nValueNew)			//###CHECK#11: Really safe?  Could some use cases be affected?
+			return _nValueLocal;
+
+		//=== Cap the value to pre-set bounds ===
 		if (nValueNew < _nMin)
 			nValueNew = _nMin;
 		if (nValueNew > _nMax)
 			nValueNew = _nMax;
 
 		float nValueOld = _nValueLocal;
-		bool bIsLocal = (_nPropFlags & Local) != 0;
-		bool bIsBlender = (_nPropFlags & Blender) != 0;
+		bool bIsCPlusPlusDll	= (_nPropFlags & CPlusPlusDll) != 0;
+		bool bIsBlender			= (_nPropFlags & Blender) != 0;
 
-		if (bIsLocal) {		// In local mode we just return our local value
+		//=== Set the value in our remote counterparts if flagged as such ===
+		if (bIsCPlusPlusDll) {          // For dll-side properties we call the dll.
+			_nValueLocal = ErosEngine.Object_PropSet(_oObject._hObject, _nPropEnumOrdinal, nValueNew);  //###IMPROVE: Trap failure conditions from C++ to display warning property wasn't set because of disconnect error!
+			if (_nValueLocal != nValueNew)          // Occurs for INSTANCE if we set a value out of range and the C++ set function clipped it with the get function returning the clipped value... Check the valid range in the C++ code!
+				Debug.Log(string.Format("Note: PropSet on {0}.{1} was set to {2} but is now {3}", _oObject._sNameFull, _sNameProp, nValueNew, _nValueLocal));   //###NOTE: Not necessarily bad.  Some properties adjust their settings, some round, etc.
+		} else if (bIsBlender) {    // For blender properties we invoke its corresponding CProp_PropSet() method
+			CObjectBlender oObjectBlender = (CObjectBlender)_oObject;       // Blender property means that we must be owned by a CObjectBlender
+			//if ((_nPropFlags & BlenderDisabled) == 0)
+			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropSetString('" + _sNameProp + "'," + nValueNew.ToString() + ")"));
+			//else
+			//_nValueLocal = nValueNew;
+		} else {      // In local mode we just set local value directly
 			_nValueLocal = nValueNew;
-        } else if (bIsBlender) {	// For blender properties we invoke its corresponding CProp_PropSet() method
-            CObjectBlender oObjectBlender = (CObjectBlender)_oObject;       // Blender property means that we must be owned by a CObjectBlender
-            string sSerialized = CGame.gBL_SendCmd("CObject", "CObject." + oObjectBlender._sBlenderAccessString + ".PropSetString('" + _sNameProp + "'," + nValueNew.ToString() + ")");
-            _nValueLocal = float.Parse(sSerialized);
-            return _nValueLocal;
-		} else {			// For dll-side properties we call the dll.
-			_nValueLocal = ErosEngine.Object_PropSet(_oObject._hObject, _nPropEnumOrdinal, nValueNew);	//###IMPROVE: Trap failure conditions from C++ to display warning property wasn't set because of disconnect error!
-			if (_nValueLocal != nValueNew)			// Occurs for INSTANCE if we set a value out of range and the C++ set function clipped it with the get function returning the clipped value... Check the valid range in the C++ code!
-				Debug.Log(string.Format("Note: PropSet on {0}.{1} was set to {2} but is now {3}", _oObject._sNameFull, _sNameProp, nValueNew, _nValueLocal));	//###NOTE: Not necessarily bad.  Some properties adjust their settings, some round, etc.
 		}
 
 		//=== OnPropSet_ and OnReset_ notifications can only be sent when object is fully operational (e.g. not during init) ===
@@ -133,20 +139,19 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		}
 
 		//=== Set our GUI appearance if we're currently displayed ===
-		//if (_oWidgetGUI != null)
-		//	CProp.SetValueGUI(_oUIWidget, _oWidgetGUI, _sLabel, PropGet());
-
-        //###DESIGN!: Rethink & cleanup
         if (_oUIWidget != null)
-            _oUIWidget.SetValue(PropGet());
+            _oUIWidget.SetValue(_nValueLocal);          //###CHECK: Was PropGet()!
 
-            //=== Write the just-set property to the script recorder.  This provides a very good starting point to animate a scene ===
-        if (CGame.INSTANCE._oScriptRecordUserActions != null) {
+		//=== Write the just-set property to the script recorder.  This provides a very good starting point to animate a scene ===
+		if (CGame.INSTANCE._oScriptRecordUserActions != null) {
 			if (_oObject._nBodyID != 0 && _oObject._sNameScriptHandle != null) {	// We only write property set to script recorder on objects that have provided their script-access handle
 				if (nValueNew != nValueOld) 			//###IMPROVE!?!?!? Should abort if same earlier?? Safe??
 					CGame.INSTANCE._oScriptRecordUserActions.WriteProperty(this);
 			}
 		}
+		//=== Notify object that we really did change.  This will in turn notify any owning object that have registered for this event ===
+		_oObject.Notify_PropertyValueChanged(this, nValueOld);		//###TODO#13: Convert previous codebase that needed this functionality with this new event-based mechanism!
+
 		return _nValueLocal;
 	}
 

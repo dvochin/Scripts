@@ -53,7 +53,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
 
-		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorPelvis), "Pelvis", "Pelvis");
+		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorPelvis), "Pelvis", "Pelvis");
 		_oObj.PropGroupBegin("", "", true);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
 		_oObj.FinishInitialization();
@@ -128,19 +128,20 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					_oCurveAnimZ.AddKey(_nAnimClipLength, 0);
 
 					//=== Find the other body (if it exists) and slow-down or speed up our clip if our clip time is nearby the cliptime of the other body
-					CBody oBodyOther = null;
-					foreach (CBody oBody in CGame.INSTANCE._aBodies) {
-						if (oBody != _oBody) {
-							oBodyOther = oBody;
-							break;
-						}
-					}
-					if (oBodyOther != null && oBodyOther._oActor_Pelvis != null) {			// If another body with a sex actor exists...
-						if ((_nAnimClipLength <= oBodyOther._oActor_Pelvis._nAnimClipLength * 1.2f) && (_nAnimClipLength >= oBodyOther._oActor_Pelvis._nAnimClipLength * 0.8f)) {		//... and has nearly the same lenght as ours...	###TUNE
-							oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody = oBodyOther._oActor_Pelvis._nAnimClipLength / _nAnimClipLength;	// We set the other body's time because we could be facing a long return to first position as inserted above
-							//Debug.Log("Anim: _nTimeRatioToMatchOtherBody = " + oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody);
-						}
-					}
+					//###BROKEN#11
+					//CBody oBodyOther = null;
+					//foreach (CBody oBody in CGame.INSTANCE._aBodyBases) {
+					//	if (oBody != _oBody) {
+					//		oBodyOther = oBody;
+					//		break;
+					//	}
+					//}
+					//if (oBodyOther != null && oBodyOther._oActor_Pelvis != null) {			// If another body with a sex actor exists...
+					//	if ((_nAnimClipLength <= oBodyOther._oActor_Pelvis._nAnimClipLength * 1.2f) && (_nAnimClipLength >= oBodyOther._oActor_Pelvis._nAnimClipLength * 0.8f)) {		//... and has nearly the same lenght as ours...	###TUNE
+					//		oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody = oBodyOther._oActor_Pelvis._nAnimClipLength / _nAnimClipLength;	// We set the other body's time because we could be facing a long return to first position as inserted above
+					//		//Debug.Log("Anim: _nTimeRatioToMatchOtherBody = " + oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody);
+					//	}
+					//}
 					_nTimeRatioToMatchOtherBody = 1;
 					//CGame.INSTANCE._sGuiString_Dev_DEBUG = "";
 					_eAnimMode = EAnimMode.Play;

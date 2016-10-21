@@ -69,8 +69,8 @@ public class CSoftBody : CSoftBodyBase {
 	public static CSoftBody Create(CBody oBody, Type oTypeBMesh, string sNameBoneAnchor_HACK) { 
 		string sNameSoftBody = oTypeBMesh.Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         _sNameBoneAnchor_HACK = sNameBoneAnchor_HACK;
-        CGame.gBL_SendCmd("CBody", "CBody_GetBody(" + oBody._nBodyID.ToString() + ").CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + ")");      // Separate the softbody from the source body.
-		CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody, "aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
+        CGame.gBL_SendCmd("CBody", "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").oBody.CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + ")");      // Separate the softbody from the source body.
+		CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody._oBodyBase, ".oBody.aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
         return oSoftBody;
     }
 
@@ -78,7 +78,7 @@ public class CSoftBody : CSoftBodyBase {
         base.OnDeserializeFromBlender();                    // Call important base class first to serialize rim, pinned particle mesh, etc
 
         //=== Create the collision mesh from Blender ===
-        _oMeshFlexCollider = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
+        _oMeshFlexCollider = CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
         _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = false;      // Collider does not render... only for Flex definition!
         _oMeshFlexCollider.transform.SetParent(transform);
 
@@ -96,28 +96,28 @@ public class CSoftBody : CSoftBodyBase {
         CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".CreateMesh_Unity2Blender(" + nVertTetras.ToString() + ")");        // Our softbody instance will now have its 'oMeshUnity2Blender' member populated with a temporary mesh of exactly nVertTetras verts
 
         //=== Obtain the Unity2Blender mesh so we can pass particles to Blender for processing there ===
-        CBMesh oMesh_Unity2Blender = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
+        CBMesh oMesh_Unity2Blender = CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
+		oMesh_Unity2Blender.transform.SetParent(transform);		//###IMPROVE#13: Set parent in Create() above?
 
-        //=== Upload our particles to Blender so it can select those that are pinned and skin them ===
-        for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
+		//=== Upload our particles to Blender so it can select those that are pinned and skin them ===
+		for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
 			oMesh_Unity2Blender._memVerts.L[nVertTetra] = _oFlexParticles.m_particles[nVertTetra].pos;			//###LEARN: For some reason this is safe to do while still copying back to Blender... why?
 		oMesh_Unity2Blender.UpdateVertsToBlenderMesh();                // Blender now has our particles.  It can now find the particles near the rim and skin them
 
         //=== Create and retrieve the softbody rim mesh responsible to pin softbody to skinned body ===
-        float nDistParticlesFromBackmesh = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nDistParticlesFromBackmeshMult;
-        CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".FindPinnedFlexParticles(" + nDistParticlesFromBackmesh.ToString() + ")");        // Ask Blender select the particles near the rim and skin them
+        float nDistSoftBodyParticlesFromBackmesh = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nDistSoftBodyParticlesFromBackmeshMult;
+        CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".FindPinnedFlexParticles(" + nDistSoftBodyParticlesFromBackmesh.ToString() + ")");        // Ask Blender select the particles near the rim and skin them
         Destroy(oMesh_Unity2Blender);       // We're done with Unity2Blender mesh after FindPinnedFlexParticles... delete
         oMesh_Unity2Blender = null;
 
         //=== Retreive the pinned particles skinned mesh so we can manually set the position of the pinned particles to the appropriate position on the skinned main body (so softbody doesn't float into space) ===
-        _oMeshPinnedParticles = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshPinnedParticles", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+        _oMeshPinnedParticles = (CBSkinBaked)CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshPinnedParticles", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
         _oMeshPinnedParticles.transform.SetParent(transform);
 
-        ////=== Obtain the map of pinned particles in skinned mesh to softbody particles in whole softbody mesh ===
-        List<ushort> aMapPinnedParticles;
-        CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapPinnedParticles()",	out aMapPinnedParticles);		// Read the particle traversal map from our CSoftBody instance
+		////=== Obtain the map of pinned particles in skinned mesh to softbody particles in whole softbody mesh ===
+		List<ushort> aMapPinnedParticles = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".aMapPinnedParticles.Unity_GetBytes()");		// Read the particle traversal map from our CSoftBody instance
 
-        //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
+		        //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
         _oPinnedParticles = CUtility.FindOrCreateComponent(gameObject, typeof(CPinnedParticles)) as CPinnedParticles;
         _oPinnedParticles.Initialize(ref aMapPinnedParticles, _oMeshPinnedParticles);
 
@@ -148,13 +148,14 @@ public class CSoftBody : CSoftBodyBase {
 
 
     //--------------------------------------------------------------------------	UTILITY
-    public override void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
-        base.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
-        ////###IMPROVE ###DESIGN Collect show/hide flags in a global array?
-        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+    public override void HideShowMeshes() {
+        base.HideShowMeshes();
+        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
         if (_oFlexGeneratedSMR != null)
-            _oFlexGeneratedSMR.enabled = bShowFlexSkinned;
+            _oFlexGeneratedSMR.enabled = CGame.INSTANCE.ShowFlexSkinned;
         if (_oMeshFlexCollider != null)
-            _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = bShowFlexColliders;        // Add a flag for this intermediate mesh?  ###DESIGN: Or delete once done?
-    }
+            _oMeshFlexCollider.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowFlexColliders;        // Add a flag for this intermediate mesh?  ###DESIGN: Or delete once done?
+		if (_oMeshFlexCollider.GetComponent<uFlex.FlexParticlesRenderer>() != null)
+			_oMeshFlexCollider.GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
+	}
 }

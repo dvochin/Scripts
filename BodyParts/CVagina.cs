@@ -82,8 +82,8 @@ public class CVagina : CSoftBody
 //	public CVagina(CBody oBody) {
 //		_oBody = oBody;		//###WEAK!!! Filling in body's array of softbodies!  Revisit??
 //		//###BROKEN
-//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaR = (CSoftBodyVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaR)));
-//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaL = (CSoftBodyVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "gBL_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaL)));
+//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaR = (CSoftBodyVaginaR)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaR", "Client", "Unity_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaR)));
+//		//oBody._aSoftBodies.Add(_oSoftBodyVaginaL = (CSoftBodyVaginaL)CBMesh.Create(null, _oBody, _oBody._sNameGameBody, "_Detach_VaginaL", "Client", "Unity_GetMesh", "'SkinInfo'", typeof(CSoftBodyVaginaL)));
 
 //		_aColliders.Add(_oColGuideU  = PrepareCollider("VaginaGuideTrackU"));
 //		_aColliders.Add(_oColGuideD  = PrepareCollider("VaginaGuideTrackD"));

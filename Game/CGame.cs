@@ -118,8 +118,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public float linkStiffness = 0.0f;                  // (The stiffness of distance links)
     public float skinFalloff = 1.0f;                    // (The speed at which the bone's influence on a vertex falls off with distance)
     public float skinMaxDistMult = 6.0f;                // (The maximum distance a bone can be from a vertex before it will not influence it any more)
-    public float nDistParticlesFromBackmeshMult = 0.8f;
+    public float nDistSoftBodyParticlesFromBackmeshMult = 0.8f;		// Multiplier distance (from particle distance) where softbody particles are too close to the 'backmesh' and are 'pinned' (e.g. Breast plate for breasts, Pelvic bone for penis, etc)
     public float nSoftBodyFlexColliderShrinkRatio = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
+	public float nDistFlexColliderShrinkMult = 0.7f;	// Percentage of particle distance used to 'shrink' the Flex colliders (to account for Flex mandatory inter-particle distance)
     public float nMassSoftBody = 2.0f;              //###TUNE
     public float nMassCloth = 1.0f;
 
@@ -211,7 +212,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     //---------------------------------------------------------------------------	MOVED FROM CGamePlay.  ###MOVE
 	public 	CObject			_oObj;							// The user-configurable object representing the game
-	public	CBody[]			_aBodies = new CBody[2];		// Our collection of bodies.  Created from the specs in corresponding entry in _aObjBodyDefs.
+	public	CBodyBase[]		_aBodyBases = new CBodyBase[1];	// Our collection of body bases.  Used to morph / configure bodies before CBody is created for gameplay
 	public	float			_nTimeReenableCollisions;		// Time when collisions should be re-enabled (Temporarily disabled during pose load)
 
 	const float				C_TimeToMaxOrgasm_OBSOLETE = 20;			// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
@@ -266,13 +267,13 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		//=== Create user-adjustable top-level game options ===
 		_oObj = new CObject(this, 0, typeof(EGamePlay), "Erotic9");		//###TEMP!!! Main game name in this low-importance GUI???
-		_oObj.PropGroupBegin("", "", true);
-		_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)", CProp.Local);	//###BUG with first setting
-		_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)", CProp.Local);
-		_oObj.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)", CProp.Local);
-		_oObj.PropAdd(EGamePlay.PenisSize,			"Penis Size",	0,		0,		100,	"", CProp.Local | CProp.ReadOnly | CProp.Hide);
-		_oObj.PropAdd(EGamePlay.PenisErectionMax,	"Erection",		0,		0,		100,	"", CProp.Local | CProp.ReadOnly | CProp.Hide);
-		_oObj.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the Erotic9 fluid simulator.  (Advanced)", CProp.Local | CProp.AsButton);
+		_oObj.PropGroupBegin("", "", true);		//###CLEANUP
+		//_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
+		//_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
+		//_oObj.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)");
+		//_oObj.PropAdd(EGamePlay.PenisSize,			"Penis Size",	0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
+		//_oObj.PropAdd(EGamePlay.PenisErectionMax,	"Erection",		0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
+		//_oObj.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the Erotic9 fluid simulator.  (Advanced)", CProp.AsButton);
 		_oObj.FinishInitialization();
         _oHotSpot = CHotSpot.CreateHotspot(this, transform, "Game Options", false, new Vector3(0, 0.0f, 0.0f), 1.0f);
 
@@ -304,33 +305,33 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//if (hLoadLibResult > 32)
 		//	FreeLibrary(hLoadLibResult);			// Free our dll so Unity can load it its way.  Based on code sample at http://support.microsoft.com/kb/142814
 		//else 			
-		//	throw new CException("ERROR: Failure to load ErosEngine.dll.  Error code = " + hLoadLibResult);		// App unusable.  Study return code to find out what is wrong.
+		//	CUtility.ThrowException("ERROR: Failure to load ErosEngine.dll.  Error code = " + hLoadLibResult);		// App unusable.  Study return code to find out what is wrong.
 		//Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
 				
 		//####OBS? GameObject oGuiGO = GameObject.Find("iGUI");			//###TODO!!! Update game load status... ###IMPROVE: Async load so OnGUI gets called???  (Big hassle for that!)
 		Debug.Log("0. Game Awake"); ///yield return new WaitForSeconds(nDelayForGuiCatchup);
 		int n123 = ErosEngine.Utility_Test_Return123_HACK();			// Dummy call just to see if DLL will load with Unity
         if (n123 != 123)
-            throw new CException("ERROR: Failure to get 123 from ErosEngine.dll call to Utility_Test_Return123_HACK.");
+            CUtility.ThrowException("ERROR: Failure to get 123 from ErosEngine.dll call to Utility_Test_Return123_HACK.");
         Debug.Log("INIT: Succeeded in loading ErosEngine.dll");
 
         //=== Initialize our gBlender direct-memory buffers ===
         Debug.Log("1. Shared Memory Creation.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		if (ErosEngine.gBL_Init(CGame.GetFolderPathRuntime()) == false)
-			throw new CException("ERROR: Could not start gBlender library!  Game unusable.");
+			CUtility.ThrowException("ERROR: Could not start gBlender library!  Game unusable.");
 		
 		//=== Spawn Blender process ===
 		Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
 		_hWnd_Unity = (IntPtr)GetActiveWindow();			// Just before we start Blender obtain the HWND of our Unity editor / player window.  We will need this to re-activate our window.  (Starting blender causes it to activate and would require user to alt-tab back to game!!)
 		_oProcessBlender = CGame.LaunchProcessBlender("Erotic9.blend");
 		if (_oProcessBlender == null)
-			throw new CException("ERROR: Could not start Blender!  Game unusable.");
+			CUtility.ThrowException("ERROR: Could not start Blender!  Game unusable.");
         //_nWnd_Blender_HACK = (IntPtr)GetActiveWindow();
 
         //=== Start Blender (and our gBlender scripts).  Game cannot run without them ===
         Debug.Log("3. Client / Server Handshake.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		if (ErosEngine.gBL_HandshakeBlender() == false)
-			throw new CException("ERROR: Could not handshake with Blender!  Game unusable.");
+			CUtility.ThrowException("ERROR: Could not handshake with Blender!  Game unusable.");
 
         SetForegroundWindow(_hWnd_Unity);           // Set our editor / player back into focus (away from just-spawned Blender)
 
@@ -413,19 +414,20 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 ///		if (_bRunningInEditor == false)
 ///			CUtility.WndPopup_Create(EWndPopupType.LearnToPlay, null, "Online Help", 50, 50);	// Show the help dialog at start... ###BUG: Does not change the combo box at top!
 
-		SetForegroundWindow(_hWnd_Unity);			//###WEAK: Can get rid of??
+		SetForegroundWindow(_hWnd_Unity);           //###WEAK: Can get rid of??
 
 
-        //if (CGame.INSTANCE._GameMode == EGameModes.None)        //####TEMP
-        //    return;
+		//if (CGame.INSTANCE._GameMode == EGameModes.None)        //####TEMP
+		//    return;
 
-        //=== Create the body publicly-editable body definitions that can construct and reconstruct CBody instances ===
-        //CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
+		//=== Create the body publicly-editable body definitions that can construct and reconstruct CBody instances ===
+		//CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
 
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
-		CreateBody(0);
-  //      //CreateBody(1);
-        _aBodies[0].SelectBody();
+		//CreateBody(0);
+		//      //CreateBody(1);
+		_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
+        //###BROKEN _aBodyBases[0].SelectBody();
 
 		TemporarilyDisablePhysicsCollision();
 
@@ -510,7 +512,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
             }
         }
 
-        if (Input.GetKeyDown(KeyCode.F1))           //####TEMP?
+		if (Input.GetKeyDown(KeyCode.F1))           //####TEMP?
             ChangeGameMode(EGameModes.Configure);
         if (Input.GetKeyDown(KeyCode.F2))
             ChangeGameMode(EGameModes.Play);
@@ -609,12 +611,13 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
             ///iGUICode_Root.OnBtnClick_Scenes(null);	// BackQuote = Load Scene
         }
 
-        if (Input.GetKeyDown(KeyCode.Tab)) {       // Tab = Select other body.  Assumes a 'two body' scene like most of the code.
-            if (CGame.INSTANCE._nSelectedBody == 1)
-                _aBodies[1].SelectBody();
-            else
-                _aBodies[0].SelectBody();
-        }
+		//###OBS??
+        //if (Input.GetKeyDown(KeyCode.Tab)) {       // Tab = Select other body.  Assumes a 'two body' scene like most of the code.
+        //    if (CGame.INSTANCE._nSelectedBody == 1)
+        //        _aBodyBases[1].SelectBody();
+        //    else
+        //        _aBodyBases[0].SelectBody();
+        //}
 
         //=== Process scene / pose load and save ===
         if (CGame.INSTANCE._bKeyControl) {
@@ -720,9 +723,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 
    //     //=== Iterate through our PhysX-enabled objects to ask them to prepare themselves for this upcoming frame ===
-        foreach (CBody oBody in _aBodies)
-			if (oBody != null)
-				oBody.OnSimulatePre();
+        foreach (CBodyBase oBodyBase in _aBodyBases)
+			oBodyBase.OnSimulatePre();
 
         //=== Simulate PhysX2 for SoftBodies ===
         //ErosEngine.PhysX2_SimulateFrame(Time.deltaTime);		// We simulate PhysX2 scene so that CBreastBase colliders that appear in PhysX3 scene can push away the cloth there with the softbody breast position of this time frame (expensive blocking call) 
@@ -742,9 +744,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			_oFlexSolver.DoFixedUpdate();
         
         ////=== Extract our information from the soft body simulation ===
-        foreach (CBody oBody in _aBodies)
-            if (oBody != null)
-                oBody.OnSimulatePost();
+        foreach (CBodyBase oBodyBase in _aBodyBases)
+            oBodyBase.OnSimulatePost();
 
         CGame.INSTANCE._nFrameCount_MainUpdate++;	//###HACK! To stats!
     }
@@ -855,11 +856,11 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     void HideOrShowPhysxColliders(bool bShowPhysxColliders) {      //###MOVE
         ShowPhysxColliders = bShowPhysxColliders;
 
-        foreach (CBody oBody in _aBodies) {
-            if (oBody == null)
+        foreach (CBodyBase oBodyBase in _aBodyBases) {
+            if (oBodyBase._oBody == null)
                 continue;
             if (bShowPhysxColliders) {
-                Collider[] aCollidersInBody = oBody._oBodyRootGO.GetComponentsInChildren<Collider>();
+                Collider[] aCollidersInBody = oBodyBase._oBodyRootGO.GetComponentsInChildren<Collider>();
                 foreach (Collider oCollider in aCollidersInBody) {
                     if (oCollider.gameObject.name.StartsWith("Hotspot-"))         //###DUPLICATE ###IMPROVE: To function call or other means?
                         continue;
@@ -878,7 +879,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
                             case 0: oBoneRendererT.localRotation = Quaternion.Euler(0, 0, 90); break;
                             case 1: oBoneRendererT.localRotation = Quaternion.Euler(0, 90, 0); break;
                             case 2: oBoneRendererT.localRotation = Quaternion.Euler(90, 0, 0); break;
-                            default: throw new CException("Error in bone capsule collider orientation!");
+                            default: CUtility.ThrowException("Error in bone capsule collider orientation!"); break;
                         }
                     } else if (oCollider.GetType() == typeof(SphereCollider)) {
                         SphereCollider oColliderSphere = (SphereCollider)oCollider;
@@ -906,33 +907,29 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
                     }
                 }
             } else {
-                //=== Iterate through all child objects containing a MeshRenderer to find all the objects named 'BoneRenderer' and destroy them ===
-                MeshRenderer[] aMeshRenderers = oBody._oBodyRootGO.GetComponentsInChildren<MeshRenderer>();
-                foreach (MeshRenderer oMR in aMeshRenderers) {
-                    if (oMR.gameObject.name == "BoneRenderer")
-                        DestroyObject(oMR.gameObject);
-                }
+				//=== Iterate through all child objects containing a MeshRenderer to find all the objects named 'BoneRenderer' and destroy them ===
+				if (oBodyBase._oBody != null) {
+					MeshRenderer[] aMeshRenderers = oBodyBase._oBodyRootGO.GetComponentsInChildren<MeshRenderer>();
+					foreach (MeshRenderer oMR in aMeshRenderers) {
+						if (oMR.gameObject.name == "BoneRenderer")
+							DestroyObject(oMR.gameObject);
+					}
+				}
             }
         }
     }
 
-    public void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
-        foreach (CBody oBody in _aBodies)
-            if (oBody != null)
-                oBody.HideShowMeshes(bShowPresentation, bShowPhysxColliders, bShowMeshStartup, bShowPinningRims, bShowFlexSkinned, bShowFlexColliders, bShowFlexParticles);
-        HideOrShowPhysxColliders(bShowPhysxColliders);
-    }
-
     public void HideShowMeshes() {
-        HideShowMeshes(ShowPresentation, ShowPhysxColliders, ShowMeshStartup, ShowPinningRims, ShowFlexSkinned, ShowFlexColliders, ShowFlexParticles);
+        foreach (CBodyBase oBodyBase in _aBodyBases)
+            oBodyBase.HideShowMeshes();
+        HideOrShowPhysxColliders(ShowPhysxColliders);
     }
-
 
     void HideShowMeshes(bool bShowPresentationMeshes) {
-        ShowPresentation = bShowPresentationMeshes;             
-        ShowFlexParticles = !bShowPresentationMeshes;
-        //ShowPhysxColliders = !bShowPresentationMeshes;
-        if (bShowPresentationMeshes)        // Quickly set all the debug rendering off if we want presentation meshes.
+		ShowPresentation = bShowPresentationMeshes;
+        ShowFlexParticles = !ShowPresentation;
+        //ShowPhysxColliders = !CGame.INSTANCE.ShowPresentationMeshes;
+        if (ShowPresentation)        // Quickly set all the debug rendering off if we want presentation meshes.
             ShowMeshStartup = ShowPinningRims = ShowFlexSkinned = ShowFlexColliders = ShowFlexParticles = false;
         HideShowMeshes();
     }
@@ -953,29 +950,35 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     //---------------------------------------------------------------------------	GAME MODES
 
     public void ChangeGameMode(EGameModes eGameMode) {
+		//###NOW#11: Huge shift in meaning!  Remove the old crap!
+
 		if (_GameMode == eGameMode)
 			return;
-
-        foreach (CBody oBody in _aBodies)
-			if (oBody != null)
-				oBody.OnChangeGameMode(eGameMode, _GameMode);           //###N ###BUG Problem is that game mode play disables kinematic... and builds soft bodies!
 
 		_GameMode = eGameMode;
 
         switch (_GameMode) {
         	case EGameModes.Play:
+				foreach (CBodyBase oBodyBase in _aBodyBases)				// Entering play mode.  Tell all body bases to get the game-time body ready.
+					oBodyBase.OnChangeBodyMode(EBodyBaseModes.Play);
                 Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
                 ScenePose_Load("Standing", false);      //###G ###DESIGN!!
         		break;
         	case EGameModes.Configure:
-                break;
+				int nBodyToConfigure = 0;                 //###TODO#11: Select which body to edit from closest to cam or button?
+				for (int nBody = 0; nBody < _aBodyBases.Length; nBody++)
+					if (nBody != nBodyToConfigure)		// First disable all the other bodies so they are not visible to the player during his/her configuration of one body
+						_aBodyBases[nBodyToConfigure].OnChangeBodyMode(EBodyBaseModes.Disabled);
+				_aBodyBases[nBodyToConfigure].OnChangeBodyMode(EBodyBaseModes.Configure);		// Enter configuration mode for the selected body
+				break;
         }
         HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
-        foreach (CBody oBody in _aBodies)
-            if (oBody != null)
-                oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
+		//###BROKEN#11
+        //foreach (CBody oBody in _aBodyBases)
+        //    if (oBody != null)
+        //        oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
     }
 
    	public void TemporarilyDisablePhysicsCollision(float nTimeInSec = 2.0f) {	//###TUNE		// Disable collisions on default layers so bones can go through each other for a small amount of time to avoid tangling.
@@ -992,11 +995,12 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 
     public void SetBodiesAsKinematic(bool bBodiesAreKinematic) {       //###KEEP ###P  ###DESIGN: Closely related to game modes... Can be merged in there?
+		//###OBS??
         if (bBodiesAreKinematic)                // If we're going to kinematic this means we'll probably be performing rapid body movements.  Hold softbodies in reset so they can appear to gracefully handle large distance / orientation movement that might have occured when body was kinematic
             HoldSoftBodiesInReset(true);
-        foreach (CBody oBody in _aBodies)
-            if (oBody != null)
-                oBody.SetBodiesAsKinematic(bBodiesAreKinematic);
+        foreach (CBodyBase oBodyBase in _aBodyBases)
+            if (oBodyBase != null && oBodyBase._oBody != null)
+                oBodyBase._oBody.SetBodiesAsKinematic(bBodiesAreKinematic);
         _bBodiesAreKinematic = bBodiesAreKinematic;             // Remeber this globally as it influences how CActor.TeleportLinkedPhysxBone() pins bones to pin position for instant & safe teleportation
         if (bBodiesAreKinematic == false)       // Kinematic movement mode ended.  Restore the soft body to Flex simulation.
             HoldSoftBodiesInReset(false);
@@ -1022,7 +1026,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		IntPtr pSizeInBuf = ErosEngine.gBL_Cmd(sCmdFull, true);
 		int nSizeByteBuf = pSizeInBuf.ToInt32();		
 		if (nSizeByteBuf <= 0)
-			throw new CException("gBL_SendCmd_GetMemBuffer() could not obtain valid byte buffer from gBL_Cmd()!");
+			CUtility.ThrowException("gBL_SendCmd_GetMemBuffer() could not obtain valid byte buffer from gBL_Cmd()!");
 		mem.Allocate(nSizeByteBuf);
 		ErosEngine.gBL_Cmd_GetLastInBuf(mem.P, nSizeByteBuf);		
 		return nSizeByteBuf;
@@ -1034,17 +1038,22 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	//---------------------------------------------------------------------------	MISC
 
-	public void Cum_Stop() {			// Stop all cumming and Wipe away cum (reset fluid)
-		foreach (CBody oBody in _aBodies)
-			if (oBody != null)
-				oBody.SetIsCumming(false);
-		//CGame.INSTANCE._oFluid.ResetFluid();
+	public void Cum_Stop() {            // Stop all cumming and Wipe away cum (reset fluid)
+		//###BROKEN#11
+		//foreach (CBody oBody in _aBodyBases)
+		//	if (oBody != null)
+		//		oBody.SetIsCumming(false);
+		////CGame.INSTANCE._oFluid.ResetFluid();
 	}
 	public void BroadcastMessageToAllBodies(string sFunction, object oArg) {			//###IMPROVE: Redo all broadcasting through this approach!
-		foreach (CBody oBody in _aBodies)
-			if (oBody != null)
-				oBody._oBodyRootGO.BroadcastMessage(sFunction, oArg);
-		CGame.INSTANCE._oPoseRoot.gameObject.BroadcastMessage(sFunction, oArg);		// Also broadcast to the pose root which keeps many helper objects
+		//###OBS??
+		foreach (CBodyBase oBodyBase in _aBodyBases)			//###DESIGN: Broadcast to root of both CBodyBase and CBody?
+			if (oBodyBase != null) { 
+				oBodyBase._oMeshMorphResult.BroadcastMessage(sFunction, oArg);
+				if (oBodyBase._oBody != null)
+					oBodyBase._oBodyRootGO.BroadcastMessage(sFunction, oArg);
+			}
+		CGame.INSTANCE._oPoseRoot.gameObject.BroadcastMessage(sFunction, oArg);		// Also broadcast to the pose root which keeps many helper objects ###CHECK: Keep?
 	}
 
     #endregion
@@ -1104,7 +1113,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     //---------------------------------------------------------------------------	UTILITY
 
     public static CBody GetSelectedBody() {
-		return CGame.INSTANCE._aBodies[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
+		return null;		//###BROKEN#11	CGame.INSTANCE._aBodyBases[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
 	}
 
 	public static void SetGuiMessage(EGameGuiMsg eGameGuiMsg, string sMsg) {
@@ -1132,7 +1141,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		WWW oWWW = new WWW(sURL);
 		while (oWWW.isDone == false && oWWW.error == null) { }			//###HACK!!!!
 		if (oWWW.error != null)
-			throw new CException("Error connecting to Erotic9 server: " + oWWW.error);
+			CUtility.ThrowException("Error connecting to Erotic9 server: " + oWWW.error);
 		string sResult = oWWW.text;					//###IMPROVE: Decode what machine ID was previously assigned?
 		return sResult;
 	}
@@ -1142,132 +1151,137 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	//###CLEANUP: From CGamePlay
 	//---------------------------------------------------------------------------	UTILITY
-	public void CreateBody(int nBodyID) {
-		//=== Destroy the body's head look controller as we cannot look at the 'other body' while the bodies are changing in the scene ===
-		//if (_aBodies[0] != null)
-		//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
-		//if (_aBodies[1] != null)
-		//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
+	//public void CreateBody(int nBodyID) {		###OBS!!!
+	//	//=== Destroy the body's head look controller as we cannot look at the 'other body' while the bodies are changing in the scene ===
+	//	//if (_aBodies[0] != null)
+	//	//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
+	//	//if (_aBodies[1] != null)
+	//	//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
 
-		//=== Destroy the entire tree of object a body is by simply destroying its root gameObject!  (Needs DestroyImmediate as lazy Destroy causes rebuild problems)
-		if (_aBodies[nBodyID] != null)
-			_aBodies[nBodyID].Destroy();
-		_aBodies[nBodyID] = null;
-		_aBodies[nBodyID] = new CBody(nBodyID);
-		_aBodies[nBodyID].DoInitialize();
+	//	//=== Destroy the entire tree of object a body is by simply destroying its root gameObject!  (Needs DestroyImmediate as lazy Destroy causes rebuild problems)
+	//	if (_aBodyBases[nBodyID] != null)
+	//		_aBodyBases[nBodyID].Destroy();
+	//	_aBodyBases[nBodyID] = null;
+	//	_aBodyBases[nBodyID] = new CBody(nBodyID);
+	//	_aBodyBases[nBodyID].DoInitialize();
 
-        //####HACK!!!!
-        //if (_aBodies[0] != null)
-        //    _aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
-        //if (_aBodies[1] != null)
-        //    _aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
+ //       //####HACK!!!!
+ //       //if (_aBodies[0] != null)
+ //       //    _aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(null);
+ //       //if (_aBodies[1] != null)
+ //       //    _aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(null);
 
-        //=== Reconnect the head look controller to look at the other body only if the scene now has two valid bodies ===
-  //      if (_aBodies[0] != null && _aBodies[1] != null) {
-		//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[1]);
-		//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[0]);
-		//}
-		//CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = null;				//###BROKEN!!  How to display before lenghty blocking calls below??? CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = "Rebuilding Body.  Please Wait...";
-	}
+ //       //=== Reconnect the head look controller to look at the other body only if the scene now has two valid bodies ===
+ // //      if (_aBodies[0] != null && _aBodies[1] != null) {
+	//	//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[1]);
+	//	//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[0]);
+	//	//}
+	//	//CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = null;				//###BROKEN!!  How to display before lenghty blocking calls below??? CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = "Rebuilding Body.  Please Wait...";
+	//}
 
-	public void SetPenisInVagina(bool bPenisInVagina) {		// When penis tip meets the vagina trigger collider (runs from entrance to deep inside), vagina guide track is activated, penis ceases to create dynamic colliders in CBodyCol and fluid only collides with vagina guide track
-		if (CGame.INSTANCE._DemoVersion)		//###WEAK!!!! ###TEMP!!!
-			_bPenisInVagina  = false;		// Demo build does not allow penetration...
-		else
-			_bPenisInVagina = bPenisInVagina;
-		//CGame.INSTANCE._sGuiString_Dev_DEBUG = "_bPenisInVagina = " + _bPenisInVagina;
-		//if (_aBodies[1] != null && _aBodies[1]._oVagina != null)
-		//	_aBodies[1]._oVagina.VaginaGuideTrack_EnableDisable(_bPenisInVagina);		//###WEAK? Body 0/1 design issues??
-	}
+	//public void SetPenisInVagina(bool bPenisInVagina) {		// When penis tip meets the vagina trigger collider (runs from entrance to deep inside), vagina guide track is activated, penis ceases to create dynamic colliders in CBodyCol and fluid only collides with vagina guide track
+	//	if (CGame.INSTANCE._DemoVersion)		//###WEAK!!!! ###TEMP!!!
+	//		_bPenisInVagina  = false;		// Demo build does not allow penetration...
+	//	else
+	//		_bPenisInVagina = bPenisInVagina;
+	//	//CGame.INSTANCE._sGuiString_Dev_DEBUG = "_bPenisInVagina = " + _bPenisInVagina;
+	//	//if (_aBodies[1] != null && _aBodies[1]._oVagina != null)
+	//	//	_aBodies[1]._oVagina.VaginaGuideTrack_EnableDisable(_bPenisInVagina);		//###WEAK? Body 0/1 design issues??
+	//}
 
 	public CBody FindFirstCharacterWithPenis() {
-		foreach (CBody oBody in _aBodies) {
-			if (oBody._eBodySex != EBodySex.Woman) 
-				return oBody;
-		}
+		//###OBS???  ###BROKEN#11
+		//foreach (CBody oBody in _aBodyBases) {
+		//	if (oBody._eBodySex != EBodySex.Woman) 
+		//		return oBody;
+		//}
 		return null;
 	}
-	public CBody GetBodyOther(CBody oBody) {		// Returns the other body.  Assumes only a 2-body scene.
-		if (oBody == _aBodies[0])		//###DESIGN: Revisit this once we fix assumptions as to bodies in body 0/1
-			return _aBodies[1];
-		else
-			return _aBodies[0];
+	public CBody GetBodyOther(CBody oBody) {        // Returns the other body.  Assumes only a 2-body scene.
+		return null;		//###BROKEN#11
+		//if (oBody == _aBodyBases[0])		//###DESIGN: Revisit this once we fix assumptions as to bodies in body 0/1
+		//	return _aBodyBases[1];
+		//else
+		//	return _aBodyBases[0];
 	}
 
 	//--------------------------------------------------------------------------	SCENE LOAD / SAVE  ###MOVE??
 
 	public void ScenePose_Load(string sNameScenePose, bool bScenePoseFlipped) {		// Load a 'scene' = The pose & position of each character plus CPoseRoot position.  bInvert loads pose for body 2 into body 1 and vice versa
-		string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		//###BROKEN#11: Some of this in CBodyBase?
 
-		if (File.Exists(sPathScenePose)) {
-			_sNameScenePose = sNameScenePose;
-			_bScenePoseFlipped = bScenePoseFlipped;
-            SetBodiesAsKinematic(true);
-			Debug.Log("Scene_Load() loading scene " + sPathScenePose);
-			StreamReader oStreamRead = new StreamReader(sPathScenePose);
-			string sLine = oStreamRead.ReadLine();
-			EPoseRootPos ePoseRootPos = (EPoseRootPos)Enum.Parse(typeof(EPoseRootPos), sLine);
-			Scene_ApplyPoseRoot(ePoseRootPos);
+		//string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 
-			//###DESIGN: No longer store pose root pos/rot?  (Only anchor?)
-			//string[] aVals = sLine.Split(',');	// First line of scene file contains position / rotation of CPoseRoot in comma separated values
-			//Vector3 vecBase;		= new Vector3(float.Parse(aVals[0]), float.Parse(aVals[1]), float.Parse(aVals[2]));
-			//Quaternion quatBase;	= new Quaternion(float.Parse(aVals[3]), float.Parse(aVals[4]), float.Parse(aVals[5]), float.Parse(aVals[6]));
-			//CGame.INSTANCE._oPoseRoot.transform.position = vecBase;
-			//CGame.INSTANCE._oPoseRoot.transform.rotation = quatBase;
+		//if (File.Exists(sPathScenePose)) {
+		//	_sNameScenePose = sNameScenePose;
+		//	_bScenePoseFlipped = bScenePoseFlipped;
+  //          SetBodiesAsKinematic(true);
+		//	Debug.Log("Scene_Load() loading scene " + sPathScenePose);
+		//	StreamReader oStreamRead = new StreamReader(sPathScenePose);
+		//	string sLine = oStreamRead.ReadLine();
+		//	EPoseRootPos ePoseRootPos = (EPoseRootPos)Enum.Parse(typeof(EPoseRootPos), sLine);
+		//	Scene_ApplyPoseRoot(ePoseRootPos);
 
-			int nBody, nBodyInc;		// If inverted load 1 then 0, else 0 then 1
-			if (bScenePoseFlipped) {
-				nBody = 1;
-				nBodyInc = -1;
-			} else {
-				nBody = 0;
-				nBodyInc = 1;
-			}
-			while (oStreamRead.Peek() >= 0) {
-				sLine = oStreamRead.ReadLine();
-				string[] aVals = sLine.Split(',');			// Scene filename is a very simple text file with one line for each character that contains <PoseFileName>,x,y,z
-				string sPoseName = aVals[0];
-				Vector3 vecBase = new Vector3(float.Parse(aVals[1]), float.Parse(aVals[2]), float.Parse(aVals[3]));
-				Quaternion quatBase = new Quaternion(float.Parse(aVals[4]), float.Parse(aVals[5]), float.Parse(aVals[6]), float.Parse(aVals[7]));
-                _aBodies[nBody]._oActor_Base.transform.localPosition = vecBase;
-                _aBodies[nBody]._oActor_Base.transform.localRotation = quatBase;
-                _aBodies[nBody].Pose_Load(sPoseName);
-				nBody += nBodyInc;
-                if (_aBodies[nBody] == null)        //###G ###TEMP
-                    break;
-			}
-        }
-        else {
-			Debug.LogError("Scene_Load() cannot find file " + _sNameScenePose);
-		}
-        SetBodiesAsKinematic(false);      // Resume normal property sets (changes to pose nodes only move the node and not the PhysX bone)
+		//	//###DESIGN: No longer store pose root pos/rot?  (Only anchor?)
+		//	//string[] aVals = sLine.Split(',');	// First line of scene file contains position / rotation of CPoseRoot in comma separated values
+		//	//Vector3 vecBase;		= new Vector3(float.Parse(aVals[0]), float.Parse(aVals[1]), float.Parse(aVals[2]));
+		//	//Quaternion quatBase;	= new Quaternion(float.Parse(aVals[3]), float.Parse(aVals[4]), float.Parse(aVals[5]), float.Parse(aVals[6]));
+		//	//CGame.INSTANCE._oPoseRoot.transform.position = vecBase;
+		//	//CGame.INSTANCE._oPoseRoot.transform.rotation = quatBase;
+
+		//	int nBody, nBodyInc;		// If inverted load 1 then 0, else 0 then 1
+		//	if (bScenePoseFlipped) {
+		//		nBody = 1;
+		//		nBodyInc = -1;
+		//	} else {
+		//		nBody = 0;
+		//		nBodyInc = 1;
+		//	}
+		//	while (oStreamRead.Peek() >= 0) {
+		//		sLine = oStreamRead.ReadLine();
+		//		string[] aVals = sLine.Split(',');			// Scene filename is a very simple text file with one line for each character that contains <PoseFileName>,x,y,z
+		//		string sPoseName = aVals[0];
+		//		Vector3 vecBase = new Vector3(float.Parse(aVals[1]), float.Parse(aVals[2]), float.Parse(aVals[3]));
+		//		Quaternion quatBase = new Quaternion(float.Parse(aVals[4]), float.Parse(aVals[5]), float.Parse(aVals[6]), float.Parse(aVals[7]));
+  //              _aBodyBases[nBody]._oActor_Base.transform.localPosition = vecBase;
+  //              _aBodyBases[nBody]._oActor_Base.transform.localRotation = quatBase;
+  //              _aBodyBases[nBody].Pose_Load(sPoseName);
+		//		nBody += nBodyInc;
+  //              if (_aBodyBases[nBody] == null)        //###G ###TEMP
+  //                  break;
+		//	}
+  //      }
+  //      else {
+		//	Debug.LogError("Scene_Load() cannot find file " + _sNameScenePose);
+		//}
+  //      SetBodiesAsKinematic(false);      // Resume normal property sets (changes to pose nodes only move the node and not the PhysX bone)
     }
 
     public void ScenePose_Save(string sNameScenePose) {
-		_sNameScenePose = sNameScenePose;
-		_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
+		//###BROKEN#11: Some of this in CBodyBase?
+		//_sNameScenePose = sNameScenePose;
+		//_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
 
-		Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
-		string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
-		Debug.Log("Scene_Save() saving scene " + sPathScenePose);
-		StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
-		EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
-		oStreamWrite.WriteLine(ePoseRootPos.ToString());
+		//Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
+		//string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		//Debug.Log("Scene_Save() saving scene " + sPathScenePose);
+		//StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
+		//EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
+		//oStreamWrite.WriteLine(ePoseRootPos.ToString());
 
-		//Vector3 vecBase = CGame.INSTANCE._oPoseRoot.transform.position;
-		//Quaternion quatBase = CGame.INSTANCE._oPoseRoot.transform.rotation;
-		//string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6}", vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
-		//oStreamWrite.WriteLine(sLine);
+		////Vector3 vecBase = CGame.INSTANCE._oPoseRoot.transform.position;
+		////Quaternion quatBase = CGame.INSTANCE._oPoseRoot.transform.rotation;
+		////string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6}", vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
+		////oStreamWrite.WriteLine(sLine);
 	
-		for (int nBody = 0; nBody < 2; nBody++) {			// Iterate through all bodies and save their currently loaded pose and their base position.
-			CBody oBody = _aBodies[nBody];
-			Vector3 vecBase = oBody._oActor_Base.transform.localPosition;
-			Quaternion quatBase = oBody._oActor_Base.transform.localRotation;
-			string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7}", oBody._sNamePose, vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
-			oStreamWrite.WriteLine(sLine);
-		}
-		oStreamWrite.Close();				//###IMPROVE: Save placeholder image?
+		//for (int nBody = 0; nBody < 2; nBody++) {			// Iterate through all bodies and save their currently loaded pose and their base position.
+		//	CBody oBody = _aBodyBases[nBody];
+		//	Vector3 vecBase = oBody._oActor_Base.transform.localPosition;
+		//	Quaternion quatBase = oBody._oActor_Base.transform.localRotation;
+		//	string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7}", oBody._sNamePose, vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
+		//	oStreamWrite.WriteLine(sLine);
+		//}
+		//oStreamWrite.Close();				//###IMPROVE: Save placeholder image?
 	}
 
 	public void Scene_Reload() {
@@ -1282,48 +1296,49 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	//--------------------------------------------------------------------------	COBJECT CALLBACK EVENTS
 
-	public void OnPropSet_Arousal(float nValueOld, float nValueNew) {	//###OBS???
-		const int nCutErection	= 0;		//###OBS?
-		const int nCutCum		= 100;
-		const int nRangeGrowth	= nCutCum - nCutErection;		//###JUNK?
+	//public void OnPropSet_Arousal(float nValueOld, float nValueNew) {	//###OBS???
+	//	const int nCutErection	= 0;		//###OBS?
+	//	const int nCutCum		= 100;
+	//	const int nRangeGrowth	= nCutCum - nCutErection;		//###JUNK?
 
-		if (nValueNew < nCutErection) {
+	//	if (nValueNew < nCutErection) {
 
-			_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f * nValueNew / nCutErection);
-			_oObj.PropSet(EGamePlay.PenisSize, 0);
-			//_oObj.PropSet(EGamePlay.Ejaculation, 0);
+	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f * nValueNew / nCutErection);
+	//		_oObj.PropSet(EGamePlay.PenisSize, 0);
+	//		//_oObj.PropSet(EGamePlay.Ejaculation, 0);
 
-		} else if (nValueNew < nCutCum) {
+	//	} else if (nValueNew < nCutCum) {
 
-			_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);
-			_oObj.PropSet(EGamePlay.PenisSize, 100.0f * (nValueNew - nCutErection) / nRangeGrowth);
-			//_oObj.PropSet(EGamePlay.Ejaculation, 0);
+	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);
+	//		_oObj.PropSet(EGamePlay.PenisSize, 100.0f * (nValueNew - nCutErection) / nRangeGrowth);
+	//		//_oObj.PropSet(EGamePlay.Ejaculation, 0);
 
-		} else {
+	//	} else {
 
-			_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);		//###IMPROVE: Really needed to be fully determinisitic on all properties or can we assume progression will set correctly?
-			_oObj.PropSet(EGamePlay.PenisSize, 100);
-			//_oObj.PropSet(EGamePlay.Ejaculation, 1);
+	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);		//###IMPROVE: Really needed to be fully determinisitic on all properties or can we assume progression will set correctly?
+	//		_oObj.PropSet(EGamePlay.PenisSize, 100);
+	//		//_oObj.PropSet(EGamePlay.Ejaculation, 1);
 
-		}
-	}
+	//	}
+	//}
 
-	public void OnPropSet_FluidConfig(float nValueOld, float nValueNew) {
-		//if (nValueNew == 1)
-		//	CUtility.WndPopup_Create(EWndPopupType.PropertyEditor, new CObject[] { CGame.INSTANCE._oFluid._oObj }, "Fluid Configuration", 0, 0);
-	}
-	public void OnPropSet_PoseRootPos(float nValueOld, float nValueNew) {		// Set the pose root from the user-selected pose root.
-		EPoseRootPos ePoseRootPos = (EPoseRootPos)nValueNew;		// Scene 3D positions to act as 'root' for the CPoseRoot.  MUST match content of folder node Resources/EPoseRootPos!
-		Scene_ApplyPoseRoot(ePoseRootPos);
-	}
+	//public void OnPropSet_FluidConfig(float nValueOld, float nValueNew) {
+	//	//if (nValueNew == 1)
+	//	//	CUtility.WndPopup_Create(EWndPopupType.PropertyEditor, new CObject[] { CGame.INSTANCE._oFluid._oObj }, "Fluid Configuration", 0, 0);
+	//}
+	//public void OnPropSet_PoseRootPos(float nValueOld, float nValueNew) {		// Set the pose root from the user-selected pose root.
+	//	EPoseRootPos ePoseRootPos = (EPoseRootPos)nValueNew;		// Scene 3D positions to act as 'root' for the CPoseRoot.  MUST match content of folder node Resources/EPoseRootPos!
+	//	Scene_ApplyPoseRoot(ePoseRootPos);
+	//}
 
 	
 	//--------------------------------------------------------------------------	IHotspot interface
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
-		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(_aBodies[0], new CObject[] { _oObj });        //###DESIGN: What to do??  ###U
+		//###BROKEN#11: What GUI does CGame has?  Options??
+		//if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
+		//	_oHotSpot.WndPopup_Create(_aBodyBases[0], new CObject[] { _oObj });        //###DESIGN: What to do??  ###U
 	}
 
 
@@ -1338,7 +1353,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		string sPathSuffixToRemove = (Application.isEditor) ? "Unity/Assets" : "Erotic9_Data";			// Application.dataPaty returns a string like "C:/Src/E9/Erotic9/Erotic9_Data" in player but "C:/Src/E9/Unity/Assets" in editor.  We convert this into a string like "D:\Src\E9\Erotic9" for both builds for constant directory access
 		int nPosSuffix = sNameFolder.IndexOf(sPathSuffixToRemove);
 		if (nPosSuffix == -1)
-			throw new CException("CGame.GetFolderPathRuntime() could not recognize dataPath suffix: " + sPathSuffixToRemove);		//###IMPROVE: Do once at start and remember string?
+			CUtility.ThrowException("CGame.GetFolderPathRuntime() could not recognize dataPath suffix: " + sPathSuffixToRemove);		//###IMPROVE: Do once at start and remember string?
 		sNameFolder = sNameFolder.Substring(0, nPosSuffix);
 		if (Application.isEditor)
 			sNameFolder += "Erotic9/";
@@ -1384,18 +1399,3 @@ public enum EPoseRootPos {		//###MOVE Scene 3D positions to act as 'root' for th
 	BedCorner,
 	BedTop,
 }
-
-
-//GameObject oGameGO = GameObject.Find("(CGame)");						//###BUG!!!!!: Not working even though it should!!!  WTF???  Forcing us to use Awake() and 'script execution order'
-//if (oGameGO == null)
-//	throw new CException("ERROR: CGame.INSTANCE called and could not find (CGame) node!! (BUG!!)");	// This will certainly cause calling function to fail but there is nothing we can do!!  //###IMPROVE: Exception?
-//CGame.INSTANCE = oGameGO.GetComponent<CGame>();																			// One and only place where the singleton is set...  *MUST* occur very early on in codebase!!
-//if (CGame.INSTANCE == null)
-//	throw new CException("ERROR: CGame.INSTANCE not found on CGame node!!  (BUG!!)");
-//PhotonNetwork.offlineMode = true;
-//PhotonNetwork.ConnectUsingSettings("0.1");
-
-
-
-//Time.timeScale = (Time.timeScale == 1.0f) ? 0.05f : 1.0f;		//###REVA ###TEMP
-//Debug.Log("TimeScale=" + Time.timeScale.ToString());

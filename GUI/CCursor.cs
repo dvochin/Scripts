@@ -95,7 +95,7 @@ public class CCursor : MonoBehaviour {
 
 	
 	public static CCursor Cursor_Create() {
-		Transform oNodeCursor = Camera.main.transform.FindChild("Cursor");		//###WEAK!!!  Can be simplified!  Create from prefab!
+		Transform oNodeCursor = CUtility.FindChild(Camera.main.transform, "Cursor");		//###WEAK!!!  Can be simplified!  Create from prefab!
 		CCursor oCursor = oNodeCursor.GetComponent<CCursor>();
 		oCursor.Initialize();
 		return oCursor;

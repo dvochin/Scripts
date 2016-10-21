@@ -150,10 +150,10 @@
 //		//=== Initialize Shuriken ===
 //		Transform oFluidShurikenRenderer = Camera.main.transform.FindChild("FluidShurikenRenderer").transform;
 //		if (oFluidShurikenRenderer == null)
-//			throw new CException("ERROR: CFluid.ctor() could not find 'FluidShurikenRenderer' child node under main camera object.");		// Main camera *must* contain a child object called "FluidShurikenRenderer" that contains the Shuriken particle system that will always render the fluid regardless of camera angle.  (Done this way as otherwise the entire fluid would dissapear if its origin is not in the camera frustrum)
+//			CUtility.ThrowException("ERROR: CFluid.ctor() could not find 'FluidShurikenRenderer' child node under main camera object.");		// Main camera *must* contain a child object called "FluidShurikenRenderer" that contains the Shuriken particle system that will always render the fluid regardless of camera angle.  (Done this way as otherwise the entire fluid would dissapear if its origin is not in the camera frustrum)
 //		_oShuriken = oFluidShurikenRenderer.GetComponent<ParticleSystem>();
 //		if (_oShuriken == null)
-//			throw new CException("ERROR: CFluid.ctor() could not find Shuriken particle system in 'FluidShurikenRenderer' camera sub-node");	// FluidShurikenRenderer must contain a properly-configured Shuriken particle system to render the fluid
+//			CUtility.ThrowException("ERROR: CFluid.ctor() could not find Shuriken particle system in 'FluidShurikenRenderer' camera sub-node");	// FluidShurikenRenderer must contain a properly-configured Shuriken particle system to render the fluid
 //		_oShuriken.enableEmission = false;
 //		_oShuriken.Stop();
 //		_oShuriken.GetComponent<Renderer>().sharedMaterial = _oMatFluidParticles;

@@ -13,10 +13,10 @@ public class CClothEdit : MonoBehaviour {
 		_sClothType		= sClothType;
 
 		//        CBody.CBody._aBodies[0].CreateCloth("BodySuit", "_ClothSkinnedArea_Top", "Shirt")      ###One of teh body suits?
-		string sCmd = _oBody._sBlenderInstancePath_CBody + ".CreateCloth('BodySuit', '_ClothSkinnedArea_Top', '" + _sClothType + "')";          //###DESIGN: Pass in all args from Unity?  Blender determines?
+		string sCmd = _oBody._oBodyBase._sBlenderInstancePath_CBodyBase + ".CreateCloth('BodySuit', '_ClothSkinnedArea_Top', '" + _sClothType + "')";          //###DESIGN: Pass in all args from Unity?  Blender determines?
 		CGame.gBL_SendCmd("CBody", sCmd);
 		_sBlenderInstancePath_CClothEdit = "aCloths['" + _sClothType + "']";
 
-		_oClothSource = CBMesh.Create(null, _oBody, _sBlenderInstancePath_CClothEdit + ".oMeshClothSource", typeof(CBMesh));
+		_oClothSource = CBMesh.Create(null, _oBody._oBodyBase, _sBlenderInstancePath_CClothEdit + ".oMeshClothSource", typeof(CBMesh));
 	}
 }

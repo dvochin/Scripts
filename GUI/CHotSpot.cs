@@ -129,8 +129,8 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 
 	//---------------------------------------------------------------------------	CREATION HELPERS
 
-	public void WndPopup_Create(CBody oBody, CObject[] aObjects, float nX = -1, float nY = -1) {			// Create a popup window capable of end-user editing of the public properties of this object.
-		CUtility.WndPopup_Create(oBody, EWndPopupType.PropertyEditor, aObjects, _sNameHotspot, nX, nY);
+	public void WndPopup_Create(CUICanvas oCanvas, CObject[] aObjects, float nX = -1, float nY = -1) {			// Create a popup window capable of end-user editing of the public properties of this object.
+		CUtility.WndPopup_Create(oCanvas, EWndPopupType.PropertyEditor, aObjects, _sNameHotspot, nX, nY);
 	}
 }
 

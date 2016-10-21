@@ -70,7 +70,7 @@
 
 //	public override void UpdateVertsFromBlenderMesh(bool bUpdateNormals) {			// Only called from the context when we're a slave to body... ####DESIGN: Update verts outselves??
 //		base.UpdateVertsFromBlenderMesh(bUpdateNormals);							// First update our verts from Blender, then update PhysX3 with these new vert positions
-//		ErosEngine.SoftBody_Breasts_UpdateCBodyColBreast(_hBodyColBreast, _memVerts.P, _memNormals.P,  _nRadiusSphereBase, _nOutsideProtusion, (int)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._nBodyID));
+//		ErosEngine.SoftBody_Breasts_UpdateCBodyColBreast(_hBodyColBreast, _memVerts.P, _memNormals.P,  _nRadiusSphereBase, _nOutsideProtusion, (int)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._oBodyBase._nBodyID));
 //	}
 
 //	public override void OnDestroy() {
@@ -87,7 +87,7 @@
 //			_memVerts.L[nVertSlave] = _oBreast._memVerts.L[nVertMaster];
 //		}
 //		//=== Update PhysX3 collider ===
-//		ErosEngine.SoftBody_Breasts_UpdateCBodyColBreast(_hBodyColBreast, _memVerts.P, _memNormals.P, _nRadiusSphereBase, _nOutsideProtusion, (int)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._nBodyID));
+//		ErosEngine.SoftBody_Breasts_UpdateCBodyColBreast(_hBodyColBreast, _memVerts.P, _memNormals.P, _nRadiusSphereBase, _nOutsideProtusion, (int)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._oBodyBase._nBodyID));
 
 //		//=== Update optional rendered mesh (for debugging of collider) ===
 //		if (C_EnableRenderer) {

@@ -49,7 +49,7 @@ using System.Collections;
 //			if (transform.localScale.y != 0) {		//###WEAK: We differentiate between a box collider and a plane collider as sizeY=0... can be improved?? (No plane colliders in Unity)
 //				//Vector3 vecScale = new Vector3(transform.lossyScale.x * _oColBox.size.x, transform.lossyScale.y * _oColBox.size.y, transform.lossyScale.z * _oColBox.size.z);
 //				if (_oColBox.size != new Vector3(1, 1, 1))
-//					throw new CException("ERROR in CCollider.OnStart(): Found box collider " + gameObject.name + " with non-unity size");		//###DESIGN: Do we really ignore box size??
+//					CUtility.ThrowException("ERROR in CCollider.OnStart(): Found box collider " + gameObject.name + " with non-unity size");		//###DESIGN: Do we really ignore box size??
 //				_hCollider = ErosEngine.Collider_Box_Create(gameObject.name, nFlags, transform.position, transform.rotation, transform.lossyScale, DensityOrMass, (int)_eColGroup);									// Center must be at 0,0,0, Size (of collider component) at 1,1,1 and object scale can be anything (inverse than sphere & capsule)	###CHECK!!!! ###DESIGN!!! Box only defined by localScale?? 	###LEARN: box size divided by two for compatibility with PhysX
 //			} else {
 //				_hCollider = ErosEngine.Collider_Plane_Create(gameObject.name, nFlags, transform.position, transform.rotation, DensityOrMass, (int)_eColGroup);		//###CHECK: Untested... first test didn't appear to work!

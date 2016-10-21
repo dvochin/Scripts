@@ -35,7 +35,7 @@ public class CGizmo : MonoBehaviour {
 
 		CGizmo oGizmoInPrefab = oGizmoTran.GetComponent<CGizmo>();
 		if (oGizmoInPrefab == null)
-			throw new CException("ERROR: CGizmo could not find CGizmo component in Gizmo prefab!");
+			CUtility.ThrowException("ERROR: CGizmo could not find CGizmo component in Gizmo prefab!");
 
 		oGizmoInPrefab.Initialize(oHotSpot, bMiddleClickOp);
 		
@@ -105,7 +105,7 @@ public class CGizmo : MonoBehaviour {
 				if (Input.GetMouseButtonDown(0)) {			// Trap left mouse down...
 					if (oGizmo != null) {																	//... There should only be one gizmo globally but throw if we find another one!
 						if (oGizmo != this)
-							throw new CException("ERROR: Found a gizmo collider that wasn't 'this' Gizmo");		// If this occurs there is a serious error in the flow that creates CGizmo objects and another one of is created & never removed on screen... dual creation during the same event??
+							CUtility.ThrowException("ERROR: Found a gizmo collider that wasn't 'this' Gizmo");		// If this occurs there is a serious error in the flow that creates CGizmo objects and another one of is created & never removed on screen... dual creation during the same event??
 						GizmoTransform_Begin();
 						_eModeGizmo = EModeGizmo.S2_UserDraggingGizmoPart;
 					}				

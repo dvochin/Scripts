@@ -19,30 +19,26 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		_oSkinMeshRendNow = (SkinnedMeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(SkinnedMeshRenderer));
 
 		////=== Send blender command to obtain the skinned mesh info ===
-		CMemAlloc<byte> memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer("'Client'", "gBL_GetMesh_SkinnedInfo('" + _sNameBlenderMesh + "')", ref memBA);	
-		byte[] oBA = (byte[])memBA.L;			// Setup the deserialization arrays and deserialize the body from Blender
-		int nPosBA = 0;
-		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
+		CByteArray oBA = new CByteArray("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + _sNameCBodyInstanceMember + ".Unity_GetMesh_SkinnedInfo()");
 		
 
 		//===== RECEIVE SKINNING INFORMATION =====
 		Matrix4x4[] aSkinBindPoses 		= null;			//###WEAK: A bit of unfortunate structure imposed on the code because of how late we read the stream versus how we must init vars for skinned mesh...  Can be improved.
 		Transform[]	aSkinBones 			= null;
 		List<BoneWeight> aBoneWeights 	= null;
-		
+
 		//=== Read in the flat array of names of vertex groups.  This will enable us to map the Blender vertex group blends to our fixed Unity bone rig ===
-		byte nVertGroupsMesh = oBA[nPosBA]; nPosBA++;
+		byte nVertGroupsMesh = oBA.ReadByte();
 		aSkinBones = new Transform[nVertGroupsMesh];
 		aSkinBindPoses = new Matrix4x4[nVertGroupsMesh];
 
 		//=== Find the root of our skinning bones from our body's main skinned mesh ===
-		Transform oNodeBoneParentRoot = _oBody._oBodyRootGO.transform.FindChild("Bones");       //###NOW###
+		Transform oNodeBoneParentRoot = CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Bones");
 
 		if (oNodeBoneParentRoot == null)
-			throw new CException("CBMesh is attempting to reconstruct a skinned mesh but was not able to find root node of bones!");
+			CUtility.ThrowException("CBMesh is attempting to reconstruct a skinned mesh but was not able to find root node of bones!");
 		for (byte nVertGroup = 0; nVertGroup < nVertGroupsMesh; nVertGroup++) {
-			string sVertGroup = CUtility.BlenderStream_ReadStringPascal(ref oBA, ref nPosBA);
+			string sVertGroup = oBA.ReadString();
 			Transform oNodeBone = CUtility.FindNodeByName(oNodeBoneParentRoot, sVertGroup);     //###OPT: Recursive on hundreds of bones for hundreds of bones = O squared!!  ###IMPROVE: Find by direct path!
 			if (oNodeBone != null) {
 				//Debug.Log("Bone found for '" + sVertGroup + "'");	
@@ -61,21 +57,21 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 		int nVerts = GetNumVerts();
 		for (int nVert = 0; nVert < nVerts; nVert++) {
-			byte nVertGroups = oBA[nPosBA]; nPosBA++;
+			byte nVertGroups = oBA.ReadByte();
 			float nBoneWeightSum = 0;
             if (nVertGroups >= 5) { 
                 Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has {2} vert groups!", _sNameBlenderMesh, nVert, nVertGroups);
-                throw new CException("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
+                CUtility.ThrowException("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
             }
     
             for (byte nVertGroup = 0; nVertGroup < nVertGroups; nVertGroup++) {		//###IMPROVE: It might be more elegant to shift this code to Blender Python?
-				aBoneIndex[nVertGroup]  = oBA[nPosBA]; nPosBA++;
-				float nBoneWeight = BitConverter.ToSingle(oBA, nPosBA); nPosBA+=4;
+				aBoneIndex[nVertGroup]  = oBA.ReadByte();
+				float nBoneWeight = oBA.ReadFloat();
 				if (nBoneWeight < 0)
 					//Debug.LogError("CBMesh.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
-					throw new CException("CBSkin.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
+					CUtility.ThrowException("CBSkin.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
 				if (nBoneWeight > 1)
-					//throw new CException("CBMesh.ctor() encountered a bone weight over 1 at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
+					//CUtility.ThrowException("CBMesh.ctor() encountered a bone weight over 1 at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 					Debug.LogWarning("CBSkin.ctor() encountered a bone weight over 1 = " + nBoneWeight + " at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 				aBoneWeight[nVertGroup] = nBoneWeight;
 				nBoneWeightSum += nBoneWeight;
@@ -98,11 +94,11 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			Debug.LogWarning("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with out-of-range sums!");
 			
 		//=== Read the number of errors detected when sending over the blender bone weights... what to do?? ===		
-		int nErrorsBoneGroups = BitConverter.ToInt32(oBA, nPosBA); nPosBA+=4;
+		int nErrorsBoneGroups = oBA.ReadInt();
 		if (nErrorsBoneGroups > 0)			//###IMPROVE ###CHECK: What to do???
 			Debug.LogError("###ERROR: CBSkin.ctor() detected " + nErrorsBoneGroups + "	blender-side errors while reading in blender mesh!");
-		
-		CUtility.BlenderSerialize_CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
+
+		oBA.CheckMagicNumber_End();
 
 
 		//=== Finalize the mesh creation by stuffing _oMeshRender into mesh filter or skinned mesh renderer as appropriate ===

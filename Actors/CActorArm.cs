@@ -134,22 +134,22 @@ public class CActorArm : CActor {
 
 		//=== Init Hotspot ===
 		if (_eBodySide == 0)
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));
 		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorArm), "Arm", "Arm" + _sSidePrefixU);
+		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorArm), "Arm", "Arm" + _sSidePrefixU);
 		_oObj.PropGroupBegin("", "", true);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		//_oObj.PropAdd(EActorArm.HandTarget,			"HandTarget",			typeof(EHandTargets), (int)EHandTargets.ManualPosition, "", CProp.Local);
-		_oObj.PropAdd(EActorArm.Hand_UpDown,		"Hand-UpDown",			0,	-100,	100, "", CProp.Local);
-		_oObj.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight",		0,	-100,	100, "", CProp.Local);
-		_oObj.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist",			0,	-100,	100, "", CProp.Local);
-		//_oObj.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Local + CProp.Hide);		//###BROKEN
-		//_oObj.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Local + CProp.Hide);
-		//_oObj.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Local + CProp.Hide);
-		//_oObj.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "", CProp.Local);
+		//_oObj.PropAdd(EActorArm.HandTarget,			"HandTarget",			typeof(EHandTargets), (int)EHandTargets.ManualPosition, "");
+		_oObj.PropAdd(EActorArm.Hand_UpDown,		"Hand-UpDown",			0,	-100,	100, "");
+		_oObj.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight",		0,	-100,	100, "");
+		_oObj.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist",			0,	-100,	100, "");
+		//_oObj.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Hide);		//###BROKEN
+		//_oObj.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Hide);
+		//_oObj.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Hide);
+		//_oObj.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "");
 		_oObj.FinishInitialization();
 
 		_oHandTarget_RaycastPin = CActorArm.FindHandTarget(_oBody, EHandTargets.RaycastPin, _eBodySide == EBodySide.Right);	// Find the raycast pin hand target as we use it heavily and it is reparented

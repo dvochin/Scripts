@@ -31,16 +31,16 @@ public class CActorLeg : CActor {
 
 		//=== Init Hotspot ===
 		if (_eBodySide == 0)            //###IMPROVE: Rediculously long path... switch to 'search for bone' (would not be as fast tho)
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/lThighBend/lThighTwist/lShin/lFoot/lMetatarsals/lToe"), "Left Leg", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/lThighBend/lThighTwist/lShin/lFoot/lMetatarsals/lToe"), "Left Leg", true, new Vector3(0, 0, 0));
 		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/rThighBend/rThighTwist/rShin/rFoot/rMetatarsals/rToe"), "Right Leg", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/rThighBend/rThighTwist/rShin/rFoot/rMetatarsals/rToe"), "Right Leg", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._nBodyID, typeof(EActorLeg), "Leg", "Leg" + _sSidePrefixU);
+		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorLeg), "Leg", "Leg" + _sSidePrefixU);
 		_oObj.PropGroupBegin("", "", true);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.PropAdd(EActorLeg.Thigh_Spread,	"Thigh-Spread",		0,	-100,	100,	"", CProp.Local);
-		_oObj.PropAdd(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"", CProp.Local);
+		_oObj.PropAdd(EActorLeg.Thigh_Spread,	"Thigh-Spread",		0,	-100,	100,	"");
+		_oObj.PropAdd(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"");
 		_oObj.FinishInitialization();
 
 		//_oKeyHook_ThighSpread = new CKeyHook(_oObj.PropFind(EActorLeg.Thigh_Spread), KeyCode.F, EKeyHookType.QuickMouseEdit, "Thigh Spread", -1);

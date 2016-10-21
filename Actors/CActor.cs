@@ -189,7 +189,7 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 			return;
 
 		if (_oConfJoint_Extremity == null)
-			throw new CException("*Err: CActor.PinOrUnpin() called with no extremity joint set!");
+			CUtility.ThrowException("*Err: CActor.PinOrUnpin() called with no extremity joint set!");
 
 		bool bPinned = nValueNew == 1;
         if (CGame.INSTANCE.BoneDebugMode && GetType() != typeof(CActorChest))           // Disable pinning in bone debug mode on extremities so we can test bone orientation
@@ -221,14 +221,14 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	}
 
 	public void AddBaseActorProperties() {
-		_oObj.PropAdd(EActorNode.Pinned,			"Pinned",			0,	"", CProp.Local + CProp.AsCheckbox);
-		_oObj.PropAdd(EActorNode.PosX,				"PosX",				0,	-2,		2,		"", CProp.Local | CProp.Hide);
-		_oObj.PropAdd(EActorNode.PosY,				"PosY",				0,	-2,		2,		"", CProp.Local | CProp.Hide);		//###DESIGN!!!  Bounds???
-		_oObj.PropAdd(EActorNode.PosZ,				"PosZ",				0,	-2,		2,		"", CProp.Local | CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
-		_oObj.PropAdd(EActorNode.RotX,				"RotX",				0,	-9999,	9999,	"", CProp.Local | CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
-		_oObj.PropAdd(EActorNode.RotY,				"RotY",				0,	-9999,	9999,	"", CProp.Local | CProp.Hide);		//###DESIGN: Limits of quaternions
-		_oObj.PropAdd(EActorNode.RotZ,				"RotZ",				0,	-9999,	9999,	"", CProp.Local | CProp.Hide);
-		_oObj.PropAdd(EActorNode.RotW,				"RotW",				1,	-9999,	9999,	"", CProp.Local | CProp.Hide);
+		_oObj.PropAdd(EActorNode.Pinned,			"Pinned",			0,	"", CProp.AsCheckbox);
+		_oObj.PropAdd(EActorNode.PosX,				"PosX",				0,	-2,		2,		"", CProp.Hide);
+		_oObj.PropAdd(EActorNode.PosY,				"PosY",				0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???
+		_oObj.PropAdd(EActorNode.PosZ,				"PosZ",				0,	-2,		2,		"", CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
+		_oObj.PropAdd(EActorNode.RotX,				"RotX",				0,	-9999,	9999,	"", CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
+		_oObj.PropAdd(EActorNode.RotY,				"RotY",				0,	-9999,	9999,	"", CProp.Hide);		//###DESIGN: Limits of quaternions
+		_oObj.PropAdd(EActorNode.RotZ,				"RotZ",				0,	-9999,	9999,	"", CProp.Hide);
+		_oObj.PropAdd(EActorNode.RotW,				"RotW",				1,	-9999,	9999,	"", CProp.Hide);
 	}
 
     void TeleportLinkedPhysxBone() {                // Optionally teleport the attached PhysX bone of the node being moved / rotated.  (This enables pose loads to immediately snap the PhysX body at the right position without jarring PhysX spring problems dragging body parts all around the scene!
@@ -259,7 +259,7 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		//_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.	###CHECK: Hotspot triggers throw this off??
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_oBody.FindClosestCanvas(), new CObject[] { _oObj });
 	}
 
 	public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {

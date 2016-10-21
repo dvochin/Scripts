@@ -31,11 +31,12 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
     //---------------------------------------------------------------------------	INIT
     public override void OnDeserializeFromBlender() {
         base.OnDeserializeFromBlender();
+		transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);			// Parent to our body's main skinned mesh	###WEAK#14: Crappy circumvent way of obtaining node we need early in init!
 
         _sNameSoftBody = GetType().Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
-        _sBlenderInstancePath_CSoftBody = "aSoftBodies['" + _sNameSoftBody + "']";                          // Simplify access to Blender CSoftBody instance
-        _sBlenderInstancePath_CSoftBody_FullyQualfied = _oBody._sBlenderInstancePath_CBody + "." + _sBlenderInstancePath_CSoftBody; // Simplify access to fully-qualified Blender CSoftBody instance (from CBody instance)
-        _oBoneAnchor = _oBody.FindBone(_sNameBoneAnchor_HACK);
+        _sBlenderInstancePath_CSoftBody = ".oBody.aSoftBodies['" + _sNameSoftBody + "']";                          // Simplify access to Blender CSoftBody instance
+        _sBlenderInstancePath_CSoftBody_FullyQualfied = _oBodyBase._sBlenderInstancePath_CBodyBase + _sBlenderInstancePath_CSoftBody; // Simplify access to fully-qualified Blender CSoftBody instance (from CBody instance)
+        _oBoneAnchor = _oBodyBase._oBody._oBodyBase.FindBone(_sNameBoneAnchor_HACK);
 
         //=== Set bounds to infinite so our dynamically-created mesh never has to recalculate bounds ===
         _oMeshNow.bounds = CGame._oBoundsInfinite;          //####IMPROVE: This can hurt performance ####OPT!!
@@ -44,9 +45,9 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
         //=== Create the managing object and related hotspot ===
         _oObj = new CObject(this, 0, typeof(EFlexSoftBody), "SoftBody " + gameObject.name);        //###IMPROVE: Name of soft body to GUI
         _oObj.PropGroupBegin("", "", true);
-        _oObj.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "", CProp.Local);
-        _oObj.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "", CProp.Local);       //###IMPROVE: Log scale!
-        _oObj.PropAdd(EFlexSoftBody.SoftBodyMass,   "Mass",         1.0f, 0.0001f, 1000.0f, "", CProp.Local);
+        _oObj.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "");
+        _oObj.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "");       //###IMPROVE: Log scale!
+        _oObj.PropAdd(EFlexSoftBody.SoftBodyMass,   "Mass",         1.0f, 0.0001f, 1000.0f, "");
         _oObj.FinishInitialization();
         if (GetType() != typeof(CBreastR))          //###HACK!: Right breast doesn't get hotspot (left breast gets it and manually broadcasts to right one)
             _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
@@ -56,9 +57,9 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
         base.FinishIntialization();
 
         //=== Retreive the rim skinned mesh so we can manually set the softbody rim verts to the position & normals for seamless connection to main skinned body ===
-        _oMeshRim = (CBSkinBaked)CBMesh.Create(null, _oBody, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
+        _oMeshRim = (CBSkinBaked)CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
         _oMeshRim.transform.SetParent(transform);
-		CUtility.BlenderSerialize_GetSerializableCollection_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".SerializeCollection_aMapRimVerts()",	out _aMapRimVerts);               // Read the rim traversal map from our CSoftBodyBase instance
+		_aMapRimVerts = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".aMapRimVerts.Unity_GetBytes()");               // Read the rim traversal map from our CSoftBodyBase instance
 
         //=== Backup the position of the particles at startup time (so we can keep softbody from extreme deformation during rapid body movements like pose teleport) ===
         _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
@@ -126,14 +127,14 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
 
 
     //--------------------------------------------------------------------------	UI
-    public virtual void HideShowMeshes(bool bShowPresentation, bool bShowPhysxColliders, bool bShowMeshStartup, bool bShowPinningRims, bool bShowFlexSkinned, bool bShowFlexColliders, bool bShowFlexParticles) {
-        GetComponent<MeshRenderer>().enabled = bShowPresentation;
+    public virtual void HideShowMeshes() {
+        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
         if (_oMeshRim != null)
-            _oMeshRim.GetComponent<SkinnedMeshRenderer>().enabled = bShowPinningRims;
+            _oMeshRim.GetComponent<SkinnedMeshRenderer>().enabled = CGame.INSTANCE.ShowPinningRims;
         if (_oMeshPinnedParticles != null)
-            _oMeshPinnedParticles._oSkinMeshRendNow.enabled = bShowPinningRims;
+            _oMeshPinnedParticles._oSkinMeshRendNow.enabled = CGame.INSTANCE.ShowPinningRims;
         if (_oFlexParticlesRenderer != null)
-            _oFlexParticlesRenderer.enabled = bShowFlexParticles;
+            _oFlexParticlesRenderer.enabled = CGame.INSTANCE.ShowFlexParticles;
     }
 
 
@@ -145,7 +146,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
 
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {		//###DESIGN? Currently an interface call... but if only GUI interface occurs through CObject just have cursor directly invoke the GUI_Create() method??
 		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(_oBody, new CObject[] { _oObj });
+			_oHotSpot.WndPopup_Create(_oBodyBase._oBody.FindClosestCanvas(), new CObject[] { _oObj });
 	}
 
     public void OnPropSet_Volume(float nValueOld, float nValueNew) {
@@ -153,7 +154,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
         for (int nShapeIndex = 0; nShapeIndex < _oFlexShapeMatching.m_shapeIndicesCount; nShapeIndex++)
             _oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _aShapeRestPosOrig[nShapeIndex] * nValueNew;
         if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
-            _oBody._oBreastR.OnPropSet_Volume(nValueOld, nValueNew);
+            _oBodyBase._oBody._oBreastR.OnPropSet_Volume(nValueOld, nValueNew);
         //Debug.LogFormat("SoftBody Volume: {0}", nValueNew);
     }
 
@@ -161,7 +162,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
         for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++)
             _oFlexShapeMatching.m_shapeCoefficients[nShape] = nValueNew;
         if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
-            _oBody._oBreastR.OnPropSet_Stiffness(nValueOld, nValueNew);
+            _oBodyBase._oBody._oBreastR.OnPropSet_Stiffness(nValueOld, nValueNew);
         //Debug.LogFormat("SoftBody Stiffness: {0}", nValueNew);               //###IMPROVE: Remove per-function logging and add flag so CProp does it (with various logging levels)
     }
 
@@ -175,7 +176,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
    //         _oSoftFlexParticles.m_particles[nVertTetra].invMass = 0;
    //     }
         if (GetType() == typeof(CBreastL))          //###HACK!: Manually call right breast equivalent from left breast... crappy hack to avoid forming a CBreasts object to broadcast to both
-            _oBody._oBreastR.OnPropSet_SoftBodyMass(nValueOld, nValueNew);
+            _oBodyBase._oBody._oBreastR.OnPropSet_SoftBodyMass(nValueOld, nValueNew);
         //Debug.LogFormat("SoftBody Mass {0}", nValueNew);
     }
 }

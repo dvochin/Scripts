@@ -18,12 +18,12 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
     public static CJointDriver Create(CActor oActor, CJointDriver oJointDrvParent, string sNameBone, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL, int nFinalized=0) {
         Transform oTransform;
         if (oJointDrvParent == null)
-            oTransform = oActor._oBody._oBonesT.FindChild(sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
+            oTransform = CUtility.FindChild(oActor._oBody._oBodyBase._oBonesT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
         else
-            oTransform = oJointDrvParent.transform.FindChild(sNameBone);
+            oTransform = CUtility.FindChild(oJointDrvParent.transform, sNameBone);
 
         if (oTransform == null)
-            throw new CException("CJointDriver.Create() cannot find bone " + sNameBone);
+            CUtility.ThrowException("CJointDriver.Create() cannot find bone " + sNameBone);
         CJointDriver oJointDriver = CUtility.FindOrCreateComponent(oTransform.gameObject, typeof(CJointDriver)) as CJointDriver;
         oJointDriver.Initialize(oActor, oJointDrvParent, nDriveStrengthMult, nMass, XL, XH, YHL, ZHL, nFinalized!=0);
         return oJointDriver;
@@ -72,7 +72,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
             //=== Set the joint limits as per our arguments ===
             bool bInvertX = (_XL > _XH);                    //###OBS??? If the logical range is inverted we can't send this to PhysX as lowAngularXLimit MUST be < than highAngularXLimit!
 			if (bInvertX)
-				throw new CException("Inverted XL / XH in bone " + gameObject.name);		//###CHECK
+				CUtility.ThrowException("Inverted XL / XH in bone " + gameObject.name);		//###CHECK
 		    SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
 		    oJL.limit = bInvertX ? _XH : _XL;	_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
 		    oJL.limit = bInvertX ? _XL : _XH;	_oConfJoint.highAngularXLimit = oJL;
