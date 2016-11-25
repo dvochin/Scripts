@@ -232,8 +232,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (_oBodyBase._eBodySex != EBodySex.Man) {
-			_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
-            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
+			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
+            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
         }
         if (_oBodyBase._eBodySex == EBodySex.Woman) {
             //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
