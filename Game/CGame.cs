@@ -133,8 +133,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     public float BoneDriveStrength = 0.1f;				// The default angular drive for all bones.  Multiplied by a per-bone multiplier.  Hugely important.  ###TUNE
 
     //---------------------------------------------------------------------------	VISIBLE GAME OPTIONS
-    public bool			_DemoVersion;		// When defined, the app builds for demo mode (no penetration)		###MOVE!
-						public	EGameModes	_GameModeAtStartup = EGameModes.Configure;
+						public bool			_DemoVersion;		// When defined, the app builds for demo mode (no penetration)		###MOVE!
+						public	EGameModes	_GameModeAtStartup = EGameModes.MorphBody;
 						public	EGameModes	_GameMode = EGameModes.None;
 						public 	int 		_TargetFrameRate = 25;
 						public float		_nAnimMult_Time = 1;
@@ -173,9 +173,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	[HideInInspector]	public	bool			_bGameModeBasicInteractions;		// When in basic interaction mode game is not showing the hotspots and editing is limited (to be more 'play like' = normal play mode)
 
 	[HideInInspector]	public	int				_nSelectedBody;
-	[HideInInspector]	public	int				_nNumPenisInScene_BROKEN;
+	//[HideInInspector]	public	int				_nNumPenisInScene_BROKEN;
 	[HideInInspector]	public	bool			_GameIsRunning = false;			// When true all FixedUpdate() functions of any object can / should update themselves with FastPhysics (e.g. kinematic colliders)  //###DESIGN: Can get rid of this flag and just test for CGame.enabled??
-	[HideInInspector]	public	int				_nFluidParticleRemovedByOverflow_HACK;
+	//[HideInInspector]	public	int				_nFluidParticleRemovedByOverflow_HACK;
 	[HideInInspector]	public	uint			_nFrameCount_MainUpdate;		// Number of calls to 'FixedUpdate()'  Used to efficiently perform tasks that don't need to run every frame.  ###DESIGN: Keep???
 	[HideInInspector]	public 	System.Random _oRnd = new System.Random(1234);
 	[HideInInspector]	public	float			_nTimeStartOfCumming;
@@ -195,10 +195,10 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     float               _nMinFpsPrevious = 25, _nMinFpsNow;
     //int                 _nFpsCollectionCount;							//###IMPROVE: Use / display this to decrease GC calls!
     string              _sFPS;
-	public 	CHotSpot			_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
+	public 	CHotSpot	_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
 
     //---------------------------------------------------------------------------	CONSTANTS		###MOVE???
-
+	//###MOVE
     [HideInInspector]	public const string		C_RelPath_Textures = "/Unity/Assets/Resources/";
 	[HideInInspector]	public const int		C_PropAutoUpdatePeriod	= 100;			// Number of _nFpsFrames between CObject property auto refresh.
 	[HideInInspector]	public const float		C_BodySeparationAtStart = 0.0f;		//###TUNE ####DISABLED ####DESIGN: Revisit this?
@@ -215,9 +215,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	public	CBodyBase[]		_aBodyBases = new CBodyBase[1];	// Our collection of body bases.  Used to morph / configure bodies before CBody is created for gameplay
 	public	float			_nTimeReenableCollisions;		// Time when collisions should be re-enabled (Temporarily disabled during pose load)
 
-	const float				C_TimeToMaxOrgasm_OBSOLETE = 20;			// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
+	//const float				C_TimeToMaxOrgasm_OBSOLETE = 20;			// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
 
-	public  bool			_bPenisInVagina;			//###DESIGN!!: ###MOVE?? Belongs here?? Prevents penis from generating dynamic CBodyCol colliders to repell it.  Set when entering vagina
+	//public  bool			_bPenisInVagina;			//###DESIGN!!: ###MOVE?? Belongs here?? Prevents penis from generating dynamic CBodyCol colliders to repell it.  Set when entering vagina
 
 	public string			_sNameScenePose;				// The currently loaded scene pose
 	public bool				_bScenePoseFlipped;             // If set the scene pose is 'flipped' (i.e. Pose for body a loaded into body b and vice versa)
@@ -226,10 +226,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
 
-	public class CFuckOff : MonoBehaviour {         // CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
-		public string s;
-		public void Update() { Debug.Log("FUCKOFF" + s); }
-	}
 
     #region === INIT
     public void Start() {
@@ -266,14 +262,14 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         _oTextUR = GameObject.Find("/UI/CanvasScreen/UR/Text-UR").GetComponent<Text>();
 
 		//=== Create user-adjustable top-level game options ===
-		_oObj = new CObject(this, 0, typeof(EGamePlay), "Erotic9");		//###TEMP!!! Main game name in this low-importance GUI???
+		_oObj = new CObject(this, 0, typeof(EGamePlay), "EroticVR");		//###TEMP!!! Main game name in this low-importance GUI???
 		_oObj.PropGroupBegin("", "", true);		//###CLEANUP
 		//_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
 		//_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
 		//_oObj.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)");
 		//_oObj.PropAdd(EGamePlay.PenisSize,			"Penis Size",	0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
 		//_oObj.PropAdd(EGamePlay.PenisErectionMax,	"Erection",		0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
-		//_oObj.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the Erotic9 fluid simulator.  (Advanced)", CProp.AsButton);
+		//_oObj.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the EroticVR fluid simulator.  (Advanced)", CProp.AsButton);
 		_oObj.FinishInitialization();
         _oHotSpot = CHotSpot.CreateHotspot(this, transform, "Game Options", false, new Vector3(0, 0.0f, 0.0f), 1.0f);
 
@@ -282,7 +278,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         //}
 
 
-		float nDelayForGuiCatchup = _bRunningInEditor ? 0.2f : 0.01f;		//###HACK? ###TUNE: Adjustable delay to give iGUI time to update 'Game is Loading' message, with some extra time inserted to make Unity editor appear more responsive during game awake time
+		//float nDelayForGuiCatchup = _bRunningInEditor ? 0.2f : 0.01f;		//###HACK? ###TUNE: Adjustable delay to give iGUI time to update 'Game is Loading' message, with some extra time inserted to make Unity editor appear more responsive during game awake time
 		///yield return new WaitForSeconds(nDelayForGuiCatchup);
 
 		//=== Send async call to authentication so it is ready by the time game has initialized ===
@@ -291,7 +287,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 //			if (Application.internetReachability != NetworkReachability.NotReachable) {		//###CHECK!!!
 //				//####BROKEN?! Why store it if we don't use it? string sMachineID = PlayerPrefs.GetString(G.C_PlayerPref_MachineID);
 //				string sMachineID = CGame.GetMachineID();		//###CHECK Can cause problems if switching adaptors frequently?
-//				oWWW = new WWW("http://www.erotic9.net/cgi-bin/CheckUser.py?Action=Authenticate&MachineID=" + sMachineID);
+//				oWWW = new WWW("http://www.EroticVR.net/cgi-bin/CheckUser.py?Action=Authenticate&MachineID=" + sMachineID);
 //			} else {
 //				Debug.LogError("Warning: Could not authenticate because of Internet unreacheability.");
 //			}
@@ -323,7 +319,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//=== Spawn Blender process ===
 		Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
 		_hWnd_Unity = (IntPtr)GetActiveWindow();			// Just before we start Blender obtain the HWND of our Unity editor / player window.  We will need this to re-activate our window.  (Starting blender causes it to activate and would require user to alt-tab back to game!!)
-		_oProcessBlender = CGame.LaunchProcessBlender("Erotic9.blend");
+		_oProcessBlender = CGame.LaunchProcessBlender("EroticVR.blend");
 		if (_oProcessBlender == null)
 			CUtility.ThrowException("ERROR: Could not start Blender!  Game unusable.");
         //_nWnd_Blender_HACK = (IntPtr)GetActiveWindow();
@@ -359,7 +355,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		_ShowFPS = _ShowSysInfo = _bRunningInEditor;
 		
 		//###IMPROVE: Disabled until we need to save CPU cycles...  Create upon user demand to record script!
-		//_oScriptRecordUserActions = new CScriptRecord(GetPathScript("RecordedScript"), "Automatically-generated Erotic9 Scene Interation Script");
+		//_oScriptRecordUserActions = new CScriptRecord(GetPathScript("RecordedScript"), "Automatically-generated EroticVR Scene Interation Script");
 
 		_oPoseRoot = GameObject.Find("CPoseRoot").GetComponent<CPoseRoot>();
 		_oPoseRoot.OnStart();
@@ -495,8 +491,14 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         if (_GameIsRunning == false)                //###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
             return;
 
-        //=== Store global key modifiers & mouse buttons for this game frame for efficiency ===
-        _bKeyShift      = Input.GetKey(KeyCode.LeftShift)   || Input.GetKey(KeyCode.RightShift);
+		if (Input.GetKeyDown(KeyCode.Alpha0)) {
+			string[] aJoyNames = Input.GetJoystickNames();          //###TEMP<17>
+			foreach (string sJoyName in aJoyNames)
+				Debug.LogErrorFormat("Joystick: " + sJoyName);
+		}
+
+		//=== Store global key modifiers & mouse buttons for this game frame for efficiency ===
+		_bKeyShift      = Input.GetKey(KeyCode.LeftShift)   || Input.GetKey(KeyCode.RightShift);
         _bKeyControl    = Input.GetKey(KeyCode.LeftControl) || Input.GetKey(KeyCode.RightControl);
         _bKeyAlt        = Input.GetKey(KeyCode.LeftAlt)     || Input.GetKey(KeyCode.RightAlt);
         _bMouseBtnRight = Input.GetMouseButton(1);
@@ -513,11 +515,14 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         }
 
 		if (Input.GetKeyDown(KeyCode.F1))           //####TEMP?
-            ChangeGameMode(EGameModes.Configure);
-        if (Input.GetKeyDown(KeyCode.F2))
-            ChangeGameMode(EGameModes.Play);
+            ChangeGameMode(EGameModes.MorphBody);
+		if (Input.GetKeyDown(KeyCode.F2))
+			ChangeGameMode(EGameModes.CutCloth);
+		if (Input.GetKeyDown(KeyCode.F3))
+			ChangeGameMode(EGameModes.Play);
 
-        if (Input.GetKeyDown(KeyCode.F11))			//####TEMP
+
+		if (Input.GetKeyDown(KeyCode.F11))			//####TEMP
             HoldSoftBodiesInReset(false);
         if (Input.GetKeyDown(KeyCode.F12))
             HoldSoftBodiesInReset(true);
@@ -950,32 +955,39 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     //---------------------------------------------------------------------------	GAME MODES
 
     public void ChangeGameMode(EGameModes eGameMode) {
-		//###NOW#11: Huge shift in meaning!  Remove the old crap!
+		//###TODO<11>: Huge shift in meaning!  Remove the old crap!
 
 		if (_GameMode == eGameMode)
 			return;
 
 		_GameMode = eGameMode;
 
-        switch (_GameMode) {
-        	case EGameModes.Play:
+		//=== First disable all the other non-editing bodies so they are not visible to the player during his/her configuration of one body ===
+		int nBodyToMorph = 0;                 //###TODO<11>!!: Select which body to edit from closest to cam or button? Move this to global var!!
+		if (_GameMode != EGameModes.Play) {
+			for (int nBody = 0; nBody < _aBodyBases.Length; nBody++)
+				if (nBody != nBodyToMorph)			
+					_aBodyBases[nBody].OnChangeBodyMode(EBodyBaseModes.Disabled);
+		}
+
+		switch (_GameMode) {
+			case EGameModes.MorphBody:
+				_aBodyBases[nBodyToMorph].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
+				break;
+			case EGameModes.CutCloth:
+				_aBodyBases[nBodyToMorph].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
+				break;
+			case EGameModes.Play:
 				foreach (CBodyBase oBodyBase in _aBodyBases)				// Entering play mode.  Tell all body bases to get the game-time body ready.
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.Play);
                 Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
-                ScenePose_Load("Standing", false);      //###G ###DESIGN!!
+                ScenePose_Load("Standing", false);      //###DESIGN<17>: When to do this and where??
         		break;
-        	case EGameModes.Configure:
-				int nBodyToConfigure = 0;                 //###TODO#11: Select which body to edit from closest to cam or button?
-				for (int nBody = 0; nBody < _aBodyBases.Length; nBody++)
-					if (nBody != nBodyToConfigure)		// First disable all the other bodies so they are not visible to the player during his/her configuration of one body
-						_aBodyBases[nBodyToConfigure].OnChangeBodyMode(EBodyBaseModes.Disabled);
-				_aBodyBases[nBodyToConfigure].OnChangeBodyMode(EBodyBaseModes.Configure);		// Enter configuration mode for the selected body
-				break;
         }
         HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
-		//###BROKEN#11
+		//###BROKEN<11>
         //foreach (CBody oBody in _aBodyBases)
         //    if (oBody != null)
         //        oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
@@ -1039,7 +1051,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	//---------------------------------------------------------------------------	MISC
 
 	public void Cum_Stop() {            // Stop all cumming and Wipe away cum (reset fluid)
-		//###BROKEN#11
+		//###BROKEN<11>
 		//foreach (CBody oBody in _aBodyBases)
 		//	if (oBody != null)
 		//		oBody.SetIsCumming(false);
@@ -1080,7 +1092,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 
 	public static System.Diagnostics.Process LaunchProcessBlender(string sNameBlenderFile, System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
-		string sFileProcess = CGame.GetPathBlenderApp();
+		string sFileProcess = CGame.GetPathBlenderApp();		//###TODO<17> Name
         string sArguments = string.Format("\"{0}/{1}\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends(), sNameBlenderFile);       //###IMPROVE: Don't show console during releases!
 		System.Diagnostics.Process oProcess = CGame.LaunchProcess(sFileProcess, sArguments, false, eWinStyle);	//###IMPROVE: Try to redirect!
 		oProcess.Exited				+= oProcess_Exited;
@@ -1113,7 +1125,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     //---------------------------------------------------------------------------	UTILITY
 
     public static CBody GetSelectedBody() {
-		return null;		//###BROKEN#11	CGame.INSTANCE._aBodyBases[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
+		return null;		//###BROKEN<11>	CGame.INSTANCE._aBodyBases[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
 	}
 
 	public static void SetGuiMessage(EGameGuiMsg eGameGuiMsg, string sMsg) {
@@ -1141,7 +1153,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		WWW oWWW = new WWW(sURL);
 		while (oWWW.isDone == false && oWWW.error == null) { }			//###HACK!!!!
 		if (oWWW.error != null)
-			CUtility.ThrowException("Error connecting to Erotic9 server: " + oWWW.error);
+			CUtility.ThrowException("Error connecting to EroticVR server: " + oWWW.error);
 		string sResult = oWWW.text;					//###IMPROVE: Decode what machine ID was previously assigned?
 		return sResult;
 	}
@@ -1190,7 +1202,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	//}
 
 	public CBody FindFirstCharacterWithPenis() {
-		//###OBS???  ###BROKEN#11
+		//###OBS???  ###BROKEN<11>
 		//foreach (CBody oBody in _aBodyBases) {
 		//	if (oBody._eBodySex != EBodySex.Woman) 
 		//		return oBody;
@@ -1198,7 +1210,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		return null;
 	}
 	public CBody GetBodyOther(CBody oBody) {        // Returns the other body.  Assumes only a 2-body scene.
-		return null;		//###BROKEN#11
+		return null;		//###BROKEN<11>
 		//if (oBody == _aBodyBases[0])		//###DESIGN: Revisit this once we fix assumptions as to bodies in body 0/1
 		//	return _aBodyBases[1];
 		//else
@@ -1208,7 +1220,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	//--------------------------------------------------------------------------	SCENE LOAD / SAVE  ###MOVE??
 
 	public void ScenePose_Load(string sNameScenePose, bool bScenePoseFlipped) {		// Load a 'scene' = The pose & position of each character plus CPoseRoot position.  bInvert loads pose for body 2 into body 1 and vice versa
-		//###BROKEN#11: Some of this in CBodyBase?
+		//###BROKEN<11>: Some of this in CBodyBase?
 
 		//string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 
@@ -1258,7 +1270,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     }
 
     public void ScenePose_Save(string sNameScenePose) {
-		//###BROKEN#11: Some of this in CBodyBase?
+		//###BROKEN<11>: Some of this in CBodyBase?
 		//_sNameScenePose = sNameScenePose;
 		//_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
 
@@ -1336,7 +1348,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
-		//###BROKEN#11: What GUI does CGame has?  Options??
+		//###BROKEN<11>: What GUI does CGame has?  Options??
 		//if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
 		//	_oHotSpot.WndPopup_Create(_aBodyBases[0], new CObject[] { _oObj });        //###DESIGN: What to do??  ###U
 	}
@@ -1348,17 +1360,17 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	//---------------------------------------------------------------------------	FOLDERS
 
-	public static string GetFolderPathRuntime() {					// Returns the path to the Erotic9 root directory, whether we are an editor build or a player build  ###NOTE: Assumes the editor build and player build are in the same parent directory!!!
+	public static string GetFolderPathRuntime() {					// Returns the path to the EroticVR root directory, whether we are an editor build or a player build  ###NOTE: Assumes the editor build and player build are in the same parent directory!!!
 		string sNameFolder = Application.dataPath;
-		string sPathSuffixToRemove = (Application.isEditor) ? "Unity/Assets" : "Erotic9_Data";			// Application.dataPaty returns a string like "C:/Src/E9/Erotic9/Erotic9_Data" in player but "C:/Src/E9/Unity/Assets" in editor.  We convert this into a string like "D:\Src\E9\Erotic9" for both builds for constant directory access
+		string sPathSuffixToRemove = (Application.isEditor) ? "Unity/Assets" : "EroticVR_Data";			// Application.dataPaty returns a string like "C:/Src/E9/EroticVR/EroticVR_Data" in player but "C:/Src/E9/Unity/Assets" in editor.  We convert this into a string like "D:\Src\E9\EroticVR" for both builds for constant directory access
 		int nPosSuffix = sNameFolder.IndexOf(sPathSuffixToRemove);
 		if (nPosSuffix == -1)
 			CUtility.ThrowException("CGame.GetFolderPathRuntime() could not recognize dataPath suffix: " + sPathSuffixToRemove);		//###IMPROVE: Do once at start and remember string?
 		sNameFolder = sNameFolder.Substring(0, nPosSuffix);
 		if (Application.isEditor)
-			sNameFolder += "Erotic9/";
+			sNameFolder += "EroticVR/";
 		sNameFolder += "Runtime/";
-		return sNameFolder;				// This should always return a string like "D:/Src/E9/Erotic9/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
+		return sNameFolder;				// This should always return a string like "D:/Src/E9/EroticVR/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
 	}
 
 	public static string GetPathPoses() { return GetFolderPathRuntime() + "Poses/"; }
@@ -1369,7 +1381,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	public static string GetPathScreenCaptures() { return GetFolderPathRuntime() + "ScreenCaptures/"; }
 	public static string GetPathBlends() { return GetFolderPathRuntime() + "Blends"; }
     public static string GetPathBlender()				{ return GetFolderPathRuntime() + "Blender"; }
-    //public static string GetPathBlender()			    { return "C:/src/E9/Erotic9/Runtime/Blender" }
+    //public static string GetPathBlender()			    { return "C:/src/E9/EroticVR/Runtime/Blender" }
     //public static string GetPathBlender()			    { return "C:/src/E9/blender-build/bin/Debug"; }	//###HACK!!!
     public static string GetPathBlenderApp()			{ return GetPathBlender() + "/blender.exe"; }
 	

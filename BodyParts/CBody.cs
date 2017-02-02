@@ -144,7 +144,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
     public List<CSoftBody>	    _aSoftBodies	= new List<CSoftBody>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
-	public List<CBCloth>		_aCloths		= new List<CBCloth>();	//###OBS#14???  Belongs to base??	// List of our simulated cloth.  Used to iterate during runtime
+	public List<CBCloth>		_aCloths		= new List<CBCloth>();	//###OBS<14>???  Belongs to base??	// List of our simulated cloth.  Used to iterate during runtime
 
 	//---------------------------------------------------------------------------	ACTORS
 	public CActorNode			_oActor_Base;			// The smart 'actors' associated with our body.  Adds much intelligent functionality!
@@ -173,7 +173,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 	//CKeyHook _oKeyHook_PenisBaseUpDown;
 	//CKeyHook _oKeyHook_PenisShaftUpDown;
 	//CKeyHook _oKeyHook_PenisDriveStrengthMax;
-	CKeyHook _oKeyHook_ChestUpDown;
+	//CKeyHook _oKeyHook_ChestUpDown;
 
 	//---------------------------------------------------------------------------	MISC
 	///CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
@@ -187,9 +187,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 	public CUICanvas[] _aUICanvas = new CUICanvas[2];           // The UI canvases that display various user interface panels to provide end-user edit capability on this body.  One for each left / right.
 
-    public CBody(CBodyBase oBodyBase) {		//###NOW#11
+    public CBody(CBodyBase oBodyBase) {		//###NOW<11>
 		_oBodyBase = oBodyBase;
-		_oBodyBase._oBody = this;           //###WEAK#13: Convenience early-set of our instance into owning parent.  Needed as some of init code needs to access us from our parent! ###DESIGN!
+		_oBodyBase._oBody = this;           //###WEAK<13>: Convenience early-set of our instance into owning parent.  Needed as some of init code needs to access us from our parent! ###DESIGN!
 		_oBodySkinnedMeshGO_HACK = new GameObject("RuntimeBody");       // Create the game object that will contain our important CBody component early (complex init tree needs it!)
 		_oBodySkinnedMeshGO_HACK.transform.SetParent(_oBodyBase._oBodyRootGO.transform);
 		_bEnabled = true;			// Enabled at creation by defnition.
@@ -204,7 +204,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//_oObj.PropAdd(EBodyDef.ClothingBottom,	"Bottom Clothing",	typeof(EBodyClothingBottom_HACK), 0, "" + CProp.Hide);	//###BROKEN: Need to switch off vagina soft body!!
 		//_oObj.PropAdd(EBodyDef.Hair,			"Hair",				typeof(EBodyHair), 0,	"");
 		//_oObj.PropAdd(EBodyDef.BtnUpdateBody,	"Update Body",		0,	"", CProp.AsButton);
-		_oObj.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN#11
+		_oObj.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN<11>
 		_oObj.FinishInitialization();
 
 		//=== Give some reasonable defaults to use when game loads ===		###TODO: Load these from the user's last used body definitions!		####TEMP ####DESIGN: Load from user pref or file?  NOT IN CODE!!
@@ -232,8 +232,8 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (_oBodyBase._eBodySex != EBodySex.Man) {
-			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
-            //_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
+			_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
+            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
         }
         if (_oBodyBase._eBodySex == EBodySex.Woman) {
             //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
@@ -277,7 +277,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//===== MAIN SKINNED BODY PROCESSING =====
 		//=== Get the main body skinned mesh (has to be done once all softbody parts have been detached) ===
-        _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodySkinnedMeshGO_HACK, _oBodyBase, ".oBody.oMeshBody", typeof(CBSkin)); //###IMPROVE#13: Create blender instance string for our CBody?
+        _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodySkinnedMeshGO_HACK, _oBodyBase, ".oBody.oMeshBody", typeof(CBSkin)); //###IMPROVE<13>: Create blender instance string for our CBody?
 		_oBodySkinnedMesh.name = "GametimeBody";
 		//_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
@@ -320,13 +320,13 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//		_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
 		//	}
 		//}
-		_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
+		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Create the face and its associated morph channels ===
 		///_oFace = (CFace)CBMesh.Create(null, this, "oMeshFace", typeof(CFace));
 
 		//=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
-		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN#15! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN<15>! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
 		_oActor_Base.gameObject.name = _oBodyBase._sBodyPrefix + "_Base";
 
 		//=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
@@ -366,10 +366,10 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		CGame.gBL_SendCmd("CBody", _oBodyBase._sBlenderInstancePath_CBodyBase + ".oBody.CreateFlexCollider(" + CGame.INSTANCE.nDistFlexColliderShrinkMult + ")");
 		_oBodyFlexCollider = (CBSkin)CBMesh.Create(null, _oBodyBase, ".oBody.oMeshFlexCollider", typeof(CBSkin));
 		_oBodyFlexCollider.name = "FlexCollider";
-		_oBodyFlexCollider.transform.SetParent(_oBodySkinnedMesh.transform);		//###IMPROVE#15: Put this common re-parenting and re-naming in Create!
+		_oBodyFlexCollider.transform.SetParent(_oBodySkinnedMesh.transform);		//###IMPROVE<15>: Put this common re-parenting and re-naming in Create!
 		_oBodyFlexCollider.gameObject.AddComponent<CFlexSkinnedBody>();
 		_oBodyFlexCollider.GetComponent<SkinnedMeshRenderer>().enabled = false;     //###IMPROVE: Move into CFlexSkinnedBody??
-		_oBodyFlexCollider.UpdateNormals();			//###NOW#15
+		_oBodyFlexCollider.UpdateNormals();			//###NOW<15>
 	}
 
 	public CUICanvas FindClosestCanvas() {				// Find the closest body canvas to the camera.  Used to insert new GUI panel at most appropriate editing spot left of right of body.
@@ -400,7 +400,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 			oActor.OnStart(this);
 	}
 
-	public void Destroy() {             //###TODO#15: ###OBS? Needed still with DoDestory()  Merge!
+	public void Destroy() {             //###TODO<15>: ###OBS? Needed still with DoDestory()  Merge!
 		//Debug.Log("CBody.OnDestroy(): " + _oBodyBase._sBodyPrefix);
 		//foreach (CActor oActor in _aActors)
 		//	GameObject.DestroyImmediate(oActor);
@@ -494,11 +494,11 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
     }
 
     public void SetBodiesAsKinematic(bool bBodiesAreKinematic) {       // Set body as kinematic or not (used for pose loading / teleportation)
-        EGameModes eGameModeSrc = EGameModes.Configure;
+        EGameModes eGameModeSrc = EGameModes.MorphBody;
         EGameModes eGameModeDst = EGameModes.Play;
         if (bBodiesAreKinematic) {
             eGameModeSrc = EGameModes.Play;
-            eGameModeDst = EGameModes.Configure;
+            eGameModeDst = EGameModes.MorphBody;
         }
         foreach (CActor oActor in _aActors)
             oActor.OnChangeGameMode(eGameModeDst, eGameModeSrc);        //###DESIGN Closely related to game mode... merge in within a new game mode??
@@ -553,7 +553,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		Transform oBoneT = _oBodyBase.FindBone(sPathBone);
 		oPinT.position = oBoneT.position;
 	}
-	public void SelectBody() {			//###MOVE#11: To base?
+	public void SelectBody() {			//###MOVE<11>: To base?
 		CGame.INSTANCE._nSelectedBody = _oBodyBase._nBodyID;
 		CGame.SetGuiMessage(EGameGuiMsg.SelectedBody, _oBodyBase._sHumanCharacterName);
 	}
@@ -577,7 +577,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		return "Body" + chBodyID;						// Body prefixes look like 'BodyA', 'BodyB', etc
 	}
 	public void SetIsCumming(bool bIsCumming) {	// Only one character can cum at a time as there is only one fluid.  Configure the fluid for our usage
-		//###BROKEN#11
+		//###BROKEN<11>
 		_bIsCumming = bIsCumming;
 
 		if (_bIsCumming) {
@@ -617,22 +617,22 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         return false;       //###NOW### ###BROKEN Poses!
 
 
-		string sPathPose = CGame.GetPathPoseFile(sNamePose);
-		if (File.Exists(sPathPose) == false) {
-			Debug.LogError("CBody.Pose_Load() could not find file " + sPathPose);
-			return false;
-		}
-		_sNamePose = sNamePose;
-		_oActor_Pelvis._eAnimMode = EAnimMode.Stopped;		// Cancel animation on sex bone on pose load
-		CGame.INSTANCE.Cum_Stop();			// Stop & clear cum upon a pose loading on any body.
+		//string sPathPose = CGame.GetPathPoseFile(sNamePose);
+		//if (File.Exists(sPathPose) == false) {
+		//	Debug.LogError("CBody.Pose_Load() could not find file " + sPathPose);
+		//	return false;
+		//}
+		//_sNamePose = sNamePose;
+		//_oActor_Pelvis._eAnimMode = EAnimMode.Stopped;		// Cancel animation on sex bone on pose load
+		//CGame.INSTANCE.Cum_Stop();			// Stop & clear cum upon a pose loading on any body.
 
-		_oScriptPlay.LoadScript(sPathPose);
-		_oScriptPlay.ExecuteAll();			// Execute all statements in file without pausing
+		//_oScriptPlay.LoadScript(sPathPose);
+		//_oScriptPlay.ExecuteAll();			// Execute all statements in file without pausing
 
-		CGame.INSTANCE.TemporarilyDisablePhysicsCollision();
+		//CGame.INSTANCE.TemporarilyDisablePhysicsCollision();
 
-		Debug.Log(string.Format("Pose_Load() on body '{0}' loaded '{1}'", _oBodyBase._sBodyPrefix, _sNamePose));
-		return true;
+		//Debug.Log(string.Format("Pose_Load() on body '{0}' loaded '{1}'", _oBodyBase._sBodyPrefix, _sNamePose));
+		//return true;
 	}
 	public void Pose_Save(string sNamePose) {
 		_sNamePose = sNamePose;
@@ -670,7 +670,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//_oBodyColBreast.UpdateVertsFromBlenderMesh(true);       // Update Unity's copy of the breast collider mesh
 	}
 
-	//public void OnPropSet_BtnUpdateBody(float nValueOld, float nValueNew) {		//###BROKEN#11
+	//public void OnPropSet_BtnUpdateBody(float nValueOld, float nValueNew) {		//###BROKEN<11>
 	//	Debug.Log("CBody: Rebuilding body " + _oBodyBase._sBodyPrefix);
 	//	//Pose_Save("TEMP");				// Save the current pose to a temp file so we can restore body as it was right after rebuild
 	//	CGame.INSTANCE.CreateBody(_oBodyBase._nBodyID);		// Will destroy 'this' and rebuild entire new tree of objects & meshes all the way from Blender
@@ -698,7 +698,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 	public CBody DoDestroy() {
 		//=== Reparent base nodes to where it originated before init moved it to global pose node ===
-		_oActor_Base.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN#15! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		_oActor_Base.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN<15>! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
 		_oActor_Base.gameObject.name = "Base";			//###WEAK: Kind of shitty to name differently during init / shutdown...  Do we really need this??
 		GameObject.Destroy(_oBodySkinnedMesh.gameObject);	// Destroys *everything*  Every mesh we've created and every one of our components
 		return null;						// Return convenience null so DoDestroy() can also nullify CBodyBase's reference... which makes this instance reference-less and flagged for garbage collection

@@ -97,7 +97,7 @@ public class CSoftBody : CSoftBodyBase {
 
         //=== Obtain the Unity2Blender mesh so we can pass particles to Blender for processing there ===
         CBMesh oMesh_Unity2Blender = CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
-		oMesh_Unity2Blender.transform.SetParent(transform);		//###IMPROVE#13: Set parent in Create() above?
+		oMesh_Unity2Blender.transform.SetParent(transform);		//###IMPROVE<13>: Set parent in Create() above?
 
 		//=== Upload our particles to Blender so it can select those that are pinned and skin them ===
 		for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)

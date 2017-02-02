@@ -78,7 +78,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-public class CSoftBodySkin : CSoftBodyBase
+public class CSoftBodySkin : CSoftBodyBase		//###OBS<17>???
 {
     List<int> aShapeVerts            = new List<int>();       // Array of which vert / particle is also a shape
     List<int> aShapeParticleIndices  = new List<int>();       // Flattened array of which shape match to which particle (as per Flex softbody requirements)

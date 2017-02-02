@@ -1,4 +1,4 @@
-﻿/*###DISCUSSION: Erotic9 Script
+﻿/*###DISCUSSION: EroticVR Script
 === NEXT ===
  * Develop first test script to spread legs, get dick bigger, prompt, etc
 
@@ -43,7 +43,7 @@ using System.Collections;
 using System.IO;
 
 
-public class CScriptPlay : MonoBehaviour {		// CScriptPlay: Responsible for loading / parsing / executing Erotic9 script files (that themselves were recorded with CScriptRecord and optionally edited by pose designer / user)
+public class CScriptPlay : MonoBehaviour {		// CScriptPlay: Responsible for loading / parsing / executing EroticVR script files (that themselves were recorded with CScriptRecord and optionally edited by pose designer / user)
 
 	public	string	_ScriptFile;
 	public	int		_CurrentLine;

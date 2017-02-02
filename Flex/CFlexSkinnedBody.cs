@@ -18,7 +18,7 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, IFlexProcessor {       // C
         Vector3[] vertices = _oMeshSkinBaked.vertices;
         int vertexCount = _oMeshSkinBaked.vertexCount;
 
-        m_particlesCount = vertexCount;                         //###IMPROVE#15: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
+        m_particlesCount = vertexCount;                         //###IMPROVE<15>: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
 		m_particles = new uFlex.Particle[vertexCount];
         m_colours = new Color[vertexCount];
         m_velocities = new Vector3[vertexCount];

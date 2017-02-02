@@ -14,7 +14,7 @@ public class CScriptRecord {		// CScriptRecord: Appends scriptable-actions to an
 		_ScriptFile = sScriptFile;
 		_oStreamWriterScriptFile = new StreamWriter(_ScriptFile);
 		_oStreamWriterScriptFile.AutoFlush = true;
-		_oStreamWriterScriptFile.WriteLine("Log(0,'===== Erotic9 Script Recorder: " + sHeader + " =====')");
+		_oStreamWriterScriptFile.WriteLine("Log(0,'===== EroticVR Script Recorder: " + sHeader + " =====')");
 	}
 
 	public void WriteObject(CObject oObject) {	

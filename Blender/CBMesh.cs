@@ -50,7 +50,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		CBMesh oBMesh = (CBMesh)CUtility.FindOrCreateComponent(oBMeshGO.transform, oTypeBMesh);
 		oBMesh._oBodyBase = oBodyBase;									// Push-in some important args manually (so we don't have to push them in OnDeserializeFromBlender()
 		oBMesh._sNameCBodyInstanceMember = sNameCBodyInstanceMember;
-		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			//###DESIGN#11!!!  IMPROVE THIS CRAPPY Node name!!  Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
+		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			//###DESIGN<11>!!!  IMPROVE THIS CRAPPY Node name!!  Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
         oBMesh._bKeepBlenderShare = bKeepBlenderShare;
 
         //=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
@@ -277,17 +277,18 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
         if (_bConnectedToBlenderMesh == false)
             CUtility.ThrowException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
 
-		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
-		if (nError != 0)
-			CUtility.ThrowException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
-
-		//###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
-		//CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>();
-		//memVertsCopy.AllocateFromArrayCopy(_memVerts.L);
-		//int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
+		//int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
 		//if (nError != 0)
 		//	CUtility.ThrowException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
-		//memVertsCopy = null;
+
+		//###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
+		CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
+		memVertsCopy.L = (Vector3[])_memVerts.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
+		memVertsCopy.PinInMemory();			//###PROBLEM<17>: Dll would get only zeros without this line... Previous call to Pin too soon? ###BUG<17>: Memory leak??
+		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
+		if (nError != 0)
+			CUtility.ThrowException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
+		memVertsCopy = null;
 	}	
 
 	public void UpdateNormals() {		// Unity must split Blender's verts at the seam.  Blender provides the '' map for us to average out these normals in order to display seamlessly accross seams.  

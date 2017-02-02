@@ -31,7 +31,7 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
     //---------------------------------------------------------------------------	INIT
     public override void OnDeserializeFromBlender() {
         base.OnDeserializeFromBlender();
-		transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);			// Parent to our body's main skinned mesh	###WEAK#14: Crappy circumvent way of obtaining node we need early in init!
+		transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);			// Parent to our body's main skinned mesh	###WEAK<14>: Crappy circumvent way of obtaining node we need early in init!
 
         _sNameSoftBody = GetType().Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         _sBlenderInstancePath_CSoftBody = ".oBody.aSoftBodies['" + _sNameSoftBody + "']";                          // Simplify access to Blender CSoftBody instance

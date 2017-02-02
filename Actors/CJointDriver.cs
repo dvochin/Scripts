@@ -122,7 +122,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
 	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
 		// Joint becomes kinematic and reverts to starting position upon configure mode, becomes PhysX-simulated during gameplay
 		switch (eGameModeNew) {
-			case EGameModes.Configure:
+			case EGameModes.MorphBody:
                 _X = _Y = _Z = 0;
                 UpdateRotation();
                 _oRigidBody.isKinematic = true;

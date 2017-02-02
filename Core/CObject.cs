@@ -113,8 +113,8 @@ public class CObject {				// Centrally-important base class (with matching imple
 		CProp oProp = PropFind(nPropEnumOrdinal);
 		return oProp.PropSet(nValue);
 	}
-	//public virtual float PropSet(string sPropName, float nValue) {            //###CHECK: Needed by scripting?
-	//	int nPropEnumOrdinal = (int)Enum.Parse(_oTypeFieldsEnum, sPropName);		//###NOTROBUST!!!
+	//public virtual float PropSet(string sPropName, float nValue) {
+	//	int nPropEnumOrdinal = (int)Enum.Parse(_oTypeFieldsEnum, sPropName);        //###NOTROBUST!!!
 	//	CProp oProp = PropFind(nPropEnumOrdinal);
 	//	return oProp.PropSet(nValue);
 	//}
@@ -207,38 +207,51 @@ public interface IObject {          //###DESIGN#10: Useful?  No members!
 */
 
 public class CObjectBlender : CObject {     // CObjectBlender: Specialized version of CObject that mirrors an equivalent CObject structure in Blender.  Used for remote Blender property access
-    public string _sBlenderAccessString;    // The fully-qualified 'Blender Access String' where we can obtain our Blender-based CObject equivalent designed to communicate with this Unity-side object.
+	public string _sBlenderAccessString;    // The fully-qualified 'Blender Access String' where we can obtain our Blender-based CObject equivalent designed to communicate with this Unity-side object.
 
-    public CObjectBlender(IObject iObj, string sBlenderAccessString, int nBodyID) : base(iObj, nBodyID, sBlenderAccessString) {     //###NOW object name!
-        _sBlenderAccessString = sBlenderAccessString;
+	public CObjectBlender(IObject iObj, string sBlenderAccessString, int nBodyID) : base(iObj, nBodyID, sBlenderAccessString) {     //###NOW object name!
+		_sBlenderAccessString = sBlenderAccessString;
 
-        string sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".Serialize()");            //###MOVE#11 to another blender codefile?
+		string sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".Serialize()");            //###MOVE<11> to another blender codefile?
 
 		string[] aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
 
-        _sNameObject = aFields[0];
-        int nProps = int.Parse(aFields[1]);
-        _aProps = new CProp[nProps];
-		CPropGroup oPropGrp = PropGroupBegin("", "", true);			//###CHECK#11: OK?  Group name?  Change default group functionality to auto insert of zero?
+		_sNameObject = aFields[0];
+		int nProps = int.Parse(aFields[1]);
+		_aProps = new CProp[nProps];
+		CPropGroup oPropGrp = PropGroupBegin("", "", true);         //###CHECK<11>: OK?  Group name?  Change default group functionality to auto insert of zero?
 
 		for (int nProp = 0; nProp < nProps; nProp++) {
-            sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".SerializeProp(" + nProp.ToString() + ")");
-            aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
-            string sName            = aFields[0];
-            string sDescription     = aFields[1];
-            float nValue            = float.Parse(aFields[2]);
-            float nMin              = float.Parse(aFields[3]);
-            float nMax              = float.Parse(aFields[4]);
+			sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".SerializeProp(" + nProp.ToString() + ")");
+			aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
+			string sName = aFields[0];
+			string sDescription = aFields[1];
+			float nValue = float.Parse(aFields[2]);
+			float nMin = float.Parse(aFields[3]);
+			float nMax = float.Parse(aFields[4]);
 			//int eFlags              = int  .Parse(aFields[5]);
 			_aProps[nProp] = new CProp(this, nProp, sName, nValue, nMin, nMax, sDescription, 0, null);//, CProp.Blender, null);	//###NOTE: No longer a Blender property as we don't update every slider value change for better performance (we batch update during mode change now)
 			oPropGrp._aPropIDs.Add(nProp);
 			_aProps[nProp]._sNameProp = sName;              //###HACK!!!
-            _aProps[nProp]._nValueLocal = nValue;              //###HACK!!!
-        }
-        //float nValue2 = _aProps[1].PropGet();
-        //nValue2 = _aProps[1].PropSet(4);
-        //nValue2 = _aProps[0].PropSet(0);
-        //nValue2 = _aProps[0].PropSet(4);
-    }
-}
+			_aProps[nProp]._nValueLocal = nValue;              //###HACK!!!
+		}
+		//float nValue2 = _aProps[1].PropGet();
+		//nValue2 = _aProps[1].PropSet(4);
+		//nValue2 = _aProps[0].PropSet(0);
+		//nValue2 = _aProps[0].PropSet(4);
+	}
 
+	public CProp PropFind(string sNameProp) {
+		foreach (CProp oProp in _aProps) {
+			if (oProp._sNameProp == sNameProp)
+				return oProp;
+		}
+		throw new CException("###EXCEPTION: CObjectBlender.PropFind() cannot find property " + sNameProp);
+	}
+	public void PropSet(string sNameProp, float nValue) {
+		PropFind(sNameProp).PropSet(nValue);
+	}
+	public float PropGet(string sNameProp) {
+		return PropFind(sNameProp).PropGet();
+	}
+}

@@ -1,4 +1,4 @@
-/*###DISCUSSION: Cloth
+/*###DISCUSSION: Cloth (runtime)
 
 === NEXT ===
 - Better textures
@@ -36,7 +36,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CBCloth: Blender-based mesh that is cloth-simulated by our PhysX code.
+public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CBCloth: Blender-based mesh that is cloth-simulated by our Flex code during gameplay.  Contains a skinned and simulated part
     //---------------------------------------------------------------------------	SUB MESHES
     CBMesh				_oBMeshClothAtStartup;              // The 'startup cloth' that is never simulated.  It is used to reset the simulated cloth to its start position
 	CBSkinBaked			_oBSkinBaked_SkinnedPortion;		// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
@@ -61,19 +61,19 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         CGame.gBL_SendCmd("CBody", sBodyID + "CreateCloth('" + sNameCloth + "', '" + sClothType + "', '" + sNameClothSrc + "', '" + sVertGrp_ClothSkinArea + "')");      // Create the Blender-side CCloth entity to service our requests
         //CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothSrc_HACK + ".UpdateCutterCurves()");
         //CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothSrc_HACK + ".CutClothWithCutterCurves()");
-        CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothSrc_HACK + ".PrepareClothForGame()");		//###IMPROVE#13!!  Damn period before... make consistent!!
+        CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothSrc_HACK + ".PrepareClothForGame()");		//###IMPROVE<13>!!  Damn period before... make consistent!!
         CBCloth oBCloth = (CBCloth)CBMesh.Create(null, oBodyBase, "." + CBCloth.s_sNameClothSrc_HACK + ".oMeshClothSimulated", typeof(CBCloth));		// Obtain the simulated-part of the cloth that was created in call above
 		//####IDEA: Modify static creation by first creating instance, stuffing it with custom data and feeding instance in Create to be filled in!
 		return oBCloth;
 	}
 
-	public override void OnDeserializeFromBlender() {
+	public override void OnDeserializeFromBlender() {		//###DESIGN<17>: Not a natural way to wrapup the two meshes (simulated and skinned) by creating skinned in override function of simulated...
 		base.OnDeserializeFromBlender();
 
 		_sBlenderInstancePath_CCloth = CBCloth.s_sNameClothSrc_HACK;
 
 		//=== Create the skinned-portion of the cloth.  It will be responsible for driving Flex particles that heavily influence their corresponding particles in fully-simulated cloth mesh ===
-		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBodyBase, "." + _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkinBaked));    //###WEAK#13!!! Fucking dot!!
+		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBodyBase, "." + _sBlenderInstancePath_CCloth + ".oMeshClothSkinned", typeof(CBSkinBaked));    //###WEAK<13>!!! Fucking dot!!
 		_oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
 		_oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
@@ -121,12 +121,12 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         _oPinnedParticles.Initialize(ref aMapPinnedParticles, _oBSkinBaked_SkinnedPortion);
     }
 
-    public override void OnDestroy() {
-		base.OnDestroy();
-	}
+ //   public override void OnDestroy() {
+	//	base.OnDestroy();
+	//}
 
-	public void Cloth_Reset() {
-    }
+	//public void Cloth_Reset() {
+ //   }
 
 
 
@@ -160,11 +160,12 @@ public class CBCloth : CBMesh, IObject, IHotSpotMgr, IFlexProcessor {						// CB
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
-    public void OnPropSet_ClothMass(float nValueOld, float nValueNew) {      //###OBS? Doesn't appear to do anything!!
-        float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim);
-        for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim; nPar++)
-            _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
-        Debug.LogFormat("Cloth Mass {0}", nValueNew);
+    public void OnPropSet_ClothMass(float nValueOld, float nValueNew) {      
+		//###OBS? Doesn't appear to do anything!!
+        //float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim);
+        //for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim; nPar++)
+        //    _oFlexParticles.m_particles[nPar].invMass = nInvMassPerParticle;
+        //Debug.LogFormat("Cloth Mass {0}", nValueNew);
     }
 
     //---------------------------------------------------------------------------	Flex

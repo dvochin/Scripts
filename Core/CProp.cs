@@ -101,7 +101,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		nValueNew += _nRndVal;					// Apply separated random value at the very top		###OBS? Random value still used??
 
 		//=== Avoid doing again if we're setting to the same value ===
-		if (_nValueLocal == nValueNew)			//###CHECK#11: Really safe?  Could some use cases be affected?
+		if (_nValueLocal == nValueNew)			//###CHECK<11>: Really safe?  Could some use cases be affected?
 			return _nValueLocal;
 
 		//=== Cap the value to pre-set bounds ===
@@ -150,7 +150,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			}
 		}
 		//=== Notify object that we really did change.  This will in turn notify any owning object that have registered for this event ===
-		_oObject.Notify_PropertyValueChanged(this, nValueOld);		//###TODO#13: Convert previous codebase that needed this functionality with this new event-based mechanism!
+		_oObject.Notify_PropertyValueChanged(this, nValueOld);		//###TODO<13>: Convert previous codebase that needed this functionality with this new event-based mechanism!
 
 		return _nValueLocal;
 	}

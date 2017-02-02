@@ -42,7 +42,7 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
             return _BlenderStarted;		
 		if (ErosEngine.gBL_Init(CGame.GetFolderPathRuntime()) == false)
 			CUtility.ThrowException("ERROR: Could not start gBlender library!  Game unusable.");
-		System.Diagnostics.Process oProcessBlender = CGame.LaunchProcessBlender("Erotic9.blend");
+		System.Diagnostics.Process oProcessBlender = CGame.LaunchProcessBlender("EroticVR.blend");
 		if (oProcessBlender == null)
 			CUtility.ThrowException("ERROR: Could not start Blender!  Game unusable.");
 		if (ErosEngine.gBL_HandshakeBlender() == false)
