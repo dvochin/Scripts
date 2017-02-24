@@ -13,7 +13,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 
-public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
+public class CFlexSkin_OBS : CBMesh, uFlex.IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
     // Created from Blender implementation that converts a regular mesh portion and gives it 'thickness' by pulling presentation mesh along its normals
     // Blender defines what is a particle and what is a shape by sending us arrays that are compatible with the Flex implementation for 'FlexShapeMatching' (e.g. softbody)
 
@@ -26,18 +26,18 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
 
     public static CFlexSkin_OBS Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
         string sBodyID = "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").";
-        CFlexSkin_OBS.s_sNameFlexSkin_HACK = "aFlexSkins['" + sNameFlexSkin + "']";
+        string sNameFlexSkinArg = string.Format("aFlexSkins['{0}']", sNameFlexSkin);
         string sBlenderInstancePath = CFlexSkin_OBS.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
         CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
-        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody._oBodyBase, sBlenderInstancePath, typeof(CFlexSkin_OBS));
+        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody._oBodyBase, sBlenderInstancePath, typeof(CFlexSkin_OBS), false, sNameFlexSkinArg);
 		return oFlexSkin;
 	}
 
-	public override void OnDeserializeFromBlender() {
-        base.OnDeserializeFromBlender();
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+        base.OnDeserializeFromBlender(aExtraArgs);
 
-        //=== Construct the fully-qualified path to the Blender CMesh instance we need ===
-        _sBlenderInstancePath_CFlexSkin = CFlexSkin_OBS.s_sNameFlexSkin_HACK;
+		//=== Construct the fully-qualified path to the Blender CMesh instance we need ===
+		_sBlenderInstancePath_CFlexSkin = aExtraArgs[0] as string;
         string sBlenderInstancePath = _sBlenderInstancePath_CFlexSkin + ".oMeshFlexSkin";       // Both the visible (driven) mesh and the driving skinned Flex mesh are from the same Blender CMesh
 
 		//=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
@@ -180,8 +180,8 @@ public class CFlexSkin_OBS : CBMesh, IFlexProcessor {       // CFlexSkin: a spec
 //		return oFlexSkin;
 //	}
 
-//	public override void OnDeserializeFromBlender() {
-//        base.OnDeserializeFromBlender();
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//        base.OnDeserializeFromBlender(aExtraArgs);
 
 //        //=== Construct the fully-qualified path to the Blender CMesh instance we need ===
 //        _sBlenderInstancePath_CFlexSkin = CFlexSkin.s_sNameFlexSkin_HACK;

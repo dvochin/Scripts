@@ -107,12 +107,12 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 	void CheckMagicNumber_Begin() {
 		ushort nMagic = ReadUShort();
 		if (nMagic != CByteArray.C_CByteArray_StreamBegin)
-			CUtility.ThrowException(String.Format("ERROR in CByteArray('{0}').  Invalid transaction beginning magic number!", _sBlenderAccessString));
+			CUtility.ThrowExceptionF("ERROR in CByteArray('{0}').  Invalid transaction beginning magic number!", _sBlenderAccessString);
 	}
 	public void CheckMagicNumber_End() {
 		ushort nMagic = ReadUShort();
 		if (nMagic != CByteArray.C_CByteArray_StreamEnd)
-			CUtility.ThrowException(String.Format("ERROR in CByteArray('{0}').  Invalid transaction end magic number!", _sBlenderAccessString));
+			CUtility.ThrowExceptionF("ERROR in CByteArray('{0}').  Invalid transaction end magic number!", _sBlenderAccessString);
 	}
 	public int GetLengthPayload() {
 		return _nLength - 2 * sizeof(ushort);			// Payload is the raw length from Blender minus the two ushort magic numbers.

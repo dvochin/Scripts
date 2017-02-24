@@ -114,7 +114,7 @@ public class CHeadLook : MonoBehaviour {		//###LEARN: Based on code from http://
 		_nTimeNextChangeLookTarget = -1;		// Force an immediate refresh of node to look at
 	}
 
-	public void OnSimulatePre() {		//###OPT!!!: Not needed to run every frame!!
+	public void OnSimulate() {		//###OPT!!!: Not needed to run every frame!!
 		//if (Time.deltaTime == 0)
 		//	return;
 

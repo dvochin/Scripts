@@ -9,8 +9,8 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 
 	//---------------------------------------------------------------------------	INIT
 
-	public override void OnDeserializeFromBlender() {
-		base.OnDeserializeFromBlender();
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+		base.OnDeserializeFromBlender(aExtraArgs);
 		GetComponent<Renderer>().enabled = false;						// Our skinned mesh exists only for providing fast position of our skinned verts and normals... we never display (unless for debugging)
 		_oMeshBaked = new Mesh();						//###LEARN: We can allocate mesh for BakeMesh() at beginning!  Yes!!
 	}
@@ -32,7 +32,7 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 
 	//---------------------------------------------------------------------------	UPDATE
 
-	public override void OnSimulatePre() {		//####CHECK: Call base class?       //###OBS!
+	public override void OnSimulate() {		//####CHECK: Call base class?       //###OBS!
 		Baking_UpdateBakedMesh();
 	}
 }

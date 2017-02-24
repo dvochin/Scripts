@@ -24,7 +24,7 @@ public class CMorphChannel {
 		float nMorphStrenghDelta = _nMorphStrength - _nMorphStrengthPrevious;
 		_nMorphStrengthPrevious = _nMorphStrength;
 
-		Vector3[] aVerts = _oBodyBase._oMeshMorphResult._memVerts.L;            //###DESIGN<14>: Direct access this way??  ###MOVE??
+		Vector3[] aVerts = _oBodyBase._oMeshStaticCollider._memVerts.L;            //###DESIGN<14>: Direct access this way??  ###MOVE??
 		int nMorphRecords = _aMorphDataRecords.Count / 4;               // Data records consist of 4 floats in order (VertID, DeltaX, DeltaY, DeltaZ)
 		Vector3 vecMorphFull;
 		Vector3 vecMorphDelta;

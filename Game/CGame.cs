@@ -134,8 +134,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     //---------------------------------------------------------------------------	VISIBLE GAME OPTIONS
 						public bool			_DemoVersion;		// When defined, the app builds for demo mode (no penetration)		###MOVE!
-						public	EGameModes	_GameModeAtStartup = EGameModes.MorphBody;
-						public	EGameModes	_GameMode = EGameModes.None;
+						public	EGameModes	_GameMode = EGameModes.Uninitialized;
 						public 	int 		_TargetFrameRate = 25;
 						public float		_nAnimMult_Time = 1;
 						public float		_nAnimMult_Pos = 1;
@@ -173,9 +172,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	[HideInInspector]	public	bool			_bGameModeBasicInteractions;		// When in basic interaction mode game is not showing the hotspots and editing is limited (to be more 'play like' = normal play mode)
 
 	[HideInInspector]	public	int				_nSelectedBody;
-	//[HideInInspector]	public	int				_nNumPenisInScene_BROKEN;
 	[HideInInspector]	public	bool			_GameIsRunning = false;			// When true all FixedUpdate() functions of any object can / should update themselves with FastPhysics (e.g. kinematic colliders)  //###DESIGN: Can get rid of this flag and just test for CGame.enabled??
-	//[HideInInspector]	public	int				_nFluidParticleRemovedByOverflow_HACK;
 	[HideInInspector]	public	uint			_nFrameCount_MainUpdate;		// Number of calls to 'FixedUpdate()'  Used to efficiently perform tasks that don't need to run every frame.  ###DESIGN: Keep???
 	[HideInInspector]	public 	System.Random _oRnd = new System.Random(1234);
 	[HideInInspector]	public	float			_nTimeStartOfCumming;
@@ -193,7 +190,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     float               _nFpsTimeLeft;				// Left time for current interval
     float               _nFpsTimeLeftUntilNextReset;
     float               _nMinFpsPrevious = 25, _nMinFpsNow;
-    //int                 _nFpsCollectionCount;							//###IMPROVE: Use / display this to decrease GC calls!
     string              _sFPS;
 	public 	CHotSpot	_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
 
@@ -215,10 +211,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	public	CBodyBase[]		_aBodyBases = new CBodyBase[1];	// Our collection of body bases.  Used to morph / configure bodies before CBody is created for gameplay
 	public	float			_nTimeReenableCollisions;		// Time when collisions should be re-enabled (Temporarily disabled during pose load)
 
-	//const float				C_TimeToMaxOrgasm_OBSOLETE = 20;			// How many seconds it takes to reach maximum lust if maximum pleasure is always on	###TUNE
-
-	//public  bool			_bPenisInVagina;			//###DESIGN!!: ###MOVE?? Belongs here?? Prevents penis from generating dynamic CBodyCol colliders to repell it.  Set when entering vagina
-
 	public string			_sNameScenePose;				// The currently loaded scene pose
 	public bool				_bScenePoseFlipped;             // If set the scene pose is 'flipped' (i.e. Pose for body a loaded into body b and vice versa)
     public uFlex.FlexSolver _oFlexSolver;                //###MOD
@@ -226,6 +218,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
     [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
 
+	public uFlex.CFlex _oFlex = new uFlex.CFlex();
 
     #region === INIT
     public void Start() {
@@ -237,18 +230,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		INSTANCE = this;
 		_nTimeAtStart = Time.time;
 
-		//GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CSoftBody));     //###NOW###
-		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CSoftBodyBase));     //###NOW###
-		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CB));     //###NOW###
-		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CFuckOff));
-		////GameObject oGO_HACK = new GameObject("oGO_HACK", typeof(CJointDriver));
-		//return;
 
-
-        _oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
+		_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
         GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
-        //if (oSceneGO != null) 
-        //    s_aColliders_Scene = oSceneGO.GetComponentsInChildren<CCollider_OBS>();
 
         _bRunningInEditor = true;       //###HACK ####REVA Application.isEditor
         _DemoVersion = (_bRunningInEditor == false);		//###CHECK? If dev has Unity code they are non-demo
@@ -331,8 +315,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
         SetForegroundWindow(_hWnd_Unity);           // Set our editor / player back into focus (away from just-spawned Blender)
 
-        //=== Set Blender global variables ===
-        CGame.gBL_SendCmd("G", "CGlobals.SetFlexParticleSpacing(" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
+        //=== Initialize Blender global instance (which in turns intializes lots of things like cloth sources and global variables) ===
+        CGame.gBL_SendCmd("G", "CGlobals.Initialize(nFlexParticleSpacing=" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
 
         //=== Start PhysX ===
   //      Debug.Log("4. PhysX3 Init.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
@@ -376,11 +360,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		SetGameModeBasicInteractions(true);
 
-		//=== Find the static scene colliders in 'SceneColliders' node and initialize them ===
-		//Debug.Log("CGame.StartGame() Registering Static Colliders: " + s_aColliders_Scene.Length);
-      //  if (s_aColliders_Scene != null)
-		    //foreach (CCollider_OBS oColStatic in s_aColliders_Scene)		// Colliders that are marked as static registered themselves to us in their Awake() so we can start and destroy them
-			   // oColStatic.OnStart();
 
 		//StartCoroutine(Coroutine_Update100ms());
 		StartCoroutine(Coroutine_Update500ms());
@@ -413,15 +392,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		SetForegroundWindow(_hWnd_Unity);           //###WEAK: Can get rid of??
 
 
-		//if (CGame.INSTANCE._GameMode == EGameModes.None)        //####TEMP
-		//    return;
-
-		//=== Create the body publicly-editable body definitions that can construct and reconstruct CBody instances ===
-		//CGame.INSTANCE._nNumPenisInScene_BROKEN = 0;
-
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
-		//CreateBody(0);
-		//      //CreateBody(1);
 		_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
         //###BROKEN _aBodyBases[0].SelectBody();
 
@@ -432,15 +403,11 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		if (CGame.INSTANCE._GameMode == EGameModes.Play)
 			ScenePose_Load("Standing", false);          // Load the default scene pose
 
-        //###TODO ##NOW: Init GUI first!!
-        //iGUISmartPrefab_WndPopup.WndPopup_Create(new CObject[] { oObj }, "Game Play", 0, 0);		//###TEMP
-
         //Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 
-        ChangeGameMode(_GameModeAtStartup);             // Set the initial game mode as statically requested
+        ChangeGameMode(EGameModes.MorphBody);             // Set the initial game mode as statically requested		###DESIGN<18>!!: We need to go in order but what about when user wants to play right away?  (Auto-progress through modes to morph and cut cloth or load from file?)
 
         Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
-        //ScenePose_Load("Standing", false);          // Load the default scene pose
     }
 
 
@@ -461,15 +428,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 		_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
 
-        //=== Destory all the static colliders ===
-        //####REVA if (s_aColliders_Scene != null)
-        //####REVA     foreach (CCollider oColStatic in s_aColliders_Scene)
-        //####REVA         DestroyImmediate(oColStatic.gameObject);		//####CHECK
-
-        //=== Destory the PhysX scenes ===
-        //ErosEngine.PhysX3_Destroy();
-		//ErosEngine.PhysX2_Destroy();
-		
 		//=== Destroy Blender ===
         if (_oProcessBlender != null) {
 		    try {
@@ -487,15 +445,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 
     #region === UPDATE
-    void Update() {
+    public void Update() {
         if (_GameIsRunning == false)                //###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
             return;
-
-		if (Input.GetKeyDown(KeyCode.Alpha0)) {
-			string[] aJoyNames = Input.GetJoystickNames();          //###TEMP<17>
-			foreach (string sJoyName in aJoyNames)
-				Debug.LogErrorFormat("Joystick: " + sJoyName);
-		}
 
 		//=== Store global key modifiers & mouse buttons for this game frame for efficiency ===
 		_bKeyShift      = Input.GetKey(KeyCode.LeftShift)   || Input.GetKey(KeyCode.RightShift);
@@ -520,6 +472,11 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			ChangeGameMode(EGameModes.CutCloth);
 		if (Input.GetKeyDown(KeyCode.F3))
 			ChangeGameMode(EGameModes.Play);
+
+		if (Input.GetKeyDown(KeyCode.F4))
+			_aBodyBases[0]._oClothSrc.ClothEdit_Start();			//////////////////////////
+
+
 
 
 		if (Input.GetKeyDown(KeyCode.F11))			//####TEMP
@@ -591,23 +548,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
             CGame.INSTANCE._nAnimMult_Pos -= 0.1f;
         if (Input.GetKeyDown(KeyCode.D))
             CGame.INSTANCE._nAnimMult_Pos += 0.1f;
-        if (Input.GetKeyDown(KeyCode.C)) {                   // C = toggle cum on first character with penis.  Shift+C = toggle cum on first character without penis
-            CBody oBodyCum = FindFirstCharacterWithPenis();
-            if (CGame.INSTANCE._bKeyShift)      // Toggle the proper ejaculation flag, and always turnning off the other sex
-                oBodyCum = GetBodyOther(oBodyCum);
-            CBody oBodyOther = GetBodyOther(oBodyCum);
-            if (oBodyOther != null)
-                oBodyOther.SetIsCumming(false);                 // Always stop other body from cumming...
-            if (oBodyCum != null)
-                oBodyCum.SetIsCumming(!oBodyCum._bIsCumming);   // And toggle cum on the requested body
-            //if (oBodyCum._bIsCumming == false && oBodyOther._bIsCumming == false)   // If both bodies are not cumming stop the flow.
-            //    CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, 0);   //###BUG: Will crash if not 2 odies
-            CGame.INSTANCE._nTimeStartOfCumming = Time.time;        // Reset the start of cum cycle so we start at the start
-        }
-        if (Input.GetKeyDown(KeyCode.V))        // V = Stop all cumming and Wipe away cum (reset fluid)
-            Cum_Stop();
-        //if (Input.GetKeyDown(KeyCode.G))		//###TODO?
-        //	_oObj.PropSet(EGamePlay.Pleasure, _oObj.PropGet(EGamePlay.Pleasure) == 0 ? 50 : 0);
 
         if (Input.GetKeyDown(KeyCode.BackQuote)) {
             ///if (CGame.INSTANCE._bKeyShift)				//###DESIGN: Join under one key?
@@ -635,20 +575,9 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         }
 
 
-        //###BROKEN!!! WTF???  How can this be "null"??? if (_oGamePlay != null)
-        //if (_GameMode == EGameModes.Play || _GameMode == EGameModes.Configure)
-        //	OnUpdate();
-
         if (Input.GetKeyDown(KeyCode.G) && _bKeyControl)        // Ctrl+G = Enter game key	//###IMPROVE: Game option!!
             if (_DemoVersion)       //###IMPROVE? This flag the real one for full game?
                 new CDlgPrompter(true, "Game Activation", "Enter Game Key:", new CDlgPrompter.DelegateOnOk(CDlgPrompter.Delegate_OnDlgPrompterOk_Activation));  //PlayerPrefs.GetInt(G.C_PlayerPref_GameKey).ToString());		// Retrieve the key from PlayerPref (if set) when dialog control initializes
-
-
-        //if (Input.GetKeyDown(KeyCode.F3))       //###TEMP!  ###P
-        //    SetBodiesAsKinematic(true);
-        //if (Input.GetKeyDown(KeyCode.F4))
-        //    SetBodiesAsKinematic(false);
-
 
 
         //Screen.showCursor = true;		//###BROKEN: Hide cursor!!			// We hide the hardware cursor at the beginning of every frame.  iGUI-based dialogs that need to show it will show it after (This way we can easily support multiple dialogs)
@@ -731,27 +660,10 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         foreach (CBodyBase oBodyBase in _aBodyBases)
 			oBodyBase.OnSimulatePre();
 
-        //=== Simulate PhysX2 for SoftBodies ===
-        //ErosEngine.PhysX2_SimulateFrame(Time.deltaTime);		// We simulate PhysX2 scene so that CBreastBase colliders that appear in PhysX3 scene can push away the cloth there with the softbody breast position of this time frame (expensive blocking call) 
-
-        ////=== Iterate through the bodies for any code that must run between PhysX2 and PhysX3 ===
-        //foreach (CBody oBody in _aBodies)
-        //	if (oBody != null)
-        //		oBody.OnSimulateBetweenPhysX23();
-
-        //=== Simulate PhysX3 for everything else (Clothing, Fluid, etc) ===
-        //CGame.INSTANCE._nFluidParticleRemovedByOverflow_HACK = ErosEngine.PhysX3_SimulateFrame(Time.deltaTime);		// Simulate PhysX3 scene that includes everything except soft bodies. (expensive blocking call)
-
-        //CGame.INSTANCE._oFluid.OnSimulatePre();			//###MOVE!?!?!
-
-        //###F ###OBS!!!!  ###CLEANUP
-		if (_oFlexSolver.m_cntr != null)		//###WEAK
+		//=== Update Flex collision objects ===
+		if (_oFlexSolver.m_cntr != null)
 			_oFlexSolver.DoFixedUpdate();
         
-        ////=== Extract our information from the soft body simulation ===
-        foreach (CBodyBase oBodyBase in _aBodyBases)
-            oBodyBase.OnSimulatePost();
-
         CGame.INSTANCE._nFrameCount_MainUpdate++;	//###HACK! To stats!
     }
 
@@ -955,36 +867,37 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
     //---------------------------------------------------------------------------	GAME MODES
 
     public void ChangeGameMode(EGameModes eGameMode) {
-		//###TODO<11>: Huge shift in meaning!  Remove the old crap!
-
 		if (_GameMode == eGameMode)
 			return;
+		if (Math.Abs((int)_GameMode - (int)eGameMode) != 1)			// Ensure we only go from one game mode to another right adjacent to it
+			throw new CException("Exception in ChangeGameMode().  Cannot go from game mode " + _GameMode.ToString() + " to game mode " + eGameMode.ToString());
 
 		_GameMode = eGameMode;
 
 		//=== First disable all the other non-editing bodies so they are not visible to the player during his/her configuration of one body ===
-		int nBodyToMorph = 0;                 //###TODO<11>!!: Select which body to edit from closest to cam or button? Move this to global var!!
+		int nBodyToEdit = 0;                 //###TODO<11>!!: Select which body to edit from closest to cam or button? Move this to global var!!
 		if (_GameMode != EGameModes.Play) {
 			for (int nBody = 0; nBody < _aBodyBases.Length; nBody++)
-				if (nBody != nBodyToMorph)			
-					_aBodyBases[nBody].OnChangeBodyMode(EBodyBaseModes.Disabled);
+				if (nBody != nBodyToEdit)
+					_aBodyBases[nBody].Disable();
 		}
 
 		switch (_GameMode) {
 			case EGameModes.MorphBody:
-				_aBodyBases[nBodyToMorph].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
+				_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
 				break;
 			case EGameModes.CutCloth:
-				_aBodyBases[nBodyToMorph].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
+				_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
 				break;
 			case EGameModes.Play:
 				foreach (CBodyBase oBodyBase in _aBodyBases)				// Entering play mode.  Tell all body bases to get the game-time body ready.
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.Play);
-                Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
+                //###CHECK<18> Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
                 ScenePose_Load("Standing", false);      //###DESIGN<17>: When to do this and where??
         		break;
         }
-        HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
+		//###DESIGN<18>: Hide / show all options given the many game modes too complex... ditch?
+		//HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
 		//###BROKEN<11>
@@ -1061,7 +974,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//###OBS??
 		foreach (CBodyBase oBodyBase in _aBodyBases)			//###DESIGN: Broadcast to root of both CBodyBase and CBody?
 			if (oBodyBase != null) { 
-				oBodyBase._oMeshMorphResult.BroadcastMessage(sFunction, oArg);
+				oBodyBase._oMeshStaticCollider.BroadcastMessage(sFunction, oArg);
 				if (oBodyBase._oBody != null)
 					oBodyBase._oBodyRootGO.BroadcastMessage(sFunction, oArg);
 			}
@@ -1069,7 +982,6 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 	}
 
     #endregion
-
 
     //---------------------------------------------------------------------------	PROCESS CREATION
     #region PROCESS CREATION
@@ -1368,7 +1280,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 			CUtility.ThrowException("CGame.GetFolderPathRuntime() could not recognize dataPath suffix: " + sPathSuffixToRemove);		//###IMPROVE: Do once at start and remember string?
 		sNameFolder = sNameFolder.Substring(0, nPosSuffix);
 		if (Application.isEditor)
-			sNameFolder += "EroticVR/";
+			sNameFolder += "Erotic9/";
 		sNameFolder += "Runtime/";
 		return sNameFolder;				// This should always return a string like "D:/Src/E9/EroticVR/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
 	}

@@ -23,8 +23,8 @@ using System.Collections;
 
 //	CProp _oPropEyesClose;
 
-//	public override void OnDeserializeFromBlender() {
-//		base.OnDeserializeFromBlender();
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//		base.OnDeserializeFromBlender(aExtraArgs);
 
 //		//=== Reparent this non-skinned mesh to the head bone so it moves with the neck & body ===
 //		transform.parent = _oBody.FindBone("chest/neck/head");		//###DESIGN???

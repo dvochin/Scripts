@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-public class CFlexSkinnedBody : uFlex.FlexParticles, IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
+public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
 
     SkinnedMeshRenderer _oSMR;
     Mesh _oMeshSkinBaked;
@@ -18,8 +18,9 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, IFlexProcessor {       // C
         Vector3[] vertices = _oMeshSkinBaked.vertices;
         int vertexCount = _oMeshSkinBaked.vertexCount;
 
-        m_particlesCount = vertexCount;                         //###IMPROVE<15>: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
+        m_maxParticlesCount = m_particlesCount = vertexCount;                         //###IMPROVE<15>: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
 		m_particles = new uFlex.Particle[vertexCount];
+		m_restParticles = new uFlex.Particle[vertexCount];
         m_colours = new Color[vertexCount];
         m_velocities = new Vector3[vertexCount];
         m_densities = new float[vertexCount];

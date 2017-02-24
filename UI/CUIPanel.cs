@@ -1,21 +1,25 @@
 ﻿/*###DISCUSSION: GUI
 === REVIVE ===
-- Now almost with drag... but size all screwed up cuz panel not centered in canvas... 
-
-
-
+- Remove crappy gasket in CUtility
+- Remove multi-object capacity.
+- Fix prop groups (rendered in GUI)
+- Add capacity for a panel to render an optional 'chooser' between multi-objects
+- Every object can be rendered as a 'choice' in our 'multi-choice' property viewer
+- Objects receive the OnEditingBegin() and OnEditingEnd() messages.
+- Add the capacity of the panel to have 'action buttons' rerouted to owner objects
+- Use interfaces throughtout for easy portability.
+- Damn title!
 
 === NEXT ===
+- Remove link to CProp when destroying!
+- Fully remove iGUI
+
+=== OLD? ===
+- Now almost with drag... but size all screwed up cuz panel not centered in canvas... 
 - Position Z no clip
-- Formatting of slider values
 - Depth on dialog box
 - Prevent click behind dialog box
 - Rethink CUIWidget base class, creation, events, etc
-
-=== TODO ===
-- Property groups!
-- Remove link to CProp when destroying!
-- Fully remove iGUI
 
 === DESIGN ===
 
@@ -24,15 +28,12 @@
 - X stretches
 
 === PROBLEMS ===
-- Soft bodies not GPU????
 
 === PROBLEMS??? ===
 
 === WISHLIST ===
 - Top separator ugly
-- Move bar!!
 - Tooltips!!
-- Label to control split point adjustable?
 
 */
 
@@ -40,6 +41,8 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 
 public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {
+
+	public CObject _oObj;				// The CObject we view and edit.  When it gets destroyed it calls us for destruction.
 
     public static CUIPanel Create(CUICanvas oCanvas) {
         GameObject oPanelResGO = Resources.Load("UI/CUIPanel") as GameObject;
@@ -51,6 +54,13 @@ public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         //oPanel.Init();
         return oPanel;
     }
+
+	//public static CUIPanel Create(CUICanvas oCanvas, CObject oObj) {
+	//	_oObj = oObj;
+	//	CUIPanel oPanel = CUIPanel.Create(oCanvas);			//###
+	//	_oObj._oPanel = this;
+	//}
+
 
     public void OnButtonClose() {
         Destroy(gameObject);                // Destroy the entire canvas to remove it from the scene.  //####SOON: Notify CProp

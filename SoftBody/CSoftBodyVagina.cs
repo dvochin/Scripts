@@ -9,8 +9,8 @@ public class CSoftBodyVagina : CSoftBody {		// Class to abstract away complexity
         ///_SoftBodyDetailLevel = 20;				//###TUNE
 	}
 
-    public override void OnDeserializeFromBlender() {
-		base.OnDeserializeFromBlender();
+    public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+		base.OnDeserializeFromBlender(aExtraArgs);
         ///_eColGroup = EColGroups.eLayerVagina;
 
         _oObj.PropSet(ESoftBody.SolverIterations, 2);		//###OPT!!!! Expensive but shakes otherwise!

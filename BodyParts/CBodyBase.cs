@@ -55,11 +55,12 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class CBodyBase : IObject, IFlexProcessor {
+public class CBodyBase : IObject, uFlex.IFlexProcessor {
 	//---------------------------------------------------------------------------	MAIN MEMBERS
 	public CBody			_oBody;					// Our most important member: The gametime body object responsible for gameplay functionality (host for softbodies, dynamic clothes, etc)  Created / destroyed as we enter/leave morph or gameplay mode
-	public CBMesh           _oMeshMorphResult;		// The non-skinned body morph-baked mesh we're morphing.  Constantly refreshed from equivalent body in Blender as user moves morphing sliders.
-	EBodyBaseModes          _eBodyBaseMode = EBodyBaseModes.Startup;      // The current body base mode: (configure, gameplay mode, disabled mode)  Hugely important
+	public CBMesh           _oMeshStaticCollider;		// The non-skinned body morph-baked mesh we're morphing.  Constantly refreshed from equivalent body in Blender as user moves morphing sliders.
+	EBodyBaseModes          _eBodyBaseMode = EBodyBaseModes.Uninitialized;      // The current body base mode: (BodyMorph, CutCloth, Play mode)  Hugely important
+	bool					_bIsDisabled;			// Body has been 'disabled' (invisible and not colliding in the scene in any way).  Used when another body is being edited.  (Set by Disable())
 	List<ushort>			_aVertsFlexCollider;    // Collection of verts sent from Blender that determine which verts form a morphing-time Flex collider capable of repelling morph-time bodysuit master cloth.
 	//---------------------------------------------------------------------------	MAIN PROPERTIES
 	public int				_nBodyID;               // The 0-based numeric ID of our body where we're stored in CGame._aBodyBases[]  Extremely important.  Matches Blender's CBodyBase.nBodyID as well
@@ -76,8 +77,9 @@ public class CBodyBase : IObject, IFlexProcessor {
 	//---------------------------------------------------------------------------	###TODO<14> SORT
 	CUICanvas				_oCanvas;               // The fixed UI canvas responsible to render the GUI for this game mode.
 	uFlex.FlexParticles     _oFlexParticles;        // The morph-time flex collider responsible to repell master bodysuit cloth so it can morph too.  Composed of a subset of our static body mesh
-	bool                    _bParticlePositionsUpdated; // When true a user-morph updated the body's vert and we need to update particle positions at the next opportunity. (in PreContainerUpdate())
-	CBClothSrc              _oClothSrc;				// The source clothing instance.  This 'bodysuit-type' full cloth will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape
+	bool                    _bFlexBodyCollider_ParticlesUpdated; // When true a user-morph updated the body's vert and we need to update particle positions at the next opportunity. (in PreContainerUpdate())
+	public CBClothSrc       _oClothSrc;				// The source clothing instance.  This 'bodysuit-type' full cloth will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape
+	public CBCloth			_oClothEdit;			// The one-and-only editing cloth.  Only valid during cloth cutting game mode.
 
 	public GameObject           _oBodyRootGO;           // The root game object of every Unity object for this body.  (Created from prefab)
 	public Transform            _oBonesT;               // The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
@@ -127,132 +129,135 @@ public class CBodyBase : IObject, IFlexProcessor {
 
 		//=== Download our morphing non-skinned body from Blender ===
 		GameObject oBodyBaseGO = new GameObject(_sBodyPrefix);        // Create the root Unity node that will keep together all the many subnodes of this body.
-		_oMeshMorphResult = CBMesh.Create(oBodyBaseGO, this, ".oMeshMorphResult", typeof(CBMesh), true);     // Get the baked-morph mesh Blender updates for us at every morph update. (And keep Blender share so we can update)
-		_oMeshMorphResult.transform.SetParent(_oBodyRootGO.transform);
-		_oMeshMorphResult.name = "MorphingBody";
+		_oMeshStaticCollider = CBMesh.Create(oBodyBaseGO, this, ".oMeshMorphResult", typeof(CBMesh), true);     // Get the baked-morph mesh Blender updates for us at every morph update. (And keep Blender share so we can update)
+		_oMeshStaticCollider.transform.SetParent(_oBodyRootGO.transform);
+		_oMeshStaticCollider.name = _sBodyPrefix + "-StaticCollider";
 
 
 		//=== DEFINE THE FLEX COLLIDER: Read the collection of verts that will from the Flex collider (responsible to repell master Bodysuit from morph-time body) ===
 		_aVertsFlexCollider = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CBodyBase + ".aVertsFlexCollider.Unity_GetBytes()");
-		FlexObjects_Create();			// Create the Flex objects the first time.They will be destroyed upon going to gametime
+		//NOTE: Now done from game mode change: FlexObject_BodyStaticCollider_Enable();			// Create the Flex objects the first time.They will be destroyed upon going to gametime
 
 
 		//=== Create the managing object and related hotspot ===
 		_oObj = new CObjectBlender(this, _sBlenderInstancePath_CBodyBase + ".oObjectMeshShapeKeys", _nBodyID);
 		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
 		//_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morphing", false, new Vector3(0, 0, 0));
-		_oCanvas = CUICanvas.Create(_oMeshMorphResult.transform);
+		_oCanvas = CUICanvas.Create(_oMeshStaticCollider.transform);
 		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
 		CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, "Body Morphing");
 
-		//=== Switch to morphing / configure mode ===
-		OnChangeBodyMode(EBodyBaseModes.MorphBody);             // Enter configure mode so we can programmatically apply morphs to customize this body
+		//=== Switch to morphing / configure mode ===			//###CHECK: Do we always do here in construction or do we let game tell us?  This will get important as we auto-load bodies for immediate play
+		//OnChangeBodyMode(EBodyBaseModes.MorphBody);             // Enter configure mode so we can programmatically apply morphs to customize this body
 
-		//=== Change some morphing channels ===		//###TODO<11>: Programmatic load & adjustments of sliders from file?
-		_oObj.PropSet("Breasts-Implants", 1.2f);
+		//=== Change some morphing channels ===		//###TEMP<18>
+		_oObj.PropSet("Breasts-Implants", 1.2f);			//###TODO: Load these from a 'body file'
 		_oObj.PropSet("Breasts-Height", 1.2f);
 	}
 
-	void FlexObjects_Create() {
+	void FlexObject_BodyStaticCollider_Enable() {
 		//=== Define Flex particles from Blender mesh made for Flex ===
-		int nParticles = _aVertsFlexCollider.Count;
-		_oFlexParticles = CUtility.CreateFlexObjects(_oMeshMorphResult.gameObject, this, nParticles, uFlex.FlexInteractionType.SelfCollideFiltered, Color.green);		//###TODO<14>: Flex Colors!
-		for (int nParticle = 0; nParticle < nParticles; nParticle++) {
-			//int nVertWholeMesh = _aVertsFlexCollider[nParticle];				// Lookup the vert index in the full mesh from the Blender-supplied array that isolates which verts participate in the Flex collider
-			//_oFlexParticles.m_particles[nParticle].pos = _oMeshMorphResult._memVerts.L[nVertWholeMesh];		// Don't position here to insure only one place positions to avoid bugs / confusion. (in PreContainerUpdate()) 
-			_oFlexParticles.m_particles[nParticle].invMass = 0;					// We're a static collider with every particle moved by this code at every morph... (e.g. All particles are not Flex simulated)
-			_oFlexParticles.m_colours[nParticle] = _oFlexParticles.m_colour;
-			_oFlexParticles.m_particlesActivity[nParticle] = true;
+		if (_oFlexParticles == null) { 
+			int nParticles = _aVertsFlexCollider.Count;
+			_oFlexParticles = CUtility.CreateFlexObjects(_oMeshStaticCollider.gameObject, this, nParticles, uFlex.FlexInteractionType.SelfCollideFiltered, Color.green);		//###TODO<14>: Flex Colors!
+			for (int nParticle = 0; nParticle < nParticles; nParticle++) {
+				//int nVertWholeMesh = _aVertsFlexCollider[nParticle];				// Lookup the vert index in the full mesh from the Blender-supplied array that isolates which verts participate in the Flex collider
+				//_oFlexParticles.m_particles[nParticle].pos = _oMeshMorphResult._memVerts.L[nVertWholeMesh];		// Don't position here to insure only one place positions to avoid bugs / confusion. (in PreContainerUpdate()) 
+				_oFlexParticles.m_particles[nParticle].invMass = 0;					// We're a static collider with every particle moved by this code at every morph... (e.g. All particles are not Flex simulated)
+				_oFlexParticles.m_colours[nParticle] = _oFlexParticles.m_colour;
+				_oFlexParticles.m_particlesActivity[nParticle] = true;
+			}
+			_bFlexBodyCollider_ParticlesUpdated = true;                          // Flag Flex to perform an update of its particle positions.
+		} else { 
+			_oFlexParticles.gameObject.SetActive(true);					// Just re-activate if we were de-activated before in FlexObject_Deactivate()
 		}
-		_bParticlePositionsUpdated = true;                          // Flag Flex to perform an update of its particle positions.
 	}
 
-	void FlexObjects_Destroy() {
+	void FlexObject_BodyStaticCollider_Disable() {
 		//=== Destroy all configure-time Flex objects for performance.  They will have to be re-created upon re-entry into configure mode ===
-		GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexParticlesRenderer>());      //###LEARN: DestroyImmediate is needed to avoid CUDA errors with regular Destroy()!
-		GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexProcessor>());
-		GameObject.DestroyImmediate(_oFlexParticles);
-		_oFlexParticles = null;
+		//GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexParticlesRenderer>());      //###LEARN: DestroyImmediate is needed to avoid CUDA errors with regular Destroy()!
+		//GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexProcessor>());
+		//GameObject.DestroyImmediate(_oFlexParticles);
+		//_oFlexParticles = null;
+
+		_oFlexParticles.gameObject.SetActive(false);			//####DESIGN<18>: Don't have to clear everything (although this step saves memory).  Keep de-activation instead??
 	}
 
-	public void OnChangeBodyMode(EBodyBaseModes eBodyBaseMode) {
-		if (_eBodyBaseMode == eBodyBaseMode)
+	public void OnChangeBodyMode(EBodyBaseModes eBodyBaseModeNew) {
+		if (_eBodyBaseMode == eBodyBaseModeNew)
 			return;
 
-		Debug.LogFormat("MODE: Body#{0} going from '{1}' to '{2}'", _nBodyID.ToString(), _eBodyBaseMode.ToString(), eBodyBaseMode.ToString());
+		Debug.LogFormat("MODE: Body#{0} going from '{1}' to '{2}'", _nBodyID.ToString(), _eBodyBaseMode.ToString(), eBodyBaseModeNew.ToString());
 
-		//=== Perform special processing when going from configure to play to update the morph mesh in Blender ===
-		if (_eBodyBaseMode == EBodyBaseModes.MorphBody /*&& eBodyBaseMode == EBodyBaseModes.Play*/) {           
-			//=== Going from configure to play mode.  Destroy all configure-time Flex objects for performance.  They will have to be re-created upon re-entry into configure mode ===
-			FlexObjects_Destroy();
-			//=== Send Blender all the sliders values so it updates its morphing body for game-time body generation ===
+		//=== Notify Blender of the switch of body mode.  Makes a lot of things happen that lines below depend on! ===
+		//CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".OnChangeBodyMode('" + eBodyBaseModeNew.ToString() + "')");
+
+		if (_eBodyBaseMode == EBodyBaseModes.Uninitialized && eBodyBaseModeNew == EBodyBaseModes.MorphBody) {
+
+			FlexObject_BodyStaticCollider_Enable();							// Create / re-create the Flex objects for this static body collider
+			_oClothSrc = CBClothSrc.Create(this, "BodySuit");				// Create bodycloth clothing instance.  It will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape ===  ###TODO<18>: Obtain what cloth source from GUI
+
+		} else if (_eBodyBaseMode == EBodyBaseModes.MorphBody && eBodyBaseModeNew == EBodyBaseModes.CutCloth) {
+
+			_oClothSrc.FlexObject_ClothSrc_Disable();
+			_oCanvas.gameObject.SetActive(false);                               // Hide the entire morphing UI
+
+			//=== Perform special processing when user has done morphing the body to update the morph mesh in Blender. Send Blender all the sliders values so it updates its morphing body for game-time body generation (This because we were morphing locally for much better performance) ===
 			foreach (CProp oProp in _oObj._aProps)			// Manually dump all our Blender properties into Blender so UpdateMorphResultMesh() has the user's morph sliders.  (We don't update at every slider value change for performance)
 				oProp._nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", _oObj._sBlenderAccessString + ".PropSetString('" + oProp._sNameProp + "'," + oProp._nValueLocal.ToString() + ")"));
 			//=== Ask Blender to update its morphing body from user-selected slider choices ===
 			CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".UpdateMorphResultMesh()");
-			_oMeshMorphResult.UpdateVertsFromBlenderMesh(true);         // Morphing can radically change normals.  Recompute them. (Accurate normals needed below anyways for Flex collider)
+			//###BROKEN<18>!!!: Can no longer re-enter cloth cutting as gBlender loses access?? _oMeshStaticCollider.UpdateVertsFromBlenderMesh(true);         // Morphing can radically change normals.  Recompute them. (Accurate normals needed below anyways for Flex collider)
+
+			_oClothEdit = CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!
+
+		} else if (_eBodyBaseMode == EBodyBaseModes.CutCloth && eBodyBaseModeNew == EBodyBaseModes.Play) {
+			GameObject.Destroy(_oClothEdit.gameObject);		//###TODO<18> Destroy _oClothEdit and have CBody own its collection of clothes!	###CHECK!!
+			_oClothEdit = null;
+
+			FlexObject_BodyStaticCollider_Disable();		// Going from CutCloth to play mode.  Destroy all configure-time Flex objects for performance.  They will have to be re-created upon re-entry into configure mode ===
+
+			_oBody = new CBody(this);						// Create the runtime body.  Expensive op!
+
+		} else if (_eBodyBaseMode == EBodyBaseModes.Play && eBodyBaseModeNew == EBodyBaseModes.CutCloth) {
+
+			_oBody = _oBody.DoDestroy();					// Destroys *everthing* related to gametime (softbodies, cloth, flex colliders, etc) on both Unity and Blender side!
+			//_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = true;     // Show the morphing mesh
+			FlexObject_BodyStaticCollider_Enable();				// Make body base / morphing body visible and active again.
+			_oClothEdit = CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!  Also code duplication!
+
+		} else if (_eBodyBaseMode == EBodyBaseModes.CutCloth && eBodyBaseModeNew == EBodyBaseModes.MorphBody) {
+
+			//_oClothEdit.DoDestroy();							// Tell cloth (and Blender) its about to be destroyed
+			GameObject.Destroy(_oClothEdit.gameObject);         //###CHECK<18>
+			_oClothEdit = null;
+			_oClothSrc.FlexObject_ClothSrc_Enable();
+			_oCanvas.gameObject.SetActive(true);                               // Show the entire morphing UI
+
+		} else {
+			CUtility.ThrowExceptionF("Exception in CBodyBase.OnChangeBodyMode(): Cannot change from body mode '{0}' to '{1}'.", _eBodyBaseMode.ToString(), eBodyBaseModeNew.ToString());
 		}
 
 		//=== Set the new game mode ===
-		_eBodyBaseMode = eBodyBaseMode;
+		_eBodyBaseMode = eBodyBaseModeNew;
+	}
 
-		//=== Notify Blender of the switch of body mode.  Makes a lot of things happen that lines below depend on! ===
-		CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".OnChangeBodyMode('" + _eBodyBaseMode.ToString() + "')");
-
-		//=== Hide or show the body base components depending on new body mode ===
-		bool bShowBodyBase = (_eBodyBaseMode == EBodyBaseModes.MorphBody);
-		_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = bShowBodyBase;     // Hide / show the morphing mesh
-		_oCanvas.gameObject.SetActive(bShowBodyBase);                               // Hide / show the entire morphing UI
-
-		//=== Switch body mode ===
-		//###IMPROVE<17>: Enforce from-to transitions?  (Not all from-to permutations make sense!)
-		switch (_eBodyBaseMode) {
-			case EBodyBaseModes.Startup:
-				CUtility.ThrowException("CBodyBase.OnChangeBodyMode() cannot go back to Startup mode!");
-				break;
-			case EBodyBaseModes.MorphBody:
-				if (_oClothSrc == null)
-					_oClothSrc = CBClothSrc.Create(this);   // Create bodycloth clothing instance.  It will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape ===
-				else
-					_oClothSrc.FlexObject_Create();
-				FlexObjects_Create();                       // Re-create the Flex objects
-				if (_oBody != null)
-					_oBody = _oBody.DoDestroy();            // Destroys *everthing* related to gametime (softbodies, cloth, flex colliders, etc) on both Unity and Blender side!
-				break;
-			case EBodyBaseModes.CutCloth:
-				if (_oClothSrc)
-					_oClothSrc.FlexObject_Destroy();
-				FlexObjects_Create();                       // Re-create the Flex objects
-				if (_oBody != null)
-					_oBody = _oBody.DoDestroy();            // Destroys *everthing* related to gametime (softbodies, cloth, flex colliders, etc) on both Unity and Blender side!
-				break;
-			case EBodyBaseModes.Play:
-				if (_oBody == null)							// If entering play mode (while having null body), create everything game-play related on Unity & Blender side (huge operation)
-					_oBody = new CBody(this);
-				else
-					_oBody.DoEnable(true);
-				break;
-			case EBodyBaseModes.Disabled:
-				if (_oBody == null)
-					CUtility.ThrowException("CBodyBase.OnChangeBodyMode() went to disabled mode with no _oBody!");
-				_oBody.DoEnable(false);
-				break;
-		}
+	public void Disable() {
+		CUtility.ThrowException("TODO: Implement disable!");			//###TODO<18>
+		_bIsDisabled = true;
 	}
 
 	public void OnSimulatePre() {			//###OBS<14>??
 		if (_oBody != null && _oBody._bEnabled)
 			_oBody.OnSimulatePre();
 	}
-	public void OnSimulatePost() {
-		if (_oBody != null && _oBody._bEnabled)
-			_oBody.OnSimulatePost();
-	}
 	public void HideShowMeshes() {
-		_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation && (_eBodyBaseMode == EBodyBaseModes.MorphBody);
-		_oClothSrc.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
-		if (_oMeshMorphResult.GetComponent<uFlex.FlexParticlesRenderer>() != null)
-			_oMeshMorphResult.GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
+		//###DESIGN<18>: Hide / show all options given the many game modes too complex... ditch?
+		//_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation && (_eBodyBaseMode != EBodyBaseModes.Play);
+		//_oClothEdit.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation && (_eBodyBaseMode == EBodyBaseModes.Play);
+		//_oClothSrc.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
+		if (_oMeshStaticCollider.GetComponent<uFlex.FlexParticlesRenderer>() != null)
+			_oMeshStaticCollider.GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
 		if (_oClothSrc.GetComponent<uFlex.FlexParticlesRenderer>() != null)
 			_oClothSrc.GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
 		if (_oBody != null && _oBody._bEnabled) 	//###CHECK?
@@ -261,7 +266,7 @@ public class CBodyBase : IObject, IFlexProcessor {
 	public Transform FindBone(string sBonePath) {
 		Transform oBoneT = _oBonesT.FindChild(sBonePath);
 		if (oBoneT == null)
-			CUtility.ThrowException(string.Format("ERROR: CBody.FindBone() cannot find bone '{0}'", sBonePath));
+			CUtility.ThrowExceptionF("ERROR: CBody.FindBone() cannot find bone '{0}'", sBonePath);
 		return oBoneT;
 	}
 	public Transform SearchBone(Transform oParentT, string sBoneName) {		// Recursive function that searches our entire bone tree for node name (slow!!)
@@ -285,33 +290,32 @@ public class CBodyBase : IObject, IFlexProcessor {
 		CMorphChannel oMorphChannel = oArgs.Property._oObjectExtraFunctionality as CMorphChannel;
 		bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.ValueNew);
 		if (bMeshChanged) {
-			_oMeshMorphResult._oMeshNow.vertices = _oMeshMorphResult._memVerts.L;       //###IMPROVE: to some helper function?
-			_oMeshMorphResult.UpdateNormals();							// Morphing invalidates normals... update
-			_bParticlePositionsUpdated = true;                          // Flag Flex to perform an update of its particle positions...
+			_oMeshStaticCollider._oMeshNow.vertices = _oMeshStaticCollider._memVerts.L;       //###IMPROVE: to some helper function?
+			_oMeshStaticCollider.UpdateNormals();							// Morphing invalidates normals... update
+			_bFlexBodyCollider_ParticlesUpdated = true;                          // Flag Flex to perform an update of its particle positions...
 		}
 	}
 
 	public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
 		//=== Update the position of our flex particles so bodysuit can be repelled by the updated morph vert positions ===
-		if (_bParticlePositionsUpdated) {
+		if (_bFlexBodyCollider_ParticlesUpdated) {
 			float nDistFlexColliderShrink = CGame.INSTANCE.particleSpacing * CGame.INSTANCE.nDistFlexColliderShrinkMult;
 			for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++) {
 				int nVertWholeMesh = _aVertsFlexCollider[nParticle];                // Lookup the vert index in the full mesh from the Blender-supplied array that isolates which verts participate in the Flex collider
-				Vector3 vecVert = _oMeshMorphResult._memVerts.L[nVertWholeMesh];
-				vecVert -=  _oMeshMorphResult._memNormals.L[nVertWholeMesh] * nDistFlexColliderShrink;		// 'Shrink' each particle a fraction of the way inverse to its normal so it 'shrinks' inside the body to account for particle-to-particle distance and make it appear that cloth can be right over body skin.
+				Vector3 vecVert = _oMeshStaticCollider._memVerts.L[nVertWholeMesh];
+				vecVert -=  _oMeshStaticCollider._memNormals.L[nVertWholeMesh] * nDistFlexColliderShrink;		// 'Shrink' each particle a fraction of the way inverse to its normal so it 'shrinks' inside the body to account for particle-to-particle distance and make it appear that cloth can be right over body skin.
 				_oFlexParticles.m_particles[nParticle].pos = vecVert;
 			}
-			_bParticlePositionsUpdated = false;
+			_bFlexBodyCollider_ParticlesUpdated = false;
 		}
 	}
 }
 
 public enum EBodyBaseModes {
-	Startup,						// CBodyBase just got created at the start of the game and has not yet been initialized to any meaningful mode.  (Can't go back to this mode)
+	Uninitialized,					// CBodyBase just got created at the start of the game and has not yet been initialized to any meaningful mode.  (Can't go back to this mode)
 	MorphBody,                      // Body is now being morphed by the user via sliders to Blender (along with ClothSrc / Bodysuit).  Game-ready _oBody is null / destroyed.
 	CutCloth,						// Cloth is being cut by removing parts from the ClothSrc / Bodysuit.
 	Play,							// Body is simulating in gameplay mode.  (_oBody is valid and has created softbodies / cloths / etc)
-	Disabled,						// Body is 'disabled'.  Used to hide / disable one game-ready body so the configure-mode body is the only one visible.  (_oBody exists but all meshes are invisible and doesn't receive any cycles)
 }
 
 public enum EBodySex {

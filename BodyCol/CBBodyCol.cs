@@ -67,8 +67,8 @@
 //	//	CheckMagicNumber(ref oBA, ref nPosBA, true);				// Read the 'end magic number' that always follows a stream.
 //	//}
 
-//	public override void OnDeserializeFromBlender() {
-//		base.OnDeserializeFromBlender();
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//		base.OnDeserializeFromBlender(aExtraArgs);
 //		GetComponent<Renderer>().enabled = false;
 //		base.Baking_UpdateBakedMesh();
 //		_hBodyCol = ErosEngine.BodyCol_Init(_memVerts.L.Length, _memVerts.P, _memNormals.P, _memTris.L.Length / 3, _memTris.P, _memEdges.L.Length / 2, _memEdges.P, _memVertToVerts.P);

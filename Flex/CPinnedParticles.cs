@@ -26,6 +26,7 @@ public class CPinnedParticles : MonoBehaviour {
         _oFlexParticles.m_particlesCount    += _nNumMappingsSkinToSim;          // Add just the number of particles and springs we need (have a 1:1 relationship)
         _oFlexSprings.  m_springsCount      += _nNumMappingsSkinToSim;
         Array.Resize<uFlex.Particle>    (ref _oFlexParticles.m_particles,           _oFlexParticles.m_particlesCount);
+        Array.Resize<uFlex.Particle>    (ref _oFlexParticles.m_restParticles,       _oFlexParticles.m_particlesCount);
         Array.Resize<bool>              (ref _oFlexParticles.m_particlesActivity,   _oFlexParticles.m_particlesCount);
         Array.Resize<Vector3>           (ref _oFlexParticles.m_velocities,          _oFlexParticles.m_particlesCount);
         Array.Resize<float>             (ref _oFlexParticles.m_densities,           _oFlexParticles.m_particlesCount);

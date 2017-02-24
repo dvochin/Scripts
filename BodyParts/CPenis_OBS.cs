@@ -92,8 +92,8 @@ using System.Collections.Generic;
 //        ///_SoftBodyDetailLevel = 15;				//###OPT!!!: Reduce if quality can be maintained at base
 //	}
 
-//    public override void OnDeserializeFromBlender() {
-//		base.OnDeserializeFromBlender();
+//    public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//		base.OnDeserializeFromBlender(aExtraArgs);
 
 //		_oObjDriver = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EPenis), "Penis", "Penis");		//###IMPROVE: Name of soft body to GUI
 

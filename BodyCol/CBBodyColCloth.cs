@@ -141,8 +141,8 @@
 //	}
 
 
-//	public override void OnDeserializeFromBlender() {
-//		base.OnDeserializeFromBlender();
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//		base.OnDeserializeFromBlender(aExtraArgs);
 
 //		GetComponent<Renderer>().enabled = false;
 //		base.Baking_UpdateBakedMesh();			// Bake mesh once so that we initialize PhysX with valid data at the first game frame.

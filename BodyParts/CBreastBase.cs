@@ -38,8 +38,8 @@ public class CBreastBase : CSoftBody/*, IHotSpotMgr*/ {    //###OBS!
 		_nBreastID = (this.GetType().Name == "CBreastR") ? 1 : 0;
 	}
 
-	public override void OnDeserializeFromBlender() {
-		base.OnDeserializeFromBlender();
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+		base.OnDeserializeFromBlender(aExtraArgs);
 		///_eColGroup = (EColGroups)(EColGroups.eLayerBodyNoCollisionWithSelfStart + _oBody._oBodyBase._nBodyID);     // Breast softbody (and their associated rigid body kinematic colliders to repel other breasts) each get their own group for their own body so each breast softbody doesn't collide with its own colliders (designed to repel other breasts)
 
 		//=== Define the breast collider from the datamember of our CSoftBodyBreast instance managing oMeshColBreast collider mesh ===

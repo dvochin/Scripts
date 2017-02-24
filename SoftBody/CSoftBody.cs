@@ -66,16 +66,16 @@ public class CSoftBody : CSoftBodyBase {
 
 	//---------------------------------------------------------------------------	INIT
 
-	public static CSoftBody Create(CBody oBody, Type oTypeBMesh, string sNameBoneAnchor_HACK) { 
+	public static CSoftBody Create(CBody oBody, Type oTypeBMesh, string sNameBoneAnchor) { 
 		string sNameSoftBody = oTypeBMesh.Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
-        _sNameBoneAnchor_HACK = sNameBoneAnchor_HACK;
         CGame.gBL_SendCmd("CBody", "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").oBody.CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + ")");      // Separate the softbody from the source body.
-		CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody._oBodyBase, ".oBody.aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh);       // Create the softbody mesh from the just-created Blender mesh.
+		CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody._oBodyBase, ".oBody.aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh, false, sNameBoneAnchor);       // Create the softbody mesh from the just-created Blender mesh.
+		oSoftBody.gameObject.name = oBody._oBodyBase._sBodyPrefix + "-SoftBody-" + oTypeBMesh.ToString();		//###IMPROVE<18>: Put this stuff in CBMesh.Create()?
         return oSoftBody;
     }
 
-	public override void OnDeserializeFromBlender() {
-        base.OnDeserializeFromBlender();                    // Call important base class first to serialize rim, pinned particle mesh, etc
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+        base.OnDeserializeFromBlender(aExtraArgs);                    // Call important base class first to serialize rim, pinned particle mesh, etc
 
         //=== Create the collision mesh from Blender ===
         _oMeshFlexCollider = CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshFlexCollider", typeof(CBMesh));       // Also obtain the Unity2Blender mesh call above created.
@@ -83,7 +83,7 @@ public class CSoftBody : CSoftBodyBase {
         _oMeshFlexCollider.transform.SetParent(transform);
 
         //=== Construct the Flex solid body to obtain the particles that need further processing Blender for pinning ===
-        CFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);
+        CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshFlexCollider._oMeshNow, uFlex.FlexBodyType.Soft, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassSoftBody, Color.red);
 
         //=== Obtain references to the components we'll need at runtime ===
         _oFlexParticles         = GetComponent<uFlex.FlexParticles>();              //###WEAK: Owned by base class, defined here
@@ -117,7 +117,7 @@ public class CSoftBody : CSoftBodyBase {
 		////=== Obtain the map of pinned particles in skinned mesh to softbody particles in whole softbody mesh ===
 		List<ushort> aMapPinnedParticles = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".aMapPinnedParticles.Unity_GetBytes()");		// Read the particle traversal map from our CSoftBody instance
 
-		        //=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
+		//=== Create the Flex-to-skinned-mesh component responsible to guide selected Flex particles to skinned-mesh positions ===
         _oPinnedParticles = CUtility.FindOrCreateComponent(gameObject, typeof(CPinnedParticles)) as CPinnedParticles;
         _oPinnedParticles.Initialize(ref aMapPinnedParticles, _oMeshPinnedParticles);
 

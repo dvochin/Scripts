@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
+public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, uFlex.IFlexProcessor
 {
     //---------------------------------------------------------------------------	SUB MESHES
     [HideInInspector]	public	CBSkinBaked _oMeshRim;					    // The skinned 'rim mesh' that is baked everyframe.  Contains rim and particles.  Rim is to adjust normals at softbody mesh boundary and the particles in this mesh are to 'pin' our softbody particles to the skinned body (so softbody doesn't go 'flying off')
@@ -22,21 +22,23 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, IFlexProcessor
     Vector3[] _aShapeRestPosOrig;               // Backup of shape rest positions at startup.  Used for runtime softbody volume adjustments (without loss of data)
     Vector3[] _aFlexParticlesAtStart;           // Backup of particle position at startup.  Used to 'reset' softbody to original particle position
     bool _bSoftBodyInReset_HACK;                // When true soft body will be reset this frame.  Used during pose loading for fast teleport
-    [HideInInspector]	public	static string _sNameBoneAnchor_HACK;        // Horrible hack method of passing bone name to class instance... forced by CBMesh calling init code too early.  ###IMPROVE!
     //---------------------------------------------------------------------------	MISC
 	List<ushort> _aMapRimVerts = new List<ushort>();    // Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
     Transform _oBoneAnchor;                     // The bone this softbody 'anchors to' = Resets Flex softbody particles to the world-space position / rotation during reset.  Makes teleportation & rapid movement possible
 
 
     //---------------------------------------------------------------------------	INIT
-    public override void OnDeserializeFromBlender() {
-        base.OnDeserializeFromBlender();
+    public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+        base.OnDeserializeFromBlender(aExtraArgs);
+
+		string sNameBoneAnchor = aExtraArgs[0] as string;			// First argument is for sNameBoneAnchor
+
 		transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);			// Parent to our body's main skinned mesh	###WEAK<14>: Crappy circumvent way of obtaining node we need early in init!
 
         _sNameSoftBody = GetType().Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         _sBlenderInstancePath_CSoftBody = ".oBody.aSoftBodies['" + _sNameSoftBody + "']";                          // Simplify access to Blender CSoftBody instance
         _sBlenderInstancePath_CSoftBody_FullyQualfied = _oBodyBase._sBlenderInstancePath_CBodyBase + _sBlenderInstancePath_CSoftBody; // Simplify access to fully-qualified Blender CSoftBody instance (from CBody instance)
-        _oBoneAnchor = _oBodyBase._oBody._oBodyBase.FindBone(_sNameBoneAnchor_HACK);
+        _oBoneAnchor = _oBodyBase._oBody._oBodyBase.FindBone(sNameBoneAnchor);
 
         //=== Set bounds to infinite so our dynamically-created mesh never has to recalculate bounds ===
         _oMeshNow.bounds = CGame._oBoundsInfinite;          //####IMPROVE: This can hurt performance ####OPT!!

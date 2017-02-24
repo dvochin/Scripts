@@ -13,8 +13,8 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 	//---------------------------------------------------------------------------	INIT
 
-	public override void OnDeserializeFromBlender() {
-		base.OnDeserializeFromBlender();			// First call the CBMesh base class to serialize the mesh itself...
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+		base.OnDeserializeFromBlender(aExtraArgs);			// First call the CBMesh base class to serialize the mesh itself...
 
 		_oSkinMeshRendNow = (SkinnedMeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(SkinnedMeshRenderer));
 
@@ -61,18 +61,18 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			float nBoneWeightSum = 0;
             if (nVertGroups >= 5) { 
                 Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has {2} vert groups!", _sNameBlenderMesh, nVert, nVertGroups);
-                CUtility.ThrowException("CBMesh.ctor() encountered a vertex with " + nVertGroups + " vertex groups!");
+                CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {} vertex groups!", nVertGroups);
             }
     
             for (byte nVertGroup = 0; nVertGroup < nVertGroups; nVertGroup++) {		//###IMPROVE: It might be more elegant to shift this code to Blender Python?
 				aBoneIndex[nVertGroup]  = oBA.ReadByte();
 				float nBoneWeight = oBA.ReadFloat();
 				if (nBoneWeight < 0)
-					//Debug.LogError("CBMesh.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
-					CUtility.ThrowException("CBSkin.ctor() encountered a bone weight below 0 at vert " + nVert + " and vert group " + nVertGroup);
+					//Debug.LogErrorFormat("CBSkin.ctor() encountered a bone weight below 0 at vert {0} and vert group.", nVert, nVertGroup);
+					CUtility.ThrowExceptionF("CBSkin.ctor() encountered a bone weight below 0 at vert {0} and vert group.", nVert, nVertGroup);
 				if (nBoneWeight > 1)
-					//CUtility.ThrowException("CBMesh.ctor() encountered a bone weight over 1 at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
-					Debug.LogWarning("CBSkin.ctor() encountered a bone weight over 1 = " + nBoneWeight + " at vert " + nVert + " and vert group " + nVertGroup);	//###IMPROVE: Common!  What to do? cap??
+					//CUtility.ThrowExceptionF("CBSkin.ctor() encountered a bone weight over 1 = {0} at vert {1} and vert group {2}.", nBoneWeight, nVert, nVertGroup);	//###IMPROVE: Common!  What to do? cap??
+					Debug.LogWarningFormat("CBSkin.ctor() encountered a bone weight over 1 = {0} at vert {1} and vert group {2}.", nBoneWeight, nVert, nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 				aBoneWeight[nVertGroup] = nBoneWeight;
 				nBoneWeightSum += nBoneWeight;
 			}
@@ -123,7 +123,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 	
 	//---------------------------------------------------------------------------	UPDATE
 
-	public virtual void OnSimulatePre() {}
+	public virtual void OnSimulate() {}
 
 	//---------------------------------------------------------------------------	UTILITY
 }

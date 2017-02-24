@@ -21,8 +21,8 @@
 //		return oFlexCloth;
 //	}
 
-//	public override void OnDeserializeFromBlender() {
-//		base.OnDeserializeFromBlender();
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//		base.OnDeserializeFromBlender(aExtraArgs);
 
 //		if (GetComponent<Collider>() != null)
 //			Destroy(GetComponent<Collider>());                      //###LEARN: Hugely expensive mesh collider created by the above lines... turn it off!
