@@ -77,7 +77,7 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
 				GameObject.Destroy(oVisParticle.gameObject);
 		if (_aVisShapes != null)
 			foreach (CVisualizeShape oVisShape in _aVisShapes)
-				GameObject.Destroy(oVisShape);          // Destroy component only        ###F###NOW###: Not owned by us... destroy by owner!
+				GameObject.Destroy(oVisShape);          // Destroy component only        ###BUG?: Not owned by us... destroy by owner!
     }
 
     //public virtual void OnDrawGizmos() {

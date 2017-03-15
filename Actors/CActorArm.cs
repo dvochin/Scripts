@@ -139,17 +139,16 @@ public class CActorArm : CActor {
 			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorArm), "Arm", "Arm" + _sSidePrefixU);
-		_oObj.PropGroupBegin("", "", true);
-		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		//_oObj.PropAdd(EActorArm.HandTarget,			"HandTarget",			typeof(EHandTargets), (int)EHandTargets.ManualPosition, "");
-		_oObj.PropAdd(EActorArm.Hand_UpDown,		"Hand-UpDown",			0,	-100,	100, "");
-		_oObj.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight",		0,	-100,	100, "");
-		_oObj.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist",			0,	-100,	100, "");
-		//_oObj.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Hide);		//###BROKEN
-		//_oObj.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Hide);
-		//_oObj.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Hide);
-		//_oObj.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "");
+		_oObj = new CObject(this, "Arm" + _sSidePrefixU, "Arm" + _sSidePrefixU);		//###PROBLEM<19>: Name for scripting and label name!
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorArm));
+		AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
+		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");
+		oPropGrp.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight", 0, -100, 100, "");
+		oPropGrp.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist", 0, -100, 100, "");
+		//oPropGrp.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Hide);		//###BROKEN
+		//oPropGrp.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Hide);
+		//oPropGrp.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Hide);
+		//oPropGrp.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "");
 		_oObj.FinishInitialization();
 
 		_oHandTarget_RaycastPin = CActorArm.FindHandTarget(_oBody, EHandTargets.RaycastPin, _eBodySide == EBodySide.Right);	// Find the raycast pin hand target as we use it heavily and it is reparented
@@ -228,7 +227,7 @@ public class CActorArm : CActor {
 		if (_oBodyArmPin == null) {							//###CHECK!! Correct cancellation??
 			_oHandTarget.ConnectHandToHandTarget(null);		// Destroy arm from pin at end of raycast search if we're not connected to anything
 			_oHandTarget = null;				//???
-			_oObj.PropSet(EActorArm.Pinned, 0);		// Unpin??
+			_oObj.PropSet(0, EActorArm.Pinned, 0);		// Unpin??
 			//_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// If raycasting results in no pin to raycast vert we re-enable angular constraint??? ###TODO!!!! ###DESIGN!!
 		}
 	}
@@ -245,9 +244,9 @@ public class CActorArm : CActor {
 		////=== Set hand position when some keys are pressed ===
 		//if (_oBody.IsBodySelected()) {						//###TODO	###HACK!!!
 		//	if (Input.GetKeyDown(KeyCode.Alpha5))				//###IDEA: USE F1-F4?
-		//		_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Head_Side);
+		//		_oObj.PropSet(0, EActorArm.HandTarget, (int)EHandTargets.Head_Side);
 		//	//if (Input.GetKeyDown(KeyCode.Alpha6))
-		//	//	_oObj.PropSet(EActorArm.HandTarget, (int)EHandTargets.Breast_Side);
+		//	//	_oObj.PropSet(0, EActorArm.HandTarget, (int)EHandTargets.Breast_Side);
 		//}
 	}
 
@@ -263,12 +262,12 @@ public class CActorArm : CActor {
 		
 	//	switch (eHandTarget) {
 	//		case EHandTargets.ManualPosition:
-	//			//###BROKEN!!! Conflict during init! _oObj.PropSet(EActorArm.Pinned, 1);				// Manual position means pinned
+	//			//###BROKEN!!! Conflict during init! _oObj.PropSet(0, EActorArm.Pinned, 1);				// Manual position means pinned
 	//			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// Enable angular contraint so user can fully define hand pos/rot
 	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
 	//			break;
 	//		case EHandTargets.Idle:
-	//			_oObj.PropSet(EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
+	//			_oObj.PropSet(0, EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
 	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
 	//			break;
 	//		default:
@@ -283,7 +282,7 @@ public class CActorArm : CActor {
 		//	_oJointExtremity.DumpBonePos_DEV();
 
 		//if (eHandTarget == EHandTargets.Driven_DEV) {			//###WEAK!!!?
-		//	_oObj.PropSet(EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
+		//	_oObj.PropSet(0, EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
 		//	transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
 		//	_oJointShoulder	.SetRotationRaw_HACK(new Quaternion(-0.109f,0.592f,0.133f,0.787f));
 		//	_oJointMidLimb	.SetRotationRaw_HACK(new Quaternion(-0.398f,0.818f,0.281f,0.307f));

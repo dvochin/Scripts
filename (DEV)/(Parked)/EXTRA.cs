@@ -21,7 +21,7 @@
 //	//	_aObj.Add(CGame.INSTANCE._oFluidWorld);
 
 //	//	foreach (CObject oObj in _aObj) {
-//	//		foreach (CPropGroup oPropGrp in oObj._aPropGroups) {					//###PROBLEM: Why gap at top??
+//	//		foreach (CPropGrp oPropGrp in oObj._aPropGrps) {					//###PROBLEM: Why gap at top??
 //	//			if (oPropGrp._nPaneID == nPaneID) {
 //	//				oPropGrp.CreateWidget(oListBox);
 //	//				foreach (int nPropID in oPropGrp._aPropIDs) {
@@ -91,7 +91,7 @@
 //		//	public void oPaneMsgIntro_MouseOver(iGUIPanel caller){
 
 //	////---------------------------------------------------------------------------	CLOTH CUTTING WIDGETS		###WEAK: No _ naming convention!
-//	//[HideInInspector] public iGUIPanel oTabClothCut;			
+//	//[HideInInspector] public iGUIPanel oTabClothEdit;			
 //	//[HideInInspector] public iGUIDropDownList oDropTemplate;
 //	//[HideInInspector] public iGUIDropDownList oDropCurveSel;
 //	////---------------------------------------------------------------------------	CLOTH FITTING WIDGETS		###CLEANUP!!!!! Get rid of this old junk!!

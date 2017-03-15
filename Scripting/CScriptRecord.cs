@@ -20,9 +20,10 @@ public class CScriptRecord {		// CScriptRecord: Appends scriptable-actions to an
 	public void WriteObject(CObject oObject) {	
 		// Serialize_OBS all CProp properties of this object onto currently opened script recorder onto a 'SetAll()' function
 
-		string sScriptLine = string.Format("SetAll(0, Body.{0}, [", oObject._sNameScriptHandle);		//###DESIGN!!! Sometimes write which body??
-		foreach (CProp oProp in oObject._aProps)
-			sScriptLine += oProp.PropGet().ToString("F3") + ",";
+		string sScriptLine = string.Format("SetAll(0, Body.{0}, [", oObject._sNameObject);		//###DESIGN!!! Sometimes write which body??
+		//###BROKEN<19>
+		//foreach (CProp oProp in oObject._aProps)
+		//	sScriptLine += oProp.PropGet().ToString("F3") + ",";
 		sScriptLine = sScriptLine.Substring(0, sScriptLine.Length - 1) + "]);";
 		Debug.Log(sScriptLine);
 		_oStreamWriterScriptFile.WriteLine(sScriptLine);
@@ -36,7 +37,7 @@ public class CScriptRecord {		// CScriptRecord: Appends scriptable-actions to an
 		float nTimeDelta = nTime - _nTimeLastScriptWrite;
 		if (nTimeDelta > 3) nTimeDelta = 3;		//###DESIGN: Keep max??
 		_nTimeLastScriptWrite = nTime;
-		string sScriptLine = string.Format("Set({0:F2}, Body.{1}, '{2}', {3:F3});", nTimeDelta, oProp._oObject._sNameScriptHandle, oProp._sNameProp, oProp._nValueLocal);
+		string sScriptLine = string.Format("Set({0:F2}, Body.{1}, '{2}', {3:F3});", nTimeDelta, oProp._oPropGrp._oObj._sNameObject, oProp._sNameProp, oProp._nValueLocal);
 		//Debug.Log(sScriptLine);
 		_oStreamWriterScriptFile.WriteLine(sScriptLine);
 	}

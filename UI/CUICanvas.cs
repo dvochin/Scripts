@@ -17,7 +17,8 @@ public class CUICanvas : MonoBehaviour {			// CUICanvas: Encapsulates the native
 
 	}
 
-	public void CreatePanel() {
-
+	public CUIPanel CreatePanel(string sNameDialogLabel, string sNameChooserLabel = null, params object[] aObjects) {     //###DESIGN<19>: Keep?
+		CUIPanel oPanel = CUIPanel.Create(this, sNameDialogLabel, sNameChooserLabel, aObjects);
+		return oPanel;
 	}
 }

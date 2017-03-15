@@ -25,10 +25,10 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	//---------------------------------------------------------------------------	OBJECT
 	[DllImport(ErosDll)] public static extern int		Object_GoOnline(IntPtr hObject, IntPtr pInitBuf);		//###DESIGN!!: Revisit decision behind that 'misc buffer'!!
 	[DllImport(ErosDll)] public static extern int		Object_GoOffline(IntPtr hObject);
-	[DllImport(ErosDll)] public static extern int		Object_PropConnect(IntPtr hObject, int nPropEnumOrdinal, string sNameProp);
-	[DllImport(ErosDll)] public static extern int		Object_PropDestroy(IntPtr hObject, int nPropEnumOrdinal);
-	[DllImport(ErosDll)] public static extern float		Object_PropGet(IntPtr hProp, int nPropEnumOrdinal);
-	[DllImport(ErosDll)] public static extern float		Object_PropSet(IntPtr hProp, int nPropEnumOrdinal, float nValue);
+	[DllImport(ErosDll)] public static extern int		Object_PropConnect(IntPtr hObject, int nPropOrdinal, string sNameProp);
+	[DllImport(ErosDll)] public static extern int		Object_PropDestroy(IntPtr hObject, int nPropOrdinal);
+	[DllImport(ErosDll)] public static extern float		Object_PropGet(IntPtr hProp, int nPropOrdinal);
+	[DllImport(ErosDll)] public static extern float		Object_PropSet(IntPtr hProp, int nPropOrdinal, float nValue);
 	[DllImport(ErosDll)] public static extern void		Object_SetPositionOrientation(IntPtr hObject, int nSubObject, Vector3 vecPos, Quaternion quatRot);
 
 	////---------------------------------------------------------------------------	FLUID

@@ -95,7 +95,7 @@ using UnityEngine.UI;
 
 
 //---------------------------------------------------------------------------	
-public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game object.  Accessable via anywhere via 'INSTANCE'.  Provides top-level game init/shutdown and initiates the 'heartbeat' calls that make the game progres frame by frame
+public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object.  Accessable via anywhere via 'INSTANCE'.  Provides top-level game init/shutdown and initiates the 'heartbeat' calls that make the game progres frame by frame
 
     //---------------------------------------------------------------------------	TEMP Flex
     public bool ShowPresentation = true;            //###IMPROVE: Add softbody shapes!
@@ -246,8 +246,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
         _oTextUR = GameObject.Find("/UI/CanvasScreen/UR/Text-UR").GetComponent<Text>();
 
 		//=== Create user-adjustable top-level game options ===
-		_oObj = new CObject(this, 0, typeof(EGamePlay), "EroticVR");		//###TEMP!!! Main game name in this low-importance GUI???
-		_oObj.PropGroupBegin("", "", true);		//###CLEANUP
+		_oObj = new CObject(this, "EroticVR Options", "EroticVR Options");		//###PROBLEM<19>: Name for scripting and label name!
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "EroticVR Options", typeof(EGamePlay));
 		//_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
 		//_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
 		//_oObj.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)");
@@ -473,8 +473,8 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		if (Input.GetKeyDown(KeyCode.F3))
 			ChangeGameMode(EGameModes.Play);
 
-		if (Input.GetKeyDown(KeyCode.F4))
-			_aBodyBases[0]._oClothSrc.ClothEdit_Start();			//////////////////////////
+		//if (Input.GetKeyDown(KeyCode.F4))
+		//	_aBodyBases[0]._oClothSrc.ClothEdit_Start();
 
 
 
@@ -644,7 +644,7 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 		//	float nTimeDeltaAsPercentToMaxOrgasm = Time.deltaTime / C_TimeToMaxOrgasm_OBSOLETE;		// How much we can increase lust at this game frame given max pleasure
 		//	float nOrgasmIncrease = nTimeDeltaAsPercentToMaxOrgasm * nPleasure;
 		//	nOrgasm += nOrgasmIncrease;
-		//	_oObj.PropSet(EGamePlay.Arousal, nOrgasm);
+		//	_oObj.PropSet(0, EGamePlay.Arousal, nOrgasm);
 		//}
 
 		//=== Re-enable collision temporarily disabled in Pose_Load() if time has elapsed ===
@@ -1227,21 +1227,21 @@ public class CGame : MonoBehaviour, IObject, IHotSpotMgr {	// The singleton game
 
 	//	if (nValueNew < nCutErection) {
 
-	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f * nValueNew / nCutErection);
-	//		_oObj.PropSet(EGamePlay.PenisSize, 0);
-	//		//_oObj.PropSet(EGamePlay.Ejaculation, 0);
+	//		_oObj.PropSet(0, EGamePlay.PenisErectionMax, 100.0f * nValueNew / nCutErection);
+	//		_oObj.PropSet(0, EGamePlay.PenisSize, 0);
+	//		//_oObj.PropSet(0, EGamePlay.Ejaculation, 0);
 
 	//	} else if (nValueNew < nCutCum) {
 
-	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);
-	//		_oObj.PropSet(EGamePlay.PenisSize, 100.0f * (nValueNew - nCutErection) / nRangeGrowth);
-	//		//_oObj.PropSet(EGamePlay.Ejaculation, 0);
+	//		_oObj.PropSet(0, EGamePlay.PenisErectionMax, 100.0f);
+	//		_oObj.PropSet(0, EGamePlay.PenisSize, 100.0f * (nValueNew - nCutErection) / nRangeGrowth);
+	//		//_oObj.PropSet(0, EGamePlay.Ejaculation, 0);
 
 	//	} else {
 
-	//		_oObj.PropSet(EGamePlay.PenisErectionMax, 100.0f);		//###IMPROVE: Really needed to be fully determinisitic on all properties or can we assume progression will set correctly?
-	//		_oObj.PropSet(EGamePlay.PenisSize, 100);
-	//		//_oObj.PropSet(EGamePlay.Ejaculation, 1);
+	//		_oObj.PropSet(0, EGamePlay.PenisErectionMax, 100.0f);		//###IMPROVE: Really needed to be fully determinisitic on all properties or can we assume progression will set correctly?
+	//		_oObj.PropSet(0, EGamePlay.PenisSize, 100);
+	//		//_oObj.PropSet(0, EGamePlay.Ejaculation, 1);
 
 	//	}
 	//}

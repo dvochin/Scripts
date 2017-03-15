@@ -114,7 +114,7 @@ using System.Collections.Generic;
 
 
 
-public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not actually represent a mesh (most of the skinned body represtend by _oBodySkinnedMesh;
+public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually represent a mesh (most of the skinned body represtend by _oBodySkinnedMesh;
 	// The main purpose of this class is to act as a bridge between the bone structure used for animation of the main skinned mesh and enable our connected soft-body parts to move along with us via our rim mesh and the pins it updates with PhysX
 
 	public CBodyBase			_oBodyBase;             // Our owning body base.  Responsible to create / destroy us as player nagivates between configure / play mode.
@@ -188,9 +188,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _oBodyBase._nBodyID));
 
-		_oObj = new CObject(this, _oBodyBase._nBodyID, typeof(EBodyDef), "Body");
-		_oObj.PropGroupBegin("", "", true);
-		_oObj.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN<11>
+		_oObj = new CObject(this, "Body", "Body");
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Body", typeof(EBodyDef));
+		oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN<11>
 		_oObj.FinishInitialization();
 
 
@@ -210,7 +210,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
         }
 
 		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN<18>: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
-		_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
+		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
 		
 
 
@@ -260,7 +260,7 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//		_oKeyHook_PenisDriveStrengthMax = new CKeyHook(_oPenis._oObjDriver.PropFind(EPenis.DriveStrengthMax), KeyCode.G, EKeyHookType.QuickMouseEdit, "Penis erection", -1, bSelectedBodyOnly);
 		//	}
 		//}
-		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
+		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(0, EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
 		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN<15>! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
@@ -391,14 +391,14 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 
 		//		float nCycleTime = 8;		//###TUNE	###IMPROVE: Give user GUI access to these??
 		//		float nMaxRate = 300;		//###TUNE!!!
-		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, 0.00f);		//###TUNE
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(0, EFluid.EmitVelocity, 0.00f);		//###TUNE
 
 		//		//=== Set the emit velocity & rate from the pertinent configuration curve ===
 		//		float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % nCycleTime;
 		//		float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
 		//		float nEmitRate = nMaxRate * Mathf.Max(CGame.INSTANCE.CurveEjaculateWoman.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
 
-		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);		// Woman ejaculation is a rate-based emitter where we control the rate over time	###DESIGN: Would going pressure-base like man have any sense here??
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(0, EFluid.EmitRate, nEmitRate);		// Woman ejaculation is a rate-based emitter where we control the rate over time	###DESIGN: Would going pressure-base like man have any sense here??
 
 		//	} else {
 
@@ -413,9 +413,9 @@ public class CBody : IObject, IHotSpotMgr { 		// Manages a 'body':  Does not act
 		//		float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / nCycleTime;		//###DESIGN!!! Move curve here?  How to persist??
 		//		float nEmitVelocity = nMaxVelocity * Mathf.Max(CGame.INSTANCE.CurveEjaculateMan.Evaluate(nTimeInEjaculationCycle_Normalized), 0);		//###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
 
-		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitVelocity, nEmitVelocity);	// Man ejaculation is a pressure-based emitter where we control the emit velocity over time
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(0, EFluid.EmitVelocity, nEmitVelocity);	// Man ejaculation is a pressure-based emitter where we control the emit velocity over time
 		//		float nEmitRate = (nEmitVelocity != 0) ? 10000 : 0;		//###WEAK: What max??  ramp up??  threshold point??	// Set a very large rate as we're a pressure-based emitter... (we are limited by neighborhood particles)
-		//		CGame.INSTANCE._oFluid._oObj.PropSet(EFluid.EmitRate, nEmitRate);
+		//		CGame.INSTANCE._oFluid._oObj.PropSet(0, EFluid.EmitRate, nEmitRate);
 		//	}
 		//}
 		if (Input.GetKeyDown(KeyCode.R))		//###DESIGN: Selected only??

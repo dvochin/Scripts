@@ -90,7 +90,7 @@ public class CCursor : MonoBehaviour {
 						public const float	C_TimeMaxForMouseClick		= 0.2f;		// Mouse clicks longer then this do not do anything ###TUNE
 
 
-    public Transform _oCurrentGuiObject_HACK = null;                    // Current Unity GUI object under the cursor.  Comes from our CUIPanel and used for cursor 3D depth adjustment.
+    public Transform _oCurrentGuiObjOwnerect_HACK = null;                    // Current Unity GUI object under the cursor.  Comes from our CUIPanel and used for cursor 3D depth adjustment.
 
 
 	
@@ -175,8 +175,8 @@ public class CCursor : MonoBehaviour {
   //      }
 
 
-        if (_oCurrentGuiObject_HACK != null)        //###CHECK: Proper transforms for VR??  For SpaceNavigator??
-            _nDepth = Vector3.Distance(_oCurrentGuiObject_HACK.position, Camera.main.transform.position);     //###DESIGN: Override hotspot depth above??   ###IDEA: Have cursor a child of panel when it is hovering on top??
+        if (_oCurrentGuiObjOwnerect_HACK != null)        //###CHECK: Proper transforms for VR??  For SpaceNavigator??
+            _nDepth = Vector3.Distance(_oCurrentGuiObjOwnerect_HACK.position, Camera.main.transform.position);     //###DESIGN: Override hotspot depth above??   ###IDEA: Have cursor a child of panel when it is hovering on top??
 
 
         Vector3 vecMouse2D = new Vector3(Input.mousePosition.x, Input.mousePosition.y, _nDepth);		//###OPT: Cache localPosition??
@@ -184,7 +184,7 @@ public class CCursor : MonoBehaviour {
 		transform.position = vecMouse3D;
 
 
-        if (_oCurrentGuiObject_HACK != null)
+        if (_oCurrentGuiObjOwnerect_HACK != null)
             return;			//####SOON ####PROBLEM: Detecting what widget for width (solution offered in post)
 
 
@@ -361,7 +361,7 @@ public enum EModeCursor { 							// The cursor modes used in its Finite State Ma
 //iGUICode_Root.INSTANCE._oPaneContextMenu.setType(iGUIPanelType.Box);
 //iGUICode_Root.INSTANCE._oPaneContextMenu.layout = iGUILayout.VerticalDense;
 
-//foreach (CPropGroup oPropGrp in _aPropGroups) {			//###DESIGN: Use property groups??
+//foreach (CPropGrp oPropGrp in _aPropGrps) {			//###DESIGN: Use property groups??
 //	oPropGrp.CreateWidget(oPanel);
 //	foreach (int nPropID in oPropGrp._aPropIDs) {
 //		CProp oProp = PropFind(nPropID);

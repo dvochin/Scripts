@@ -51,9 +51,9 @@ public class CBreastBase : CSoftBody/*, IHotSpotMgr*/ {    //###OBS!
 
 	//	switch (eGameModeNew) {		//####DEV ####OBS??
 	//		case EGameModes.Play:
-	//			_oObj.PropSet(ESoftBody.VolumeStiffness, 0.4f);             //####MOD: Was .9, .6
-	//			_oObj.PropSet(ESoftBody.StretchingStiffness, 0.35f);        //###TUNE!!
-	//			_oObj.PropSet(ESoftBody.ParticleRadius, 0.03f);             //###TUNE!!! Hugely important to be repelled by hands as strongly as possible
+	//			_oObj.PropSet(0, ESoftBody.VolumeStiffness, 0.4f);             //####MOD: Was .9, .6
+	//			_oObj.PropSet(0, ESoftBody.StretchingStiffness, 0.35f);        //###TUNE!!
+	//			_oObj.PropSet(0, ESoftBody.ParticleRadius, 0.03f);             //###TUNE!!! Hugely important to be repelled by hands as strongly as possible
 	//			//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper"), "Breasts", false, new Vector3(0, 0.09f, 0.2f));
 	//			break;
 	//		case EGameModes.Configure:

@@ -33,17 +33,17 @@ public class CActorChest : CActor {
 		//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody.FindBone("chestUpper"), "Chest", true, new Vector3(0, 0, 0), C_SizeHotSpot_TorsoNodes);
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorChest), "Chest", "Chest");
-		_oObj.PropGroupBegin("", "", true);
+		_oObj = new CObject(this, "Chest", "Chest");
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorChest));
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.PropAdd(EActorChest.Torso_LeftRight,	"Torso_LeftRight",	0,	-100,	100,	"");		//###BUG: Have to recalibrate to make new abdoment-centric bones look good.
-		_oObj.PropAdd(EActorChest.Torso_UpDown,		"Torso_UpDown",		0,	-100,	100,	"");		//###NOW###: Forced to enter crappy name because of new CProp restrictions with naming!
-		_oObj.PropAdd(EActorChest.Torso_Twist,		"Torso_Twist",		0,	-100,	100,	"");
+		oPropGrp.PropAdd(EActorChest.Torso_LeftRight,	"Torso_LeftRight",	0,	-100,	100,	"");		//###BUG: Have to recalibrate to make new abdoment-centric bones look good.
+		oPropGrp.PropAdd(EActorChest.Torso_UpDown,		"Torso_UpDown",		0,	-100,	100,	"");		//###NOW###: Forced to enter crappy name because of new CProp restrictions with naming!
+		oPropGrp.PropAdd(EActorChest.Torso_Twist,		"Torso_Twist",		0,	-100,	100,	"");
 		_oObj.FinishInitialization();
 		//###PROBLEM: Base actor adds 'pinned' but chest is always pinned?
 
         //###CHECK??
-		_oObj.PropSet(EActorChest.Pinned, 1);           // Manually set pinned to 1 on torso so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
+		_oObj.PropSet(0, EActorChest.Pinned, 1);           // Manually set pinned to 1 on torso so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
 
         if (CGame.INSTANCE.EnableIdlePoseMovement)
             StartCoroutine(Coroutine_ChangeRandomPose());			//###CHECK: When destroyed OK??
@@ -53,16 +53,16 @@ public class CActorChest : CActor {
 		float nTimeBetweenSmoothUpdates = C_RndPos_TimeBetweenShifts / (float)C_RndPose_SmoothSteps;
         //###BROKEN
 		for (; ; ) {
-			_oObj.PropFind(EActorChest.Torso_LeftRight)	.Randomize_SetNewRandomTarget(-C_RndPose_ValShift/2, C_RndPose_ValShift/2);		//###TUNE!!
-			_oObj.PropFind(EActorChest.Torso_UpDown)	.Randomize_SetNewRandomTarget(-C_RndPose_ValShift, C_RndPose_ValShift);
-			_oObj.PropFind(EActorChest.Torso_Twist)		.Randomize_SetNewRandomTarget(-C_RndPose_ValShift, C_RndPose_ValShift);
+			_oObj.PropFind(0, EActorChest.Torso_LeftRight)	.Randomize_SetNewRandomTarget(-C_RndPose_ValShift/2, C_RndPose_ValShift/2);		//###TUNE!!
+			_oObj.PropFind(0, EActorChest.Torso_UpDown)		.Randomize_SetNewRandomTarget(-C_RndPose_ValShift, C_RndPose_ValShift);
+			_oObj.PropFind(0, EActorChest.Torso_Twist)		.Randomize_SetNewRandomTarget(-C_RndPose_ValShift, C_RndPose_ValShift);
 
 			for (int nSmoothStep = 0; nSmoothStep <= C_RndPose_SmoothSteps; nSmoothStep++) {
 				float nPlaceInCycle = (float)nSmoothStep / (float)C_RndPose_SmoothSteps;
 
-				_oObj.PropFind(EActorChest.Torso_LeftRight)	.Randomize_SmoothToTarget(nPlaceInCycle);
-				_oObj.PropFind(EActorChest.Torso_UpDown)	.Randomize_SmoothToTarget(nPlaceInCycle);
-				_oObj.PropFind(EActorChest.Torso_Twist)		.Randomize_SmoothToTarget(nPlaceInCycle);
+				_oObj.PropFind(0, EActorChest.Torso_LeftRight)	.Randomize_SmoothToTarget(nPlaceInCycle);
+				_oObj.PropFind(0, EActorChest.Torso_UpDown)		.Randomize_SmoothToTarget(nPlaceInCycle);
+				_oObj.PropFind(0, EActorChest.Torso_Twist)		.Randomize_SmoothToTarget(nPlaceInCycle);
 
 				yield return new WaitForSeconds(nTimeBetweenSmoothUpdates);
 			}

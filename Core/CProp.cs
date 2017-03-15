@@ -1,14 +1,38 @@
-﻿using UnityEngine;
+﻿/*###DISCUSSION: CProp: global object / property / GUI integration
+=== LAST ===
+
+=== NEXT ===
+
+=== TODO ===
+
+=== LATER ===
+
+=== IMPROVE ===
+
+=== DESIGN ===
+
+=== IDEAS ===
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+
+=== QUESTIONS ===
+
+=== WISHLIST ===
+
+*/
+
+using UnityEngine;
 using System;
 using System.IO;
-using System.Collections.Generic;
 using System.Reflection;
-//using System.Runtime.InteropServices;
 
 
 public class CProp {							// Important class that abstracts the concept of a 'property' and enables Unity and C++ dll to read/write this property with the other side being notified of the change.
-	public CObject		_oObject;				// The object who'se property we hold.  Creates / Destroys / Manages us.
-	public int			_nPropEnumOrdinal;
+	public CPropGrp		_oPropGrp;				// The property group that owns us.  It is in turned owned by its own CObject
+
+	public int			_nPropOrdinal;
 	public string		_sNameProp;				// Name of property as typed in the defining enum
 	public string		_sLabel;				// Label of the property as shown in GUI
 	public string		_sDescription;
@@ -17,10 +41,11 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	public float		_nMin;
 	public float		_nMax;
 	public float		_nMinMaxRange;			// = _nMax - _nMin
-	public float		_nHotSpotEdit_BeginPosY;	// Value of hotspot Y coordinate to change property from hotspot movement in ChangePropByHotSpotMove()
-	public float		_nHotSpotEdit_BeginValue;	// Our value when hotspot editing began.
+	//public float		_nHotSpotEdit_BeginPosY;	// Value of hotspot Y coordinate to change property from hotspot movement in ChangePropByHotSpotMove()
+	//public float		_nHotSpotEdit_BeginValue;	// Our value when hotspot editing began.
 	public int			_nPropFlags;
-	public Type			_oTypeChoice;			// The type of the enum that displays the combo-box choices for this property.  Parsed by GUI to display / choose  the proper enum
+	public Type			_oEnumChoices;			// The type of the enum that displays the combo-box choices for this property.  Parsed by GUI to display / choose  the proper enum
+	public string[]		_aStringChoices;		// The possible choices for this property.  _nValue is set to the index in this string list.
 	public MethodInfo	_oMethodInfo_OnPropSet; // The field info of a function on owning object that receives notification when this property changes.
 	public object       _oObjectExtraFunctionality;		// Properties can have reference to extra class instances that extend their functionality.  This is currently used for morph channel caching
 
@@ -32,14 +57,12 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	public float        _nAdjustTargetVal;      // Runtime adjust functionality.  What the property value becomes RuntimeAdjust_SetTargetValue() gets passed a nDistThisFrame over _nAdjustDistPerFrame
 	public float        _nAdjustDistPerFrame;	// How much movement distance required by frame to set the property to _nAdjustTargetVal
 
-	//public iGUIElement	_oWidgetGUI;			// GUI element we visually render our property to (when shown in a property viewer)
     public CUIWidget    _oUIWidget;             // The widget who draws our property in the Unity UI
 
 
 	public const int ReadOnly			= 1 << 0;   // Read only property that user can't change through GUI.  ###CHECK: Formerly: Fake property without value or processing.  Only exists to draw a seperating header in GUI
 	public const int Hide				= 1 << 1;   // Property doesn't draw anything in GUI
-	public const int Blender			= 1 << 2;   // Property exists in Blender only.  Owning CObject *must* have a valid Blender object name for '_sNameBlenderObject' (Properties that are not 'Local' and not 'Blender' are dll-side properties)
-	public const int CPlusPlusDll		= 1 << 3;	// Property exists in C++ dll.
+//	public const int CPlusPlusDll		= 1 << 3;	// Property exists in C++ dll.
 	public const int AsCheckbox			= 1 << 4;	// Property takes only the float values of 0.0f or 1.0f and is drawn on GUI as a checkbox
 	public const int AsButton			= 1 << 5;	// Property is drawn as a button and does not show a value (e.g. always zero)
 	//###IMPROVE: Deactivate bounds if needed with a flag?)
@@ -49,9 +72,11 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	//---------------------------------------------------------------------------	
 
 	public CProp() { }
-	public CProp(CObject oObject, int nPropEnumOrdinal, string sLabel, float nDefault, float nMin, float nMax, string sDescription, int nPropFlags, Type oTypeChoice) {
-		_oObject			= oObject;
-		_nPropEnumOrdinal	= nPropEnumOrdinal;
+
+	public CProp(CPropGrp oPropGrp, int nPropOrdinal, string sNameProp, string sLabel, float nDefault, float nMin, float nMax, string sDescription, int nPropFlags, object oChoices = null) {
+		_oPropGrp			= oPropGrp;
+		_nPropOrdinal		= nPropOrdinal;
+		_sNameProp			= sNameProp;
 		_sLabel				= sLabel;
 		_nDefault			= nDefault;
 		_nValueLocal		= nDefault;			// Reasonable way to init local value.  (Important for init flow)
@@ -60,36 +85,19 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		_nMinMaxRange		= _nMax - _nMin;
 		_sDescription		= sDescription;
 		_nPropFlags			= nPropFlags;
-		_oTypeChoice		= oTypeChoice;
-
-        //FieldInfo[] aFieldsEnum = _oObject._oTypeFieldsEnum.GetFields();
-        _sNameProp = sLabel;    //###NOW### "###BROKEN";   //= aFieldsEnum[nPropEnumOrdinal + 1].Name;		// For some reason reflection on enums returns '_value' for index zero with the real enum fields starting at index 1
-
-		//if ((_nPropFlags & Local) == 0 && (_nPropFlags & Blender) == 0) {		// We only have a remote property to connect to if we're non-local
-		//	int nError_PropConnect = ErosEngine.Object_PropConnect(_oObject._hObject, _nPropEnumOrdinal, _sNameProp);
-		//	if (nError_PropConnect != 0)
-		//		Debug.LogWarning(string.Format("WARNING: Non-local property '{0}' of id {1} on object '{2}' could not connect with server DLL equivalent.  Property will not function.", _sNameProp, _nPropEnumOrdinal, _oObject._sNameFull));
-		//}
+		_oEnumChoices		= oChoices as Type;			// Choices will either be from reflection as a Type...
+		_aStringChoices		= oChoices as string[];     // Or a string array.
 
 		ConnectPropCallback();
-		//Debug.Log(string.Format("{0} prop #{1} = '{2}'", _oObject._sNameFull, _nPropEnumOrdinal, _sNameProp));
+		//Debug.Log(string.Format("{0} prop #{1} = '{2}'", _oObject._sNameFull, _nPropOrdinal, _sNameProp));
 	}
 	public void OnDestroy() {
-		if ((_nPropFlags & CPlusPlusDll) != 0) {			// We only have a remote property to destroy if we're CPlusPlusDll
-			int bSuccess = ErosEngine.Object_PropDestroy(_oObject._hObject, _nPropEnumOrdinal);
-			if (bSuccess == 0) {
-				Debug.LogError(string.Format("ERROR CProp.ReleaseGlobalHandles().  C++ returns error disconnecting property '{0}' of id {1} on object '{2}'", _sNameProp, _nPropEnumOrdinal, _oObject._sNameFull));
-			}
-		}
 	}
 
 	//---------------------------------------------------------------------------	GET / SET
 	public float PropGet() {
-		if ((_nPropFlags & CPlusPlusDll) != 0) {            // CPlusPlusDll calls DLL for latest value.
-			return ErosEngine.Object_PropGet(_oObject._hObject, _nPropEnumOrdinal) - _nRndVal;
-		} else if ((_nPropFlags & Blender) != 0) {  // For Blender-side objects we must fetch from related CProp_PropGet() in Blender python
-			CObjectBlender oObjectBlender = _oObject as CObjectBlender;       // Blender property means that we must be owned by a CObjectBlender
-			//if ((_nPropFlags & BlenderDisabled) == 0)
+		if (_oPropGrp.GetType() == typeof(CPropGrpBlender)) {	// For Blender-side objects we must fetch from related CProp_PropGet() in Blender python		###DESIGN<19>: Catch Blender get/set in CPropGrpBlender instead?
+			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;       // Blender property means that we must be owned by a CObjectBlender
 			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropGetString('" + _sNameProp + "')"));
 			return _nValueLocal;
 		} else {
@@ -111,30 +119,21 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			nValueNew = _nMax;
 
 		float nValueOld = _nValueLocal;
-		bool bIsCPlusPlusDll	= (_nPropFlags & CPlusPlusDll) != 0;
-		bool bIsBlender			= (_nPropFlags & Blender) != 0;
 
 		//=== Set the value in our remote counterparts if flagged as such ===
-		if (bIsCPlusPlusDll) {          // For dll-side properties we call the dll.
-			_nValueLocal = ErosEngine.Object_PropSet(_oObject._hObject, _nPropEnumOrdinal, nValueNew);  //###IMPROVE: Trap failure conditions from C++ to display warning property wasn't set because of disconnect error!
-			if (_nValueLocal != nValueNew)          // Occurs for INSTANCE if we set a value out of range and the C++ set function clipped it with the get function returning the clipped value... Check the valid range in the C++ code!
-				Debug.Log(string.Format("Note: PropSet on {0}.{1} was set to {2} but is now {3}", _oObject._sNameFull, _sNameProp, nValueNew, _nValueLocal));   //###NOTE: Not necessarily bad.  Some properties adjust their settings, some round, etc.
-		} else if (bIsBlender) {    // For blender properties we invoke its corresponding CProp_PropSet() method
-			CObjectBlender oObjectBlender = (CObjectBlender)_oObject;       // Blender property means that we must be owned by a CObjectBlender
-			//if ((_nPropFlags & BlenderDisabled) == 0)
+		if (_oPropGrp.GetType() == typeof(CPropGrpBlender)) {    // For blender properties we invoke its corresponding CProp_PropSet() method
+			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;  //###CHECK<19> Move??     // Blender property means that we must be owned by a CObjectBlender
 			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropSetString('" + _sNameProp + "'," + nValueNew.ToString() + ")"));
-			//else
-			//_nValueLocal = nValueNew;
 		} else {      // In local mode we just set local value directly
 			_nValueLocal = nValueNew;
 		}
 
-		//=== OnPropSet_ and OnReset_ notifications can only be sent when object is fully operational (e.g. not during init) ===
-		if (_oObject._bInitialized) {
+		//=== OnPropSet_ notifications can only be sent when object is fully operational (e.g. not during init) ===
+		if (_oPropGrp._oObj._bInitialized) {
 			//=== Notify owning object if it requested notification upon change ===
 			if (_oMethodInfo_OnPropSet != null) {								// If property has a preconfigured 'OnPropSet_' function call it now to notify parent of change
 				object[] aArgs = new object[] { nValueOld, nValueNew };
-				_oMethodInfo_OnPropSet.Invoke(_oObject._iObj, aArgs);			// CObject's owner has the event properties we need to call, not CObject INSTANCE!!
+				_oMethodInfo_OnPropSet.Invoke(_oPropGrp._oObj._iObjOwner, aArgs);			// CObject's owner has the event properties we need to call, not CObject INSTANCE!!
 			}
 		}
 
@@ -144,19 +143,19 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 		//=== Write the just-set property to the script recorder.  This provides a very good starting point to animate a scene ===
 		if (CGame.INSTANCE._oScriptRecordUserActions != null) {
-			if (_oObject._nBodyID != 0 && _oObject._sNameScriptHandle != null) {	// We only write property set to script recorder on objects that have provided their script-access handle
+			if (_oPropGrp._oObj._sNameObject!= null) {	// We only write property set to script recorder on objects that have provided their script-access handle
 				if (nValueNew != nValueOld) 			//###IMPROVE!?!?!? Should abort if same earlier?? Safe??
 					CGame.INSTANCE._oScriptRecordUserActions.WriteProperty(this);
 			}
 		}
 		//=== Notify object that we really did change.  This will in turn notify any owning object that have registered for this event ===
-		_oObject.Notify_PropertyValueChanged(this, nValueOld);		//###TODO<13>: Convert previous codebase that needed this functionality with this new event-based mechanism!
+		_oPropGrp._oObj.Notify_PropertyValueChanged(this, nValueOld);		//###TODO<13>: Convert previous codebase that needed this functionality with this new event-based mechanism!
 
 		return _nValueLocal;
 	}
 
     //---------------------------------------------------------------------------	RUNTIME ADJUST
-
+	//###BROKEN: CProp randomization.  Still needed??
     public void RuntimeAdjust_SetTargetValue(float nAdjustTargetVal, float nAdjustDistPerFrame) {
 		_nAdjustTargetVal		= nAdjustTargetVal;
 		_nAdjustDistPerFrame	= nAdjustDistPerFrame;
@@ -170,8 +169,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		float nBlendPropToAdjusted = nDistThisFrame / _nAdjustDistPerFrame;     // Toward zero means toward property value, toward one is adjusted value
 		float nBlendPropToAdjustedInv = 1.0f - nBlendPropToAdjusted;
 		float nValueNew = nBlendPropToAdjusted * _nAdjustTargetVal + nBlendPropToAdjustedInv * _nValueLocal;		// Blend property between its own value and target value
-		ErosEngine.Object_PropSet(_oObject._hObject, _nPropEnumOrdinal, nValueNew);		//####NOTE: Directly set value without setting _nValueLocal.  ####BUG: Decouples UI from PropGet()!
-		//####IMPROVE ###OPT!!!! Move this to C++
+		//###NOTE: Set property here! ErosEngine.Object_PropSet(_oObject._hObject, _nPropOrdinal, nValueNew);		//####NOTE: Directly set value without setting _nValueLocal.  ####BUG: Decouples UI from PropGet()!
 	}
 
     //---------------------------------------------------------------------------	RANDOMIZATION
@@ -192,48 +190,40 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 	//---------------------------------------------------------------------------	GUI
 
-	public int CreateWidget(CPropGroup oPropGrp) {
+	public int Widget_Create(CUIPanel oPanel) {
 		if ((_nPropFlags & CProp.Hide) != 0) 							// We don't show in GUI properties marked as hidden... these can only be changed through code.
 			return 0;
 
-		if (_oTypeChoice != null) {
+		if (_oEnumChoices != null || _aStringChoices != null) {			// Properties that have either multiple choices are GUI-rendered as a combobox
 
-			FieldInfo[] aFieldsEnum = _oTypeChoice.GetFields();
-            _oUIWidget = CUIDropdown.Create(oPropGrp._oUIPanel, this, aFieldsEnum);
+            _oUIWidget = CUIDropdownEnum.Create(oPanel, this);
 
         }
         else if ((_nPropFlags & CProp.AsCheckbox) != 0) {
 
-            _oUIWidget = CUIToggle.Create(oPropGrp._oUIPanel, this);
+            _oUIWidget = CUIToggle.Create(oPanel, this);
 
         }
         else if ((_nPropFlags & CProp.AsButton) != 0) {
 
-            _oUIWidget = CUIButton.Create(oPropGrp._oUIPanel, this);
+            _oUIWidget = CUIButton.Create(oPanel, this);
 
+        } else {
+
+            _oUIWidget = CUISlider.Create(oPanel, this);
         }
-        else {
+		_oUIWidget.SetValue(PropGet());
 
-            _oUIWidget = CUISlider.Create(oPropGrp._oUIPanel, this);
-        }
-        //_oWidgetGUI.variableName = _sNameProp;			//###CHECK: Safe with spaces in-between??
-		//_oWidgetGUI.label.text = _sLabel;
-		//_oWidgetGUI.label.tooltip = _sDescription;
-
-		//if (oPropGrp._nNumWidgetColumns == 1) 		// If our panel group only has a single column, every widget addition expands our height.  If not a single column group then we only have one row and we never grow (size was set during group creation)
-		//	oPropGrp._oContainer.setHeight(oPropGrp._oContainer.positionAndSize.height + G.C_Gui_WidgetsHeight);
-
-		CProp.SetValueGUI(_oUIWidget, _sLabel, PropGet());			
-
-		return 1;		//###BUG???: We should return zero on multi-controls per line but strangely I don't see problem in GUI!  Check!!
+		return 1;
 	}
 
-	public static void SetValueGUI(CUIWidget oUIWidget, string sNameProp, float nValue) {			// Important function called by CProp to update the GUI value of whatever control it's connected to...
-        if (oUIWidget != null)              //####CLEANUP?
-            oUIWidget.SetValue(nValue);
+	public void Widget_Destroy() {
+		if (_oUIWidget != null) {
+			GameObject.Destroy(_oUIWidget.gameObject);
+			_oUIWidget = null;
+		}
 	}
 
-	
 
 	//---------------------------------------------------------------------------	LOAD / SAVE
 
@@ -249,23 +239,9 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 	public void ConnectPropCallback() {	// Attempt to find 'OnPropSet_' function for this property to optionally configure automatic notification of property changes.  Provided as a public function as code occasionally has to transfer 'this' ownership
 		string sNameFnOnPropSet = C_Prefix_OnPropSet + _sNameProp;				// The precise name function must have to enable automatic notification
-		Type oTypeFields = _oObject._iObj.GetType();		// Object's owner has the OnPropSet_ events we need, not CObject INSTANCE!
-		_oMethodInfo_OnPropSet = oTypeFields.GetMethod(sNameFnOnPropSet);
+		if (_oPropGrp._oObj._iObjOwner != null) { 
+			Type oTypeFields = _oPropGrp._oObj._iObjOwner.GetType();		// Object's owner has the OnPropSet_ events we need, not CObject INSTANCE!
+			_oMethodInfo_OnPropSet = oTypeFields.GetMethod(sNameFnOnPropSet);
+		}
 	}
 }
-
-public class CPropGroup {
-	public string			_sNamePropGrp;
-	public string			_sDescPropGrp;
-	public bool				_bInvisible;
-	public int				_nNumWidgetColumns;					    // The number of widgets packed left-to-right in this property group.  Used for small controls like checkboxes and short buttons.  Create a container if non-zero
-    public CUIPanel        _oUIPanel;                             // The canvas that owns us ####DESIGN??
-    public List<int>		_aPropIDs = new List<int>();
-
-    public CPropGroup(string sNamePropGrp, string sDescPropGrp, bool bInvisible = false, int nNumWidgetColumns = 1) {
-		_sNamePropGrp		= sNamePropGrp;
-		_sDescPropGrp		= sDescPropGrp;
-		_bInvisible			= bInvisible;
-		_nNumWidgetColumns	= nNumWidgetColumns;
-	}
-};

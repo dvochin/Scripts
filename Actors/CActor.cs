@@ -107,7 +107,7 @@ using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
 
-public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base class to an 'actor': a body part such as arms, legs, chest that has intelligence to interact with the environment.  Subclassed in CActorArm / CActorLeg / CActorChest, etc...
+public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an 'actor': a body part such as arms, legs, chest that has intelligence to interact with the environment.  Subclassed in CActorArm / CActorLeg / CActorChest, etc...
 
 	[HideInInspector]	public	CObject			_oObj;				// Our object responsible for 'super public' properties exposed to GUI and animation system.  Each CActor-derived subclass fills this with its own properties
 	[HideInInspector]	public 	CHotSpot		_oHotSpot;			// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
@@ -141,7 +141,7 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 		
 		OnStart_DefineLimb();
 
-        _oObj.PropSet(EActorNode.Pinned, 1);            //###NOW### Pin by default??
+        _oObj.PropSet(0, EActorNode.Pinned, 1);            //###NOW### Pin by default??
 
         SetActorPosToBonePos();         //###CHECK
 	}
@@ -221,14 +221,15 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	}
 
 	public void AddBaseActorProperties() {
-		_oObj.PropAdd(EActorNode.Pinned,			"Pinned",			0,	"", CProp.AsCheckbox);
-		_oObj.PropAdd(EActorNode.PosX,				"PosX",				0,	-2,		2,		"", CProp.Hide);
-		_oObj.PropAdd(EActorNode.PosY,				"PosY",				0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???
-		_oObj.PropAdd(EActorNode.PosZ,				"PosZ",				0,	-2,		2,		"", CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
-		_oObj.PropAdd(EActorNode.RotX,				"RotX",				0,	-9999,	9999,	"", CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
-		_oObj.PropAdd(EActorNode.RotY,				"RotY",				0,	-9999,	9999,	"", CProp.Hide);		//###DESIGN: Limits of quaternions
-		_oObj.PropAdd(EActorNode.RotZ,				"RotZ",				0,	-9999,	9999,	"", CProp.Hide);
-		_oObj.PropAdd(EActorNode.RotW,				"RotW",				1,	-9999,	9999,	"", CProp.Hide);
+		//###IMPROVE<19>: Prop add label and prop name a pain
+		_oObj.PropAdd(0, EActorNode.Pinned,				"Pinned",			"Pinned",	0,	0,		0,		"", CProp.AsCheckbox);
+		_oObj.PropAdd(0, EActorNode.PosX,				"PosX",				"PosX",		0,	-2,		2,		"", CProp.Hide);
+		_oObj.PropAdd(0, EActorNode.PosY,				"PosY",				"PosY",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???
+		_oObj.PropAdd(0, EActorNode.PosZ,				"PosZ",				"PosZ",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
+		_oObj.PropAdd(0, EActorNode.RotX,				"RotX",				"RotX",		0,	-9999,	9999,	"", CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
+		_oObj.PropAdd(0, EActorNode.RotY,				"RotY",				"RotY",		0,	-9999,	9999,	"", CProp.Hide);		//###DESIGN: Limits of quaternions
+		_oObj.PropAdd(0, EActorNode.RotZ,				"RotZ",				"RotZ",		0,	-9999,	9999,	"", CProp.Hide);
+		_oObj.PropAdd(0, EActorNode.RotW,				"RotW",				"RotW",		1,	-9999,	9999,	"", CProp.Hide);
 	}
 
     void TeleportLinkedPhysxBone() {                // Optionally teleport the attached PhysX bone of the node being moved / rotated.  (This enables pose loads to immediately snap the PhysX body at the right position without jarring PhysX spring problems dragging body parts all around the scene!
@@ -273,19 +274,19 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 					vecPosL = vecPosG;
 				else
 					vecPosL = transform.parent.worldToLocalMatrix.MultiplyPoint(vecPosG);		// Convert the global hotspot position to be relative to the actor's parent (Usually 'Base' or 'Torso')
-				_oObj.PropSet(EActorNode.PosX, vecPosL.x);		//###NOTE: Setting EActorNode for all actors (all have same enum index for same pin properties)
-				_oObj.PropSet(EActorNode.PosY, vecPosL.y);
-				_oObj.PropSet(EActorNode.PosZ, vecPosL.z);
+				_oObj.PropSet(0, EActorNode.PosX, vecPosL.x);		//###NOTE: Setting EActorNode for all actors (all have same enum index for same pin properties)
+				_oObj.PropSet(0, EActorNode.PosY, vecPosL.y);
+				_oObj.PropSet(0, EActorNode.PosZ, vecPosL.z);
 				transform.localPosition = vecPosL;
 				break;
 			case EEditMode.Rotate:
 				Quaternion quatRotG = oGizmo.transform.rotation;			//###DESIGN???: Problem with rotation?
 				transform.rotation = quatRotG;		//###WEAK!!  ###OPT!  Some work duplication with PropSet below setting our transform!
 				Quaternion quatRotL = transform.localRotation;
-				_oObj.PropSet(EActorNode.RotX, quatRotL.x);
-				_oObj.PropSet(EActorNode.RotY, quatRotL.y);
-				_oObj.PropSet(EActorNode.RotZ, quatRotL.z);
-				_oObj.PropSet(EActorNode.RotW, quatRotL.w);
+				_oObj.PropSet(0, EActorNode.RotX, quatRotL.x);
+				_oObj.PropSet(0, EActorNode.RotY, quatRotL.y);
+				_oObj.PropSet(0, EActorNode.RotZ, quatRotL.z);
+				_oObj.PropSet(0, EActorNode.RotW, quatRotL.w);
 				break;
 		}
 	}
@@ -358,17 +359,17 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 	//	switch (eEditMode) {
 	//		case EEditMode.Move:	
 	//			Vector3 vecPos = oGizmo.transform.position;		//###NOTE: Upon hotspot movement we have to set not only our transform properties but CProp as well.
-	//			_oObj.PropSet(EActorNode.PosX, vecPos.x);		//###WEAK: Setting EActorNode for all actors (all have same index for same pin properties)
-	//			_oObj.PropSet(EActorNode.PosY, vecPos.y);		
-	//			_oObj.PropSet(EActorNode.PosZ, vecPos.z);
+	//			_oObj.PropSet(0, EActorNode.PosX, vecPos.x);		//###WEAK: Setting EActorNode for all actors (all have same index for same pin properties)
+	//			_oObj.PropSet(0, EActorNode.PosY, vecPos.y);		
+	//			_oObj.PropSet(0, EActorNode.PosZ, vecPos.z);
 	//			transform.position = vecPos;
 	//			break;
 	//		case EEditMode.Rotate:
 	//			Quaternion quatRot = oGizmo.transform.rotation;
-	//			_oObj.PropSet(EActorNode.RotX, quatRot.x);
-	//			_oObj.PropSet(EActorNode.RotY, quatRot.y);
-	//			_oObj.PropSet(EActorNode.RotZ, quatRot.z);
-	//			_oObj.PropSet(EActorNode.RotW, quatRot.w);
+	//			_oObj.PropSet(0, EActorNode.RotX, quatRot.x);
+	//			_oObj.PropSet(0, EActorNode.RotY, quatRot.y);
+	//			_oObj.PropSet(0, EActorNode.RotZ, quatRot.z);
+	//			_oObj.PropSet(0, EActorNode.RotW, quatRot.w);
 	//			transform.rotation = quatRot;		//###DESIGN!!!! Huge work duplication with PropSet below setting our transform!
 	//			break;
 	//	}
@@ -378,6 +379,6 @@ public abstract class CActor : MonoBehaviour, IObject, IHotSpotMgr {		// Base cl
 //Vector3 vecEulerG = oGizmo.transform.rotation.eulerAngles;
 //transform.rotation = Quaternion.Euler(vecEulerG);	//###CHECK!!!!!!: Proper way to convert global rotation to local?  ###CHECK: Need to do different for base??
 //Vector3 vecEulerL = transform.localRotation.eulerAngles;	//###BUG!!!!! Problem with CActor and rotation. Euler conversion can't take all angles!!
-//_oObj.PropFind(EActorNode.RotX)._nValueLocal = vecEulerL.x;		//###HACK!!!!!
-//_oObj.PropFind(EActorNode.RotY)._nValueLocal = vecEulerL.y;
-//_oObj.PropFind(EActorNode.RotZ)._nValueLocal = vecEulerL.z;
+//_oObj.PropFind(0, EActorNode.RotX)._nValueLocal = vecEulerL.x;		//###HACK!!!!!
+//_oObj.PropFind(0, EActorNode.RotY)._nValueLocal = vecEulerL.y;
+//_oObj.PropFind(0, EActorNode.RotZ)._nValueLocal = vecEulerL.z;

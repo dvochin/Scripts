@@ -121,7 +121,7 @@ using System.Collections.Generic;
 //        _oObjDriver._hObject = ErosEngine.Penis_Create("Penis", _oObjDriver.GetNumProps(), _oBody._oBodyBase._nBodyID, _nNumSegments, _vecPenisBase, _vecPenisBase + new Vector3(0, 0, nLengthStart), transform.rotation, _nRadiusStart / 3, _nRadiusStart, 1);     //###TUNE!!
 
 //		//###DESIGN: Most interesting properties in this secondary-name?  Can shift softbody to 2nd???
-//		_oObjDriver.PropGroupBegin("", "", true);
+//		_oObjDriver.PropGrpBegin("", "", true);
 //		_oObjDriver.PropAdd(EPenis.PenisScale,			"Penis Scale",				0.75f,	0.75f, 1.0f,	"", CProp.Local | CProp.Hide);	//###DESIGN??: Unnatural fit to have some these properties with 'collider'?  Create a 3rd object???
 //		_oObjDriver.PropAdd(EPenis.BaseLeftRight,		"Base Left/Right",			0,		-90,	90,		"");
 //		_oObjDriver.PropAdd(EPenis.BaseUpDown,			"Base Up/Down",				-40,	-90,	90,		"");
@@ -144,10 +144,10 @@ using System.Collections.Generic;
 //		_oPenisTip.OnAwake(this);
 //		_oPenisTip.OnStart();		//###IMPROVE: Combine awake & start?
 
-//		_oObj.PropSet(ESoftBody.SolverIterations, 1);			//###OPT!!!!! Expensive but reduces shimmer of soft body when cumming.  Can be removed in other ways??
-//		_oObj.PropSet(ESoftBody.SoftBody_Damping, 1.0f);	//###TUNE
-//		_oObj.PropSet(ESoftBody.StretchingStiffness, 0.7f);	//###TUNE
-//		_oObj.PropSet(ESoftBody.SoftBody_Gravity, -2);		//###TEMP? ###HACK? Set stiff gravity so balls are pulled downward as a cheap fix as we don't yet collide against shaft and legs
+//		_oObj.PropSet(0, ESoftBody.SolverIterations, 1);			//###OPT!!!!! Expensive but reduces shimmer of soft body when cumming.  Can be removed in other ways??
+//		_oObj.PropSet(0, ESoftBody.SoftBody_Damping, 1.0f);	//###TUNE
+//		_oObj.PropSet(0, ESoftBody.StretchingStiffness, 0.7f);	//###TUNE
+//		_oObj.PropSet(0, ESoftBody.SoftBody_Gravity, -2);		//###TEMP? ###HACK? Set stiff gravity so balls are pulled downward as a cheap fix as we don't yet collide against shaft and legs
 //	}  
 
 //	public override void OnDestroy() {
@@ -159,7 +159,7 @@ using System.Collections.Generic;
 //	//	base.OnSimulatePre();
 
 //	//	//=== Calculate physical penis size from the current percentage stored in global gameplay property ===
-//	//	CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
+//	//	CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(0, EGamePlay.PenisSize);
 //	//	CProp oPropPenisScale = _oObjDriver.PropFind(EPenis.PenisScale);
 //	//	float nPenisScale = oPropPenisScale._nMin + oPropPenisScale._nMinMaxRange * oPropPenisSizePercent._nValueLocal / 100.0f;
 //	//	_oObjDriver.PropSet(EPenis.PenisScale, nPenisScale);
@@ -167,7 +167,7 @@ using System.Collections.Generic;
 //	//	_nSegLenNow			= _nSegLenStart * nPenisScale;
 
 //	//	//=== Calculate physical penis erection from the current percentage stored in global gameplay property ===	###DESIGN ###SIMPLIFY: This drive strength complexity really required??? Try to simplify!!
-//	//	CProp oPropPenisErectionPercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisErectionMax);
+//	//	CProp oPropPenisErectionPercent = CGame.INSTANCE._oObj.PropFind(0, EGamePlay.PenisErectionMax);
 //	//	CProp oPropDriveStrength = _oObjDriver.PropFind(EPenis.DriveStrength);
 //	//	float nDriveStrengthMax = _oObjDriver.PropGet(EPenis.DriveStrengthMax) / 100;
 //	//	float nDriveStrength = oPropDriveStrength._nMin + oPropDriveStrength._nMinMaxRange * oPropPenisErectionPercent._nValueLocal / 100.0f * nDriveStrengthMax;

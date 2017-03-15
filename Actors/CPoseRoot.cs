@@ -1,7 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : Simple node that user can move around to move / rotate all characters ###OBS??
+public class CPoseRoot : MonoBehaviour, IHotSpotMgr {			// CPoseRoot : Simple node that user can move around to move / rotate all characters ###OBS??
 
 	public CHotSpot	_oHotSpot;
 	public CObject	_oObj;
@@ -9,8 +9,8 @@ public class CPoseRoot : MonoBehaviour, IHotSpotMgr, IObject {			// CPoseRoot : 
 	public void OnStart() {
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pose Root", true, Vector3.zero, 2.0f);
 
-		_oObj = new CObject(this, 0, typeof(EPoseRoot), "Pose Root");
-		_oObj.PropGroupBegin("", "", true);
+		_oObj = new CObject(this, "Pose Root", "Pose Root");
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Pose Root", typeof(EPoseRoot));
 		//###BROKEN: Need to flip load order, not 180!!  _oObj.PropAdd(EPoseRoot.Flipped,	"Flip Pose",		0,	"", CProp.Local | CProp.AsCheckbox);	//###IMPROVE: Add a separation member with key hook.  A height too??
 		_oObj.FinishInitialization();
 	}

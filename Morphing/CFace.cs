@@ -37,14 +37,14 @@ using System.Collections;
 
 //		//=== Init CObject ===
 //		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EFace), "Face", "Face");
-//		_oObj.PropGroupBegin("", "", true);
+//		_oObj.PropGrpBegin("", "", true);
 //		_oObj.PropAdd(EFace.MouthOpen,	"Mouth Open",		0,	-0.3f,	1,	"", CProp.Local);		//###TUNE: Reasonable limits on negative side
 //		_oObj.PropAdd(EFace.EyesClosed,	"Eyes Closed",		0,	-0.3f,	1,	"", CProp.Local);
 //		_oObj.PropAdd(EFace.BrowInner,	"Brow Inner",		0,	-0.3f,	1,	"", CProp.Local);
 //		_oObj.PropAdd(EFace.BrowOuter,	"Brow Outer",		0,	-0.3f,	1,	"", CProp.Local);
 //		_oObj.FinishInitialization();
 
-//		_oPropEyesClose = _oObj.PropFind(EFace.EyesClosed);
+//		_oPropEyesClose = _oObj.PropFind(0, EFace.EyesClosed);
 //		StartCoroutine(Coroutine_BlinkEyes());					//###LEARN: How to start & use a simple coroutine...
 //		StartCoroutine(Coroutine_RandomFaceExpression());
 //	}

@@ -1,6 +1,5 @@
 ﻿using UnityEngine;
 using System;
-using System.Collections;
 
 public class CKeyHook : IDisposable {
 
@@ -31,31 +30,32 @@ public class CKeyHook : IDisposable {
 	}
 	
 	public void OnUpdate() {		//###DESIGN: OnUpdate??? From CGame??? Game mode sensitive??
-		if (_oProp._oObject._nBodyID == CGame.INSTANCE._nSelectedBody || _bSelectedBodyOnly == false) {		//###DESIGN!!! Only affect selected body on all keyhooks???  ###SOON
+		//////////////###BROKEN<19>! Key hooks based on properties?  Need access to selected body???
+	//	if (_oProp._oPropGrp._oObj._nBodyID == CGame.INSTANCE._nSelectedBody || _bSelectedBodyOnly == false) {		//###DESIGN!!! Only affect selected body on all keyhooks???  ###SOON
 
-			switch (_eKeyHookType) {
+	//		switch (_eKeyHookType) {
 
-				case EKeyHookType.Simple:			//###OBS? Only use key hooks with quick mouse edit??
-					if (Input.GetKeyDown(_oKeyCode))
-						Debug.Log(string.Format("KeyHook: {0} = '{1}' ({2})", _oKeyCode.ToString(), _sDescription, _oProp.ToString()));
-					break;
+	//			case EKeyHookType.Simple:			//###OBS? Only use key hooks with quick mouse edit??
+	//				if (Input.GetKeyDown(_oKeyCode))
+	//					Debug.Log(string.Format("KeyHook: {0} = '{1}' ({2})", _oKeyCode.ToString(), _sDescription, _oProp.ToString()));
+	//				break;
 
-				case EKeyHookType.QuickMouseEdit:				//###OPT!!!!: A major performance drain?  Can be improved??
-					if (Input.GetKeyDown(_oKeyCode)) {
-						_nPropValueStart = _oProp.PropGet();
-						_nMouseStartY = Input.mousePosition.y / Screen.height;
-					} else if (Input.GetKeyUp(_oKeyCode)) {
-						CGame.SetGuiMessage(EGameGuiMsg.SelectedBodyAction, null);
-					} else if (Input.GetKey(_oKeyCode)) {
-						float nMousePosY = Input.mousePosition.y / Screen.height;
-						float nMousePosDelta = (_nMouseStartY - nMousePosY) * _nRatio;		// Note inversion here as mouse going up usually mean lowering value...
-						float nPropValDelta = nMousePosDelta * _oProp._nMinMaxRange * 3;	// We multiply the power of the full top-to-bottom screen travel so that user doesn't have to travel mouse that far to select all possible property values
-						_oProp.PropSet(_nPropValueStart + nPropValDelta);
-						CGame.SetGuiMessage(EGameGuiMsg.SelectedBodyAction, string.Format("{0} = {1:F1}", _sDescription, _oProp.PropGet()));
-					}
-					break;
-			}
-		}
+	//			case EKeyHookType.QuickMouseEdit:				//###OPT!!!!: A major performance drain?  Can be improved??
+	//				if (Input.GetKeyDown(_oKeyCode)) {
+	//					_nPropValueStart = _oProp.PropGet();
+	//					_nMouseStartY = Input.mousePosition.y / Screen.height;
+	//				} else if (Input.GetKeyUp(_oKeyCode)) {
+	//					CGame.SetGuiMessage(EGameGuiMsg.SelectedBodyAction, null);
+	//				} else if (Input.GetKey(_oKeyCode)) {
+	//					float nMousePosY = Input.mousePosition.y / Screen.height;
+	//					float nMousePosDelta = (_nMouseStartY - nMousePosY) * _nRatio;		// Note inversion here as mouse going up usually mean lowering value...
+	//					float nPropValDelta = nMousePosDelta * _oProp._nMinMaxRange * 3;	// We multiply the power of the full top-to-bottom screen travel so that user doesn't have to travel mouse that far to select all possible property values
+	//					_oProp.PropSet(_nPropValueStart + nPropValDelta);
+	//					CGame.SetGuiMessage(EGameGuiMsg.SelectedBodyAction, string.Format("{0} = {1:F1}", _sDescription, _oProp.PropGet()));
+	//				}
+	//				break;
+	//		}
+	//	}
 	}
 }
 

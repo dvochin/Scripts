@@ -173,46 +173,46 @@
 //		_oObj._hObject = ErosEngine.Fluid_Create(_oObj._sNameFull, _oObj.GetNumProps());		//###DESIGN: Write base function to accept & process handle???
 
 //		//===== Create / connect the client / server properties that will be used to define and manage this Fluid =====
-//		_oObj.PropGroupBegin("", "Buttons", false, 3);
+//		_oObj.PropGrpBegin("", "Buttons", false, 3);
 //		//oObj.PropAdd(EFluid.Help,					"Help",		0, "Display the help panel.", CProp.Local | CProp.AsButton);
 //		//oObj.PropAdd(EFluid.About,				"About",	0, "Display the application information screen.", CProp.Local | CProp.AsButton);
 //		_oObj.PropAdd(EFluid.Reset,					"Reset",	0, "Reset the simulation.", CProp.NeedReset | CProp.Local | CProp.AsButton);
 
-//		_oObj.PropGroupBegin("", "", false, 2);
+//		_oObj.PropGrpBegin("", "", false, 2);
 //		_oObj.PropAdd(EFluid.Simulate,				"Simulate", 1, "Enable / Disable PhysX Fluid simulation.", CProp.AsCheckbox);
 //		_oObj.PropAdd(EFluid.Fluid_GPU,				"GPU",		1, "Run the fluid simulation on the Cloth_GPU.\nRequires a CUDA-enabled NVidia video card.", CProp.AsCheckbox);
 
-//		_oObj.PropGroupBegin("Simulation Control", "Options that control the global state of the fluid simulation.");
+//		_oObj.PropGrpBegin("Simulation Control", "Options that control the global state of the fluid simulation.");
 //		_oObj.PropAdd(EFluid.FluidMode,				"Mode:",		typeof(EChoice_FluidMode), (int)EChoice_FluidMode.SPH, "The fluid simulation mode.\nSPH stands for 'Smoothed Particles Hydrodynamics' and closely simulates\nreal-world fluids by simulation inter-particle forces.\nBasic fluid mode does not simulate inter-particle forces and\nsimply colliders fluid particles against its environment.", CProp.NeedReset + CProp.Hide);		//###BROKEN: Crashes the game, not sure why... hiding as it's useless in game anyways
 //		_oObj.PropAdd(EFluid.MaxFluidParticles,		"#Particles",	2000,	500,	10000,	"The maximum number of fluid particles that can be\ncreated / managed by this Fluid.\nA fraction of this number may be active / rendered at any given time.", CProp.NeedReset);
 
-//		_oObj.PropGroupBegin("Base Properties", "Core fluid properties:\nThe most important settings that have the most visible effects on fluid simulation.");
+//		_oObj.PropGrpBegin("Base Properties", "Core fluid properties:\nThe most important settings that have the most visible effects on fluid simulation.");
 //		_oObj.PropAdd(EFluid.ParticleSize,			"Size",			.006f,	0.003f,	0.01f,	"Size of particles in meters.\nHas considerable influence on the simulation.\nWhile FastFluid internally rescales most PhysX parameters to\nreduce fluid scaling efforts note that fluids have to be 'retuned'\neverytime this is changed.\nKeep particle size as large as possible to grealy increase fluid efficiency.", CProp.NeedReset);
 //		_oObj.PropAdd(EFluid.ParticleLifetime,		"Lifetime",		16,		0,		30,		"The lifetime of particles in seconds.  Set to zero for infinite life.", CProp.NeedReset);		//###IMPROVE: Help text once more is known on what is going on with changing particle life!!	###CHECK: Reset needed??	###DESIGN!!: Consider driving this with ejaculation cycle time??
 //		_oObj.PropAdd(EFluid.Viscosity,				"Viscosity",	75,		5,		150,	"The viscosity of the fluid (SPH mode only)\nDetermines how 'thick' or 'runny' the fluid is.\nFluid will become unstable and 'explode' if this value is set too high");		//###CHECK: Min?
 //		_oObj.PropAdd(EFluid.Fluid_Stiffness,		"Stiffness",	20f,	0.1f,	30,		"The strength of the force that aims to return fluid particles at\ntheir at-rest density (SPH mode only)\nRaise this value as much as fluid stability allows to\ngreatly increase the visible volume of your fluid and obtain better benefit/performance.\nNOTE: Changing this setting in CPU-mode requires a fluid reset (bug?)");	//###NOTE: Fluid_Stiffness appears to have a PhysX bug on CPU-mode and needs reset!  (Cloth_GPU is fine!)
 
-//		_oObj.PropGroupBegin("Physical Properties", "Fluid properties related to the laws of Physics.");
+//		_oObj.PropGrpBegin("Physical Properties", "Fluid properties related to the laws of Physics.");
 //		_oObj.PropAdd(EFluid.DynamicFriction,		"Dyn.Friction",	1.0f,	0,		1,		"Dynamic friction determines the force needed to keep\na particle sliding along a colliding shape.");
 //		_oObj.PropAdd(EFluid.StaticFriction,		"Sta.Friction",	1.0f,	0,		1,		"Static friction determines the force needed to get a\nparticle to begin to slide on a colliding shape.");
 //		_oObj.PropAdd(EFluid.Damping,				"Damping",		0.5f,	0,		5,		"The damping force that is applied to each particle.\nIf this is set too high the particle will eventually stop in mid-air regardless of gravity.");	//###TEMP??
 //		_oObj.PropAdd(EFluid.Restitution,			"Restitution",	0.0f,	0,		1,		"The strength of the reflective force applied to particles as\nthey collide with shapes in the scene.\nDetermines how 'bouncy' the fluid behaves as it collides.");
 //		_oObj.PropAdd(EFluid.Fluid_Gravity,			"Local Gravity",0.7f,	-3,		3,		"Acceleration applied to fluid particles along up/down (y) negated direction in m/s^2");
 
-//		_oObj.PropGroupBegin("Advanced Properties", "Advanced fluid properties that require in-depth knowledge and careful tuning.");
+//		_oObj.PropGrpBegin("Advanced Properties", "Advanced fluid properties that require in-depth knowledge and careful tuning.");
 //		_oObj.PropAdd(EFluid.MaxMotionDistance,		"Max Motion",	.030f,	0.01f,	.1f,	"The maximum distance a particle can travel in one simulation frame in meters.\nHas *major* impact on performance.\nKeep this as *low as possible* for maximum efficiency.");		//###TUNE!!!!!  ###IMPORTANT!!!
 //		_oObj.PropAdd(EFluid.GridSize,				"Grid Size",	.02f,	.01f,	1,		"Sets the particle grid size used for internal spatial data structures.\nIf 'OverflowErrors' occur (removing particles because there are too many in a grid cell)\nraise this value just high enough the errors no longer occur.");
 //		_oObj.PropAdd(EFluid.RestOffsetRatio,		"Rest Offset",	0.3f,	0,		1,		"Sets the distance between particles and collision geometry maintained during\nsimulation as a ratio of particle diameter.\nMust be lesser or equal to ContactOffsetRatio.\nSetting this to zero will cause fluid particles to rest exactly on the surface of colliders while\nhigher value will help the 'glide' over irregular obstancles and\ngreatly improve the fluidity of the simulation.\nA value around 30% is suggested as higher values can greatly reduce performance.");
 //		_oObj.PropAdd(EFluid.ContactOffsetRatio,	"Contact Offset",0.6f,	0,		1,		"Sets the distance at which contacts are generated between particles and\ncollision geometry as a ratio of particle diameter.\nMust be greater or equal to ContactOffsetRatio.\nA reasonable value of 60% is suggested as higher values can greatly reduce performance.");
 
-//		_oObj.PropGroupBegin("Voxel Mesh Creation", "Properties that direct how voxelization of the\nfluid particles occur and how the resultant mesh is created.");
+//		_oObj.PropGrpBegin("Voxel Mesh Creation", "Properties that direct how voxelization of the\nfluid particles occur and how the resultant mesh is created.");
 //		_oObj.PropAdd(EFluid.VoxelSizeRatio,		"Size",			1.0f,	.5f,	2,		"The size of the 3D voxel as a ratio to particle size.\nUsed during mesh creation by our OpenCL Marching Cubes algorithm to polygonize the\nfluid particle cloud into a renderable mesh.\nSmall voxel sizes produce finer fluid meshes but are computationally expensive\nand reduce the usable volume of the polygonizer.");
 //		_oObj.PropAdd(EFluid.VoxelThreshold,		"Threshold",	0.27f,	0.05f,	1f,		"The minimum weight a voxel must have to be included in the fluid rendering mesh.\nLow values produce more fluid volume at the cost of visible spheres at the fluid boundaries.\nHigh values smooth the fluid particle spheres but reduce the fluid volume.");		//###BUG: Bad geometry appears if we go too low!
 //		_oObj.PropAdd(EFluid.VoxelInfluence,		"Influence",	1.0f,	0.25f,	3f,		"Important ratio that affects the 'area of influence' of a particle during fluid voxelization.\nHigher values produce a smoother fluid mesh but greatly decrease performance.\nLower values run faster but create meshes that have individual particles more evident.\nValues below one will introduce invisible geometry inside larger fluid volumes that decreases performance.\nKeep around one for best performance.");
 //		_oObj.PropAdd(EFluid.VoxelSmooth,			"Smooth",		1,		0f,		1f,		"Smoothing applied to voxels before mesh creation.\nSet to near 1 to smooth the particle cloud field to smooth out the\nappearance of the resultant mesh.\nSet to lower values for more visible particle spheres in the voxel mesh.\nA value of zero disables smoothing and slightly increases performance.");
 //		_oObj.PropAdd(EFluid.VoxelSmoothIterations,"Smooth #",		1,		0,		5,		"Number of times smoothing algorithm is invoked to smooth the mesh.\nWhile each iteration decreases performance, the resultant mesh contains less geometry and renders faster.\nNote that excessive smoothing may result in holes in the mesh,\nbut a simple increase in the 'Threshold' value will fix this.\n1 iterations is recommended.");
 
-//		_oObj.PropGroupBegin("Emitter", "Misc. emitter properties.");
+//		_oObj.PropGrpBegin("Emitter", "Misc. emitter properties.");
 //		_oObj.PropAdd(EFluid.EmitType,				"Type:",		typeof(EChoice_EmitType),	(int)EChoice_EmitType.Pressure, "'Pressure-type' emitters attempt to maintain a constant volume of particles in\nemit area with the maximum pressure set by 'EmitRate'.\n'Rate' type emitters simply create the 'EmitRate' number of particles at each frame.", CProp.NeedReset);
 //		_oObj.PropAdd(EFluid.EmitShape,				"Shape:",		typeof(EChoice_EmitShape),	(int)EChoice_EmitShape._Ellipse, "Selects the shape of the emitter opening.  Ellipse and Rectangle are\navailable and both their dimensions are set by EmitWidth and EmitHeight.", CProp.NeedReset);
 //		_oObj.PropAdd(EFluid.EmitRate,				"Rate",			0,		0,		10000,	"The number of particles created by this emitter per frame.");
@@ -223,12 +223,12 @@
 //		_oObj.PropAdd(EFluid.EmitHeightRatio,		"Height",		3,		0,		3,		"Height of the emitter opening as a ratio of particle size.");
 //		_oObj.PropAdd(EFluid.EmitSpacingRatio,		"Spacing",		2,		0,		3,		"X,Y,Z Distance between emitted particles are from one-another\nas a ratio of particle size.  (Affects both the x,y distance between emission sites and the z 'time-axis' emission of particles over time.");
 
-//		_oObj.PropGroupBegin("Rendering Control", "Properties influencing how the simulation output is rendered.");
+//		_oObj.PropGrpBegin("Rendering Control", "Properties influencing how the simulation output is rendered.");
 //		_oObj.PropAdd(EFluid.FluidMeshOpacity,		"Mesh Opacity", 0.7f,	0,		1,		"Opacity of the polygonized fluid mesh.  Set to zero to disable the expensive polygonization\nstep and one to render with a solid material.\nFluid polygonization is a feature requiring FastFluid Pro");
 //		_oObj.PropAdd(EFluid.ParticlesOpacity,		"Par. Opacity", 0.0f,	0,		1,		"Opacity of the 'billboard rendered' particles using Shuriken particle rendering system.\nSet to zero to hide the relatively-inexpensive step of rendering individual particles by\ndrawing a 'billboard sprite' for each one.", CProp.Local);
 //		_oObj.PropAdd(EFluid.ParticleSizeRenderRatio,"Render Size",	7.0f,	0.5f,	10.0f,	"Size of rendered billboard particles versus their actual simulated size as\ndrawn by the Shuriken particle system.\nKeep this as large as possible to maximize the visual appearance of costly\nfluid particles.  Note that obtaining quality fluid effects is difficult with this rendering technique.\nExtensive experimentation with shaders is needed to improve the\nappearance of this simple-yet-inexpensive rendering technique.", CProp.Local);
 
-//		_oObj.PropGroupBegin("Statistics", "Important runtime statistics that provide feedback on important simulation parameters.");	//###OBS???
+//		_oObj.PropGrpBegin("Statistics", "Important runtime statistics that provide feedback on important simulation parameters.");	//###OBS???
 //		_oObj.PropAdd(EFluid.VertsNow,				"# Verts",		0,		0,		65532,	"Number of vertices currently used to render the mesh.", CProp.ReadOnly);		//###DESIGN: Remove??  To new stat system??
 //		_oObj.PropAdd(EFluid.TrisNow,				"# Triangles",	0,		0,		65532,	"Number of triangles currently used to render the mesh.", CProp.ReadOnly);
 //		_oObj.PropAdd(EFluid.ErrorOutOfVoxels,		"# Vox Over",	0,		0,		1000000,"ERROR: Out of voxels. Fluid mesh renderer will not be able to scan the fluid over its bounds.\n(Mesh will be incomplete)  To prevent this, keep all fluid particles in a smaller area, increase the ability to destroy faraway particles, or increase 'VoxelSize'.  Number gives the number of voxels that had to be skipped.", CProp.ReadOnly);
@@ -270,8 +270,8 @@
 
 //		if (_oObj.PropGet(EFluid.FluidPolygonizerPresent) == 0) {			// Disable polygonization renderer if C++ reports it could not initialize (expensive) OpenCL-based fluid renderer
 //			//###IMPROVE: Alert user? Debug.LogError("Fluid polygonization is disabled because of OpenCL error: switching to low-quality fluid renderer.  Please send 'Log-ErosEngineDll.txt'");
-//			_oObj.PropSet(EFluid.FluidMeshOpacity, 0.0f);		// Disable polygonization
-//			_oObj.PropSet(EFluid.ParticlesOpacity, 0.5f);		// Enable low-quality Shuriken renderer
+//			_oObj.PropSet(0, EFluid.FluidMeshOpacity, 0.0f);		// Disable polygonization
+//			_oObj.PropSet(0, EFluid.ParticlesOpacity, 0.5f);		// Enable low-quality Shuriken renderer
 //		}
 //		UpdateParticleSize();			// Manually update particle size at init because notification is disabled during property addition.
 //	}
@@ -411,7 +411,7 @@
 //		int nMaxFluidParticles = (int)_oObj.PropGet(EFluid.MaxFluidParticles);	//###WEAK!!!!: Fully teardown and rebuild called from all kinds of contexts like pose load... Make more efficient!
 //		Debug.Log("Reseting fluid with max particles = " + nMaxFluidParticles);
 //		Object_GoOffline();
-//		_oObj.PropSet(EFluid.EmitRate, 0);				//###CHECK: Breaks anything??
+//		_oObj.PropSet(0, EFluid.EmitRate, 0);				//###CHECK: Breaks anything??
 //		_nMaxFluidParticles = nMaxFluidParticles;
 //		Object_GoOnline();												//###IMPROVE: Test some properties that are known to get out of wack and adjust them here??
 //	}

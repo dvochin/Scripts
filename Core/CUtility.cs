@@ -787,20 +787,20 @@ public class CUtility {         // Collection of static utility functions
     #region === UI ===
     public static void WndPopup_Create(CUICanvas oCanvas, EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1) {
         //=== Construct the dialog's content dependent on what type of dialog it is ===
-        CUIPanel oPanel = CUIPanel.Create(oCanvas);           //####DESIGN!  ####SOON ####CLEANUP?
-        int nRows = 0;
-        int nPropGrps = 0;
-        foreach (CObject oObj in aObjects) {
-            foreach (CPropGroup oPropGrp in oObj._aPropGroups) {   //###BUG!: Inserts one extra!  Why??
-                oPropGrp._oUIPanel = oPanel;                    //####IMPROVE ####MOVE??
-                //////////oPropGrp.CreateWidget(oListBoxContent);
-                foreach (int nPropID in oPropGrp._aPropIDs) {
-                    CProp oProp = oObj.PropFind(nPropID);
-                    nRows += oProp.CreateWidget(oPropGrp);
-                }
-                nPropGrps++;
-            }
-        }
+        //CUIPanel oPanel = CUIPanel.Create(oCanvas);           //####DESIGN!  ####SOON ####CLEANUP?
+        //int nRows = 0;
+        //int nPropGrps = 0;
+        //foreach (CObject oObj in aObjects) {
+        //    foreach (CPropGrp oPropGrp in oObj._aPropGrps) {   //###BUG!: Inserts one extra!  Why??
+        //        oPropGrp._oUIPanel = oPanel;                    //####IMPROVE ####MOVE??
+        //        //////////oPropGrp.CreateWidget(oListBoxContent);
+        //        foreach (int nPropID in oPropGrp._aPropIDs) {
+        //            CProp oProp = oObj.PropFind(nPropID);
+        //            nRows += oProp.CreateWidget(oPropGrp);
+        //        }
+        //        nPropGrps++;
+        //    }
+        //}
         //oCanvas.transform.position = CGame.INSTANCE._oCursor.transform.position;
         //oCanvas.transform.rotation = Camera.main.transform.rotation;
     }

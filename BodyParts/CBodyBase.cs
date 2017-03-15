@@ -55,7 +55,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class CBodyBase : IObject, uFlex.IFlexProcessor {
+public class CBodyBase : uFlex.IFlexProcessor {
 	//---------------------------------------------------------------------------	MAIN MEMBERS
 	public CBody			_oBody;					// Our most important member: The gametime body object responsible for gameplay functionality (host for softbodies, dynamic clothes, etc)  Created / destroyed as we enter/leave morph or gameplay mode
 	public CBMesh           _oMeshStaticCollider;		// The non-skinned body morph-baked mesh we're morphing.  Constantly refreshed from equivalent body in Blender as user moves morphing sliders.
@@ -71,19 +71,18 @@ public class CBodyBase : IObject, uFlex.IFlexProcessor {
 	public string           _sMeshSource;           //###KEEP<11>
 	public string           _sNameSrcGenitals;
 	//---------------------------------------------------------------------------	USER INTERFACE
-	CObjectBlender          _oObj;					// The Blender-implemented Object that exposes RTTI-like information for change Blender shape keys from Unity UI panels
-    //CHotSpot				_oHotSpot;              // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
-
+	CObject					_oObj;					// The Blender-implemented Object that exposes RTTI-like information for change Blender shape keys from Unity UI panels
 	//---------------------------------------------------------------------------	###TODO<14> SORT
 	CUICanvas				_oCanvas;               // The fixed UI canvas responsible to render the GUI for this game mode.
 	uFlex.FlexParticles     _oFlexParticles;        // The morph-time flex collider responsible to repell master bodysuit cloth so it can morph too.  Composed of a subset of our static body mesh
 	bool                    _bFlexBodyCollider_ParticlesUpdated; // When true a user-morph updated the body's vert and we need to update particle positions at the next opportunity. (in PreContainerUpdate())
-	public CBClothSrc       _oClothSrc;				// The source clothing instance.  This 'bodysuit-type' full cloth will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape
-	public CBCloth			_oClothEdit;			// The one-and-only editing cloth.  Only valid during cloth cutting game mode.
+	public CBMeshFlex       _oClothSrc;				// The source clothing instance.  This 'bodysuit-type' full cloth will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape
+	public CClothEdit		_oClothEdit;				// The one-and-only cutting (editing) cloth.  Only valid during cloth cutting game mode.
 
 	public GameObject           _oBodyRootGO;           // The root game object of every Unity object for this body.  (Created from prefab)
 	public Transform            _oBonesT;               // The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
 	public Transform            _oBaseT;                // The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
+
 
 	public CBodyBase(int nBodyID, EBodySex eBodySex) {
 		_nBodyID = nBodyID;
@@ -136,23 +135,23 @@ public class CBodyBase : IObject, uFlex.IFlexProcessor {
 
 		//=== DEFINE THE FLEX COLLIDER: Read the collection of verts that will from the Flex collider (responsible to repell master Bodysuit from morph-time body) ===
 		_aVertsFlexCollider = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CBodyBase + ".aVertsFlexCollider.Unity_GetBytes()");
-		//NOTE: Now done from game mode change: FlexObject_BodyStaticCollider_Enable();			// Create the Flex objects the first time.They will be destroyed upon going to gametime
 
-
-		//=== Create the managing object and related hotspot ===
-		_oObj = new CObjectBlender(this, _sBlenderInstancePath_CBodyBase + ".oObjectMeshShapeKeys", _nBodyID);
-		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
-		//_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morphing", false, new Vector3(0, 0, 0));
+		//=== Create Canvas for GUI for this mode ===		###CHECK<19>
 		_oCanvas = CUICanvas.Create(_oMeshStaticCollider.transform);
 		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
-		CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, "Body Morphing");
+
+		//=== Create the managing object and related hotspot ===
+		_oObj = new CObject(this, "Body Morphing", "Body Morphing");
+		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
+		CPropGrpBlender oPropGrpBlender = new CPropGrpBlender(_oObj, "Body Morphing", _sBlenderInstancePath_CBodyBase + ".oObjectMeshShapeKeys");
+		_oCanvas.CreatePanel("Body Morphing", null, _oObj);
+
+		//=== Change some morphing channels ===		//###TEMP<18>
+		_oObj.PropSet(0, "Breasts-Implants", 1.2f);			//###TODO: Load these from a 'body file'
+		_oObj.PropSet(0, "Breasts-Height", 1.2f);
 
 		//=== Switch to morphing / configure mode ===			//###CHECK: Do we always do here in construction or do we let game tell us?  This will get important as we auto-load bodies for immediate play
 		//OnChangeBodyMode(EBodyBaseModes.MorphBody);             // Enter configure mode so we can programmatically apply morphs to customize this body
-
-		//=== Change some morphing channels ===		//###TEMP<18>
-		_oObj.PropSet("Breasts-Implants", 1.2f);			//###TODO: Load these from a 'body file'
-		_oObj.PropSet("Breasts-Height", 1.2f);
 	}
 
 	void FlexObject_BodyStaticCollider_Enable() {
@@ -189,13 +188,10 @@ public class CBodyBase : IObject, uFlex.IFlexProcessor {
 
 		Debug.LogFormat("MODE: Body#{0} going from '{1}' to '{2}'", _nBodyID.ToString(), _eBodyBaseMode.ToString(), eBodyBaseModeNew.ToString());
 
-		//=== Notify Blender of the switch of body mode.  Makes a lot of things happen that lines below depend on! ===
-		//CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".OnChangeBodyMode('" + eBodyBaseModeNew.ToString() + "')");
-
 		if (_eBodyBaseMode == EBodyBaseModes.Uninitialized && eBodyBaseModeNew == EBodyBaseModes.MorphBody) {
 
 			FlexObject_BodyStaticCollider_Enable();							// Create / re-create the Flex objects for this static body collider
-			_oClothSrc = CBClothSrc.Create(this, "BodySuit");				// Create bodycloth clothing instance.  It will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape ===  ###TODO<18>: Obtain what cloth source from GUI
+			_oClothSrc = CBMeshFlex.CreateForClothSrc(this, "BodySuit");	// Create bodycloth clothing instance.  It will be simulated as the user adjusts morphing sliders so as to set the master cloth to closely match the body's changing shape ===  ###TODO<18>: Obtain what cloth source from GUI
 
 		} else if (_eBodyBaseMode == EBodyBaseModes.MorphBody && eBodyBaseModeNew == EBodyBaseModes.CutCloth) {
 
@@ -203,34 +199,32 @@ public class CBodyBase : IObject, uFlex.IFlexProcessor {
 			_oCanvas.gameObject.SetActive(false);                               // Hide the entire morphing UI
 
 			//=== Perform special processing when user has done morphing the body to update the morph mesh in Blender. Send Blender all the sliders values so it updates its morphing body for game-time body generation (This because we were morphing locally for much better performance) ===
-			foreach (CProp oProp in _oObj._aProps)			// Manually dump all our Blender properties into Blender so UpdateMorphResultMesh() has the user's morph sliders.  (We don't update at every slider value change for performance)
-				oProp._nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", _oObj._sBlenderAccessString + ".PropSetString('" + oProp._sNameProp + "'," + oProp._nValueLocal.ToString() + ")"));
+			CPropGrpBlender oPropGrpBlender = _oObj._aPropGrps[0] as CPropGrpBlender;
+			foreach (CProp oProp in oPropGrpBlender._aProps)			// Manually dump all our Blender properties into Blender so UpdateMorphResultMesh() has the user's morph sliders.  (We don't update at every slider value change for performance)
+				oProp._nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oPropGrpBlender._sBlenderAccessString + ".PropSetString('" + oProp._sNameProp + "'," + oProp._nValueLocal.ToString() + ")"));
 			//=== Ask Blender to update its morphing body from user-selected slider choices ===
 			CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".UpdateMorphResultMesh()");
 			//###BROKEN<18>!!!: Can no longer re-enter cloth cutting as gBlender loses access?? _oMeshStaticCollider.UpdateVertsFromBlenderMesh(true);         // Morphing can radically change normals.  Recompute them. (Accurate normals needed below anyways for Flex collider)
 
-			_oClothEdit = CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!
+			_oClothEdit = new CClothEdit(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!
 
 		} else if (_eBodyBaseMode == EBodyBaseModes.CutCloth && eBodyBaseModeNew == EBodyBaseModes.Play) {
-			GameObject.Destroy(_oClothEdit.gameObject);		//###TODO<18> Destroy _oClothEdit and have CBody own its collection of clothes!	###CHECK!!
-			_oClothEdit = null;
-
 			FlexObject_BodyStaticCollider_Disable();		// Going from CutCloth to play mode.  Destroy all configure-time Flex objects for performance.  They will have to be re-created upon re-entry into configure mode ===
 
 			_oBody = new CBody(this);						// Create the runtime body.  Expensive op!
+
+			_oClothEdit.GameMode_EnterMode_Play();
 
 		} else if (_eBodyBaseMode == EBodyBaseModes.Play && eBodyBaseModeNew == EBodyBaseModes.CutCloth) {
 
 			_oBody = _oBody.DoDestroy();					// Destroys *everthing* related to gametime (softbodies, cloth, flex colliders, etc) on both Unity and Blender side!
 			//_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = true;     // Show the morphing mesh
-			FlexObject_BodyStaticCollider_Enable();				// Make body base / morphing body visible and active again.
-			_oClothEdit = CBCloth.Create(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!  Also code duplication!
+			FlexObject_BodyStaticCollider_Enable();             // Make body base / morphing body visible and active again.
+			_oClothEdit.GameMode_EnterMode_EditCloth();
 
 		} else if (_eBodyBaseMode == EBodyBaseModes.CutCloth && eBodyBaseModeNew == EBodyBaseModes.MorphBody) {
 
-			//_oClothEdit.DoDestroy();							// Tell cloth (and Blender) its about to be destroyed
-			GameObject.Destroy(_oClothEdit.gameObject);         //###CHECK<18>
-			_oClothEdit = null;
+			_oClothEdit = _oClothEdit.DoDestroy();
 			_oClothSrc.FlexObject_ClothSrc_Enable();
 			_oCanvas.gameObject.SetActive(true);                               // Show the entire morphing UI
 
@@ -283,16 +277,19 @@ public class CBodyBase : IObject, uFlex.IFlexProcessor {
 
 	void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
 		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
-		Debug.LogFormat("CBodyBase updates body '{0}' because property '{1}' changed to value {2}", _sBodyPrefix, oArgs.PropertyName, oArgs.ValueNew);
+		Debug.LogFormat("CBodyBase updates body base '{0}' because property '{1}' of group '{2}' changed to value '{3}'", _sBodyPrefix, oArgs.PropertyName, oArgs.PropertyGroup._sNamePropGrp, oArgs.ValueNew);
 
-		if (oArgs.Property._oObjectExtraFunctionality == null)
-			oArgs.Property._oObjectExtraFunctionality = new CMorphChannel(this, oArgs.PropertyName);
-		CMorphChannel oMorphChannel = oArgs.Property._oObjectExtraFunctionality as CMorphChannel;
-		bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.ValueNew);
-		if (bMeshChanged) {
-			_oMeshStaticCollider._oMeshNow.vertices = _oMeshStaticCollider._memVerts.L;       //###IMPROVE: to some helper function?
-			_oMeshStaticCollider.UpdateNormals();							// Morphing invalidates normals... update
-			_bFlexBodyCollider_ParticlesUpdated = true;                          // Flag Flex to perform an update of its particle positions...
+		//=== Process morph channel property changes ===
+		if (oArgs.PropertyGroup.GetType() == typeof(CPropGrpBlender)) { 
+			if (oArgs.Property._oObjectExtraFunctionality == null)				// Create 'Extra functionality object' for this property if this is the first time it is invoked
+				oArgs.Property._oObjectExtraFunctionality = new CMorphChannel(this, oArgs.PropertyName);
+			CMorphChannel oMorphChannel = oArgs.Property._oObjectExtraFunctionality as CMorphChannel;		// Extract the 'extra functionality object' from this property:  It is a cache for morph channel to (greatly) speed up in-Unity morphing
+			bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.ValueNew);
+			if (bMeshChanged) {
+				_oMeshStaticCollider._oMeshNow.vertices = _oMeshStaticCollider._memVerts.L;       //###IMPROVE: to some helper function?
+				_oMeshStaticCollider.UpdateNormals();							// Morphing invalidates normals... update
+				_bFlexBodyCollider_ParticlesUpdated = true;                          // Flag Flex to perform an update of its particle positions...
+			}
 		}
 	}
 
@@ -323,3 +320,19 @@ public enum EBodySex {
 	Woman,
 	Shemale
 };
+
+//###TEST: Unit-test for multi-object property viewer
+//CPropGrpEnum oPropGrpEnum = new CPropGrpEnum(_oObj, "Test Enum 1-1", typeof(EPenisTip));		
+//oPropGrpEnum.PropAdd(EPenisTip.CycleTime,   "Cycle Time",         1.0f, 0.0001f, 1000.0f, "");
+//oPropGrpEnum.PropAdd(EPenisTip.MaxVelocity,   "MaxVelocity",         1.0f, 0.0001f, 1000.0f, "");
+
+//CPropGrp oPropGrpMisc = new CPropGrp(_oObj, "Test Misc 1-3");
+//oPropGrpMisc.PropAdd(0, "1stProp", "First Prop",         1.0f, 0.0001f, 1000.0f, "");
+//oPropGrpMisc.PropAdd(1, "2ndProp", "Second Prop",         1.0f, 0.0001f, 1000.0f, "");
+//oPropGrpMisc.PropAdd(2, "3rdProp", "Third Prop",         1.0f, 0.0001f, 1000.0f, "");
+
+//CObject oObj2 = new CObject(this, "Test-Object2", "Test-Object2-Label");;
+//CPropGrp oPropGrpMisc2 = new CPropGrp(oObj2, "Test Enum 2-1");
+//oPropGrpMisc2.PropAdd(0, "1stProp2", "First Prop2",         1.0f, 0.0001f, 1000.0f, "");
+//oPropGrpMisc2.PropAdd(1, "2ndProp2", "Second Prop2",         1.0f, 0.0001f, 1000.0f, "");
+//oPropGrpMisc2.PropAdd(2, "3rdProp2", "Third Prop2",         1.0f, 0.0001f, 1000.0f, "");

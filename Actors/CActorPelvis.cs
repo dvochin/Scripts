@@ -53,11 +53,11 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
 
-		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorPelvis), "Pelvis", "Pelvis");
-		_oObj.PropGroupBegin("", "", true);
+		_oObj = new CObject(this, "Pelvis", "Pelvis");
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Pelvis", typeof(EActorPelvis));
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
 		_oObj.FinishInitialization();
-		_oObj.PropSet(EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
+		_oObj.PropSet(0, EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
 	}
 
 

@@ -19,7 +19,7 @@ using System.Runtime.InteropServices;
 //	}
 
 //	public void OnStart() {									//###DESIGN: Call from central game??
-//		_oObj.PropGroupBegin("", "", true);
+//		_oObj.PropGrpBegin("", "", true);
 //		_oObj.PropAdd(EPenisTip.MaxVelocity,	"Max Velocity",		1.3f, 0, 2,	"Maximum cum velocity.", CProp.Local);	//###WEAK!!!! Pretty much useless for the user as we limit EFluid.MaxMotionDistance
 //		_oObj.PropAdd(EPenisTip.CycleTime,		"Cycle Time",		4, 2, 8,	"Time in seconds between ejaculations.", CProp.Local);
 //		_oObj.FinishInitialization();
@@ -45,7 +45,7 @@ using System.Runtime.InteropServices;
 //		float nPenisRadiusPlusSegLenght = _oPenis._nRadiusNow + _oPenis._nSegLenNow;
 //		_oHotSpot.transform.localPosition = new Vector3(0, nPenisRadiusPlusSegLenght * -.08f, nPenisRadiusPlusSegLenght * .9f);	//###HACK: Bit of a hack as per the ratio
 
-//		//CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(EGamePlay.PenisSize);
+//		//CProp oPropPenisSizePercent = CGame.INSTANCE._oObj.PropFind(0, EGamePlay.PenisSize);
 //	}
 
 

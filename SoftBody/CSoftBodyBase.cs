@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, uFlex.IFlexProcessor
+public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
 {
     //---------------------------------------------------------------------------	SUB MESHES
     [HideInInspector]	public	CBSkinBaked _oMeshRim;					    // The skinned 'rim mesh' that is baked everyframe.  Contains rim and particles.  Rim is to adjust normals at softbody mesh boundary and the particles in this mesh are to 'pin' our softbody particles to the skinned body (so softbody doesn't go 'flying off')
@@ -45,11 +45,11 @@ public class CSoftBodyBase : CBMesh, IObject, IHotSpotMgr, uFlex.IFlexProcessor
         _oMeshNow.MarkDynamic();        // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
         //=== Create the managing object and related hotspot ===
-        _oObj = new CObject(this, 0, typeof(EFlexSoftBody), "SoftBody " + gameObject.name);        //###IMPROVE: Name of soft body to GUI
-        _oObj.PropGroupBegin("", "", true);
-        _oObj.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "");
-        _oObj.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "");       //###IMPROVE: Log scale!
-        _oObj.PropAdd(EFlexSoftBody.SoftBodyMass,   "Mass",         1.0f, 0.0001f, 1000.0f, "");
+		_oObj = new CObject(this, "SoftBody " + gameObject.name, "SoftBody " + gameObject.name);
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, transform.name, typeof(EActorNode));
+        oPropGrp.PropAdd(EFlexSoftBody.Volume,         "Volume",       1.0f, 0.6f, 1.6f, "");
+        oPropGrp.PropAdd(EFlexSoftBody.Stiffness,      "Stiffness",    1.0f, 0.001f, 1.0f, "");       //###IMPROVE: Log scale!
+        oPropGrp.PropAdd(EFlexSoftBody.SoftBodyMass,   "Mass",         1.0f, 0.0001f, 1000.0f, "");
         _oObj.FinishInitialization();
         if (GetType() != typeof(CBreastR))          //###HACK!: Right breast doesn't get hotspot (left breast gets it and manually broadcasts to right one)
             _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)

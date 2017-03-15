@@ -111,7 +111,7 @@
 //	public void DoCutSingle() {
 //		CHotSpot oHotSpotCenter = _aHotSpots[0];				// Blender's ApplyCut() needs the coordinates of the cutter's central point (always kept out-of-band of other curve points as it doesn't go with the curve)
 //		Vector3 v = oHotSpotCenter.transform.position;
-//		CGame.gBL_SendCmd("Cut", "gBL_ClothCut_ApplyCut('" + _eCurveType + "'," + v.x + "," + v.y + "," + v.z + ")");
+//		CGame.gBL_SendCmd("Cut", "gBL_ClothEdit_ApplyCut('" + _eCurveType + "'," + v.x + "," + v.y + "," + v.z + ")");
 //		Debug.Log("DoCutSingle()");
 //	}
 	

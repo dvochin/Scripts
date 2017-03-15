@@ -36,14 +36,14 @@ public class CActorLeg : CActor {
 			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/rThighBend/rThighTwist/rShin/rFoot/rMetatarsals/rToe"), "Right Leg", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, _oBody._oBodyBase._nBodyID, typeof(EActorLeg), "Leg", "Leg" + _sSidePrefixU);
-		_oObj.PropGroupBegin("", "", true);
+		_oObj = new CObject(this, "Leg" + _sSidePrefixU, "Leg" + _sSidePrefixU);		//###PROBLEM<19>: Name for scripting and label name!
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Leg", typeof(EActorLeg));
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.PropAdd(EActorLeg.Thigh_Spread,	"Thigh-Spread",		0,	-100,	100,	"");
-		_oObj.PropAdd(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"");
+		oPropGrp.PropAdd(EActorLeg.Thigh_Spread,	"Thigh-Spread",		0,	-100,	100,	"");
+		oPropGrp.PropAdd(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"");
 		_oObj.FinishInitialization();
 
-		//_oKeyHook_ThighSpread = new CKeyHook(_oObj.PropFind(EActorLeg.Thigh_Spread), KeyCode.F, EKeyHookType.QuickMouseEdit, "Thigh Spread", -1);
+		//_oKeyHook_ThighSpread = new CKeyHook(_oObj.PropFind(0, EActorLeg.Thigh_Spread), KeyCode.F, EKeyHookType.QuickMouseEdit, "Thigh Spread", -1);
 	}
 
 	public override void OnDestroy() {

@@ -86,7 +86,7 @@ public class CHandTarget : MonoBehaviour, IHotSpotMgr {		// CHandTarget: A desti
 			oActorArm.transform.parent = transform;					// Reparent to the hand target's node so we move/rotate along with the node
 			oActorArm.transform.localPosition = Vector3.zero;
 			oActorArm.transform.localRotation = Quaternion.identity;
-			oActorArm._oObj.PropSet(EActorArm.Pinned, 1);			// Hand target now in requested position.  Pin to make it move
+			oActorArm._oObj.PropSet(0, EActorArm.Pinned, 1);			// Hand target now in requested position.  Pin to make it move
 			//GetNextRandomVector();
 			enabled = true;
 		} else {
