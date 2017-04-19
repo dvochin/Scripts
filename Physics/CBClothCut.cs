@@ -14,11 +14,11 @@
 
 //    public static CBClothEdit Create(CBodyBase oBodyBase, string sNameClothEdit, string sClothType, string sNameClothSrc) {
 //        string sBlenderAccessString_ClothInCollection = ".aCloths['" + sNameClothEdit + "']";
-//		//###WEAK<19>!!: Class has a lot of duplicated code with CBCloth.  Split so we can keep cloth cutting separate from more complex CBCloth
+//		//###WEAK19:!!: Class has a lot of duplicated code with CBCloth.  Split so we can keep cloth cutting separate from more complex CBCloth
 //        CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".CreateCloth('" + sNameClothEdit + "', '" + sClothType + "', '" + sNameClothSrc + "', '')");      // Create the Blender-side entity to service our requests
 //        //CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothEditSrc_HACK + ".UpdateCutterCurves()");
 //        CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".CutClothWithCutterCurves()");
-//        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame()");		//###IMPROVE<13>!!  Damn period before... make consistent!!
+//        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame()");		//###IMPROVE13:!!  Damn period before... make consistent!!
 //        CBClothEdit oBClothEdit = (CBClothEdit)CBMesh.Create(null, oBodyBase, sBlenderAccessString_ClothInCollection + ".oMesh_3DD", typeof(CBClothEdit), false, sNameClothEdit);		// Obtain the simulated-part of the cloth that was created in call above
 //		return oBClothEdit;
 //	}
@@ -39,7 +39,7 @@
 //		_oMeshNow.MarkDynamic();                // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
 //		//=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
-//		//###PROBLEM<17>: Makes UpdateBlenderVerts fail for some reason... because we pull from the same name twice I think.
+//		//###PROBLEM17: Makes UpdateBlenderVerts fail for some reason... because we pull from the same name twice I think.
 //		//_oBMeshClothAtStartup = CBMesh.Create(null, _oBodyBase, ".oClothEdit.oMeshClothEdit", typeof(CBMesh));
 //		//_oBMeshClothAtStartup.transform.SetParent(_oBodyBase.FindBone("chestUpper"));      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
 //        //_oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = false;
@@ -59,7 +59,7 @@
 
 //		//=== Create Canvas for GUI for this mode ===
 //		_oCanvas = CUICanvas.Create(transform);
-//		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+//		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
 //		_oCanvas.CreatePanel("Cloth Cutting", null, _oObj);
 
 //		//=== Bring up the Flex functinality right off construction so we simulate right away ===
@@ -77,7 +77,7 @@
 //    }
 
 //	public void FlexObject_ClothEdit_Disable() {          // Destroy the Flex functionality to save processing power when unused.  This enables a ClothEdit to be modified / re-modified without going back to Blender all the time.
-//		_oFlexParticles.gameObject.SetActive(false);			//###CHECK<18>: Keep de-activation instead of destruction??
+//		_oFlexParticles.gameObject.SetActive(false);			//###CHECK18: Keep de-activation instead of destruction??
 //	}
 
 

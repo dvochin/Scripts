@@ -1,4 +1,4 @@
-/*###DISCUSSION: ClothSrc ###MOVE<19>!!!
+/*###DISCUSSION: ClothSrc ###MOVE19:!!!
 === NEXT ===
 
 === TODO ===
@@ -32,7 +32,7 @@
 */
 
 
-/*###DISCUSSION: Cloth editing GUI		###DESIGN<18>: Keep here?  In another class?  Improve docs!
+/*###DISCUSSION: Cloth editing GUI		###DESIGN18: Keep here?  In another class?  Improve docs!
 === LAST ===
 - This class needed???
 
@@ -69,7 +69,7 @@
 	- Q: How to save the whole thing?
 
 
-###LATEST<17>: UV cloth cutting
+###LATEST17: UV cloth cutting
 # BMesh boolean cut can fail sometimes... go to carve and store custom layers differently?
 # Merge var names of old and new
 # Need to adopt angle + distance on seams... with backside its own different length (and same angle)    
@@ -86,7 +86,7 @@
 #- Have to remove the old single-side source mesh, cut mesh, etc and its behavior (duplicate before batch cut)
 #- Folder positions of cloth stuff... a new parent node?
 
-        ###RESUME<17>: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
+        ###RESUME17: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
 #- Points not deleted on back mesh!!
 #- Side curve bezier tedious to adjust as it is dependent on incident angle... make based on that angle??
     #- Should have different lenght possible for each side of seam beziers?  (go for angle + length with diff lenght on each side??)
@@ -169,13 +169,13 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 
     public static CBCloth Create(CClothEdit oClothEdit, string sVertGrp_ClothSkinArea ) {    // Static function override from CBMesh::Create() to route Blender request to Body Col module and deserialize its additional information for the local creation of a CBBodyColCloth
         string sBlenderAccessString_ClothInCollection = ".aCloths['" + oClothEdit._sNameClothEdit + "']";
-        CGame.gBL_SendCmd("CBody", oClothEdit._oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame('" + sVertGrp_ClothSkinArea + "')");		//###IMPROVE<13>!!  Damn period before... make consistent!!
+        CGame.gBL_SendCmd("CBody", oClothEdit._oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame('" + sVertGrp_ClothSkinArea + "')");		//###IMPROVE13:!!  Damn period before... make consistent!!
         CBCloth oBCloth = (CBCloth)CBMesh.Create(null, oClothEdit._oBodyBase, sBlenderAccessString_ClothInCollection + ".oMeshClothSimulated", typeof(CBCloth), false, oClothEdit, oClothEdit._sNameClothEdit);		// Obtain the simulated-part of the cloth that was created in call above
 		//####IDEA: Modify static creation by first creating instance, stuffing it with custom data and feeding instance in Create to be filled in!
 		return oBCloth;
 	}
 
-	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {		//###DESIGN<17>: Not a natural way to wrapup the two meshes (simulated and skinned) by creating skinned in override function of simulated...
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {		//###DESIGN17: Not a natural way to wrapup the two meshes (simulated and skinned) by creating skinned in override function of simulated...
 		base.OnDeserializeFromBlender(aExtraArgs);
 
 		_oClothEdit = aExtraArgs[0] as CClothEdit;		// First arg is CClothEdit instance
@@ -184,7 +184,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		gameObject.name = _oBodyBase._sBodyPrefix + "-Cloth-" + _sNameCloth;
 
 		//=== Create the skinned-portion of the cloth.  It will be responsible for driving Flex particles that heavily influence their corresponding particles in fully-simulated cloth mesh ===
-		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBodyBase, sBlenderAccessString_ClothInCollection + ".oMeshClothSkinned", typeof(CBSkinBaked));    //###WEAK<13>!!! Fucking dot!!
+		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBodyBase, sBlenderAccessString_ClothInCollection + ".oMeshClothSkinned", typeof(CBSkinBaked));    //###WEAK13:!!! Fucking dot!!
 		_oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
 		_oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
@@ -211,15 +211,15 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
         uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
         oFlexProc._oFlexProcessor = this;
         _oFlexParticles = GetComponent<uFlex.FlexParticles>();
-        _oFlexSprings   = GetComponent<uFlex.FlexSprings>();        //###BUG<18>!!!: Why can this be null sometime???
+        _oFlexSprings   = GetComponent<uFlex.FlexSprings>();        //###BUG18:!!!: Why can this be null sometime???
 		if (_oFlexSprings == null)
 			CUtility.ThrowExceptionF("###ERROR: Cannot find FlexSprings in CBCloth '{0}'", gameObject.name);
 
 
 
-		//=== Create Canvas for GUI for this mode ===		###CHECK<19>
+		//=== Create Canvas for GUI for this mode ===		###CHECK19:
 		_oCanvas = CUICanvas.Create(transform);
-		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
 
 
         //=== Create the managing object and related hotspot ===
@@ -248,7 +248,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		//_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
 		//_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morphing", false, new Vector3(0, 0, 0));
 		//_oCanvas = CUICanvas.Create(transform);
-		//_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		//_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
 		//CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, "Cloth Editing");
 	}
 
@@ -257,7 +257,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		base.OnDestroy();
 	}
 	public CBCloth DoDestroy() {
-		OnDestroy();                //###IMPROVE<19> Need both??
+		OnDestroy();                //###IMPROVE19: Need both??
 		return null;				// Return convenience null for one-line self variable setting
 	}
 

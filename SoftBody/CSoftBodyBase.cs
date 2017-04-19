@@ -23,7 +23,7 @@ public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
     Vector3[] _aFlexParticlesAtStart;           // Backup of particle position at startup.  Used to 'reset' softbody to original particle position
     bool _bSoftBodyInReset_HACK;                // When true soft body will be reset this frame.  Used during pose loading for fast teleport
     //---------------------------------------------------------------------------	MISC
-	List<ushort> _aMapRimVerts = new List<ushort>();    // Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
+	public List<ushort> _aMapRimVerts = new List<ushort>();    // Collection of mapping between our verts and the verts of our BodyRim.  Used to set softbody mesh rim verts and normals to their skinned-equivalent
     Transform _oBoneAnchor;                     // The bone this softbody 'anchors to' = Resets Flex softbody particles to the world-space position / rotation during reset.  Makes teleportation & rapid movement possible
 
 
@@ -33,7 +33,7 @@ public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
 
 		string sNameBoneAnchor = aExtraArgs[0] as string;			// First argument is for sNameBoneAnchor
 
-		transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);			// Parent to our body's main skinned mesh	###WEAK<14>: Crappy circumvent way of obtaining node we need early in init!
+        transform.SetParent(_oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);            // Parent to our body's main skinned mesh    ###WEAK14: Crappy circumvent way of obtaining node we need early in init!
 
         _sNameSoftBody = GetType().Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         _sBlenderInstancePath_CSoftBody = ".oBody.aSoftBodies['" + _sNameSoftBody + "']";                          // Simplify access to Blender CSoftBody instance
@@ -41,7 +41,7 @@ public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
         _oBoneAnchor = _oBodyBase._oBody._oBodyBase.FindBone(sNameBoneAnchor);
 
         //=== Set bounds to infinite so our dynamically-created mesh never has to recalculate bounds ===
-        _oMeshNow.bounds = CGame._oBoundsInfinite;          //####IMPROVE: This can hurt performance ####OPT!!
+        //###CHECK19: _oMeshNow.bounds = CGame._oBoundsInfinite;          //####IMPROVE: This can hurt performance ####OPT!!
         _oMeshNow.MarkDynamic();        // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
         //=== Create the managing object and related hotspot ===
@@ -53,15 +53,15 @@ public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
         _oObj.FinishInitialization();
         if (GetType() != typeof(CBreastR))          //###HACK!: Right breast doesn't get hotspot (left breast gets it and manually broadcasts to right one)
             _oHotSpot = CHotSpot.CreateHotspot(this, _oBoneAnchor, "SoftBody", false, new Vector3(0, 0.10f, 0.08f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
-    }
-
-    public override void FinishIntialization() {
-        base.FinishIntialization();
 
         //=== Retreive the rim skinned mesh so we can manually set the softbody rim verts to the position & normals for seamless connection to main skinned body ===
         _oMeshRim = (CBSkinBaked)CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshSoftBodyRim", typeof(CBSkinBaked));           // Retrieve the skinned softbody rim mesh Blender just created so we can pin softbody at runtime
         _oMeshRim.transform.SetParent(transform);
 		_aMapRimVerts = CByteArray.GetArray_USHORT("'CBody'", _sBlenderInstancePath_CSoftBody_FullyQualfied + ".aMapRimVerts.Unity_GetBytes()");               // Read the rim traversal map from our CSoftBodyBase instance
+	}
+
+    public override void FinishIntialization() {		//###OBS?: Separation still needed??
+        base.FinishIntialization();
 
         //=== Backup the position of the particles at startup time (so we can keep softbody from extreme deformation during rapid body movements like pose teleport) ===
         _aFlexParticlesAtStart = new Vector3[_oFlexParticles.m_particlesCount];
@@ -118,7 +118,7 @@ public class CSoftBodyBase : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor
         _bSoftBodyInReset_HACK = bSoftBodyInReset;
     }
 
-    public void Reset_SoftBody_DoReset() {                       // Reset softbody to its startup state around anchor bone.  Essential during pose load / teleportation!
+    public void Reset_SoftBody_DoReset() {                       // Reset softbody to its startup state around anchor bone.  Essential during pose load / teleportation!		###OBS? Use Flex reset functionality?
         if (_oFlexParticles != null) { 
             for (int nParticle = 0; nParticle < _aFlexParticlesAtStart.Length; nParticle++) {       //_oSoftFlexParticles.m_particlesCount
                 _oFlexParticles.m_particles [nParticle].pos = _oBoneAnchor.localToWorldMatrix.MultiplyPoint(_aFlexParticlesAtStart[nParticle]);

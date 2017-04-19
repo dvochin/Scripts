@@ -33,7 +33,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {		//###DESIGN<19>: Rename to represent property editor more?
+public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler {		//###DESIGN19: Rename to represent property editor more?
 
 	object[]		_aObjects;						// The array of CObjects we edit.  A 'choose combobox' is created if this collection has more than one CObject
 	CObject			_oObj_CurrentlyVisible;				// The CObject currently visible / rendered by GUI widgets.  Used to efficiently switch from CObject to CObject when this property editor can edit multiple objects.

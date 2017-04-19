@@ -30,7 +30,7 @@ public class CKeyHook : IDisposable {
 	}
 	
 	public void OnUpdate() {		//###DESIGN: OnUpdate??? From CGame??? Game mode sensitive??
-		//////////////###BROKEN<19>! Key hooks based on properties?  Need access to selected body???
+		//////////////###BROKEN19:! Key hooks based on properties?  Need access to selected body???
 	//	if (_oProp._oPropGrp._oObj._nBodyID == CGame.INSTANCE._nSelectedBody || _bSelectedBodyOnly == false) {		//###DESIGN!!! Only affect selected body on all keyhooks???  ###SOON
 
 	//		switch (_eKeyHookType) {

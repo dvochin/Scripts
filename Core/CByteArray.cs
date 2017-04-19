@@ -17,7 +17,7 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 	public CByteArray(string sNameBlenderModule, string sBlenderAccessString) {
 		_sBlenderAccessString = sBlenderAccessString;
 		_memBA = new CMemAlloc<byte>();
-		CGame.gBL_SendCmd_GetMemBuffer(sNameBlenderModule, sBlenderAccessString, ref _memBA);      //###DESIGN<11>: Always force Unity to access everything from Blender through CBody?? ###SOON
+		CGame.gBL_SendCmd_GetMemBuffer(sNameBlenderModule, sBlenderAccessString, ref _memBA);      //###DESIGN11: Always force Unity to access everything from Blender through CBody?? ###SOON
 		_oBA = (byte[])_memBA.L;					// Obtain convenience pointer to beginning of raw memory obtained from Blender
 		_nLength = _memBA.L.Length;
 		CheckMagicNumber_Begin();					// Ensure stream starts with proper magic number

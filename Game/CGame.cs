@@ -30,7 +30,6 @@
 - PROBLEM: Right thigh twist is out of position!
 - PROBLEM: Vagina mesh is shipped as 2nd mesh!  Also it does not coincide perfectly on some morphs!
 
-- AFTER: One new DAZ body works perfectly, go back to vagina creation and CSoftBodySkin!
 
 */
 /*###DISCUSSION: Panels
@@ -246,7 +245,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         _oTextUR = GameObject.Find("/UI/CanvasScreen/UR/Text-UR").GetComponent<Text>();
 
 		//=== Create user-adjustable top-level game options ===
-		_oObj = new CObject(this, "EroticVR Options", "EroticVR Options");		//###PROBLEM<19>: Name for scripting and label name!
+		_oObj = new CObject(this, "EroticVR Options", "EroticVR Options");		//###PROBLEM19: Name for scripting and label name!
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "EroticVR Options", typeof(EGamePlay));
 		//_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
 		//_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
@@ -405,7 +404,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
         //Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 
-        ChangeGameMode(EGameModes.MorphBody);             // Set the initial game mode as statically requested		###DESIGN<18>!!: We need to go in order but what about when user wants to play right away?  (Auto-progress through modes to morph and cut cloth or load from file?)
+        ChangeGameMode(EGameModes.MorphBody);             // Set the initial game mode as statically requested		###DESIGN18:!!: We need to go in order but what about when user wants to play right away?  (Auto-progress through modes to morph and cut cloth or load from file?)
 
         Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
     }
@@ -875,7 +874,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_GameMode = eGameMode;
 
 		//=== First disable all the other non-editing bodies so they are not visible to the player during his/her configuration of one body ===
-		int nBodyToEdit = 0;                 //###TODO<11>!!: Select which body to edit from closest to cam or button? Move this to global var!!
+		int nBodyToEdit = 0;                 //###TODO11:!!: Select which body to edit from closest to cam or button? Move this to global var!!
 		if (_GameMode != EGameModes.Play) {
 			for (int nBody = 0; nBody < _aBodyBases.Length; nBody++)
 				if (nBody != nBodyToEdit)
@@ -892,15 +891,15 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			case EGameModes.Play:
 				foreach (CBodyBase oBodyBase in _aBodyBases)				// Entering play mode.  Tell all body bases to get the game-time body ready.
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.Play);
-                //###CHECK<18> Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
-                ScenePose_Load("Standing", false);      //###DESIGN<17>: When to do this and where??
+                //###CHECK18: Update();                               // Manually run the update loop so that Flex delayed-creation gets to run to finalize any softbodies that got created
+                ScenePose_Load("Standing", false);      //###DESIGN17: When to do this and where??
         		break;
         }
-		//###DESIGN<18>: Hide / show all options given the many game modes too complex... ditch?
+		//###DESIGN18: Hide / show all options given the many game modes too complex... ditch?
 		//HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
     }
     public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
-		//###BROKEN<11>
+		//###BROKEN11:
         //foreach (CBody oBody in _aBodyBases)
         //    if (oBody != null)
         //        oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
@@ -964,7 +963,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//---------------------------------------------------------------------------	MISC
 
 	public void Cum_Stop() {            // Stop all cumming and Wipe away cum (reset fluid)
-		//###BROKEN<11>
+		//###BROKEN11:
 		//foreach (CBody oBody in _aBodyBases)
 		//	if (oBody != null)
 		//		oBody.SetIsCumming(false);
@@ -1004,7 +1003,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	}
 
 	public static System.Diagnostics.Process LaunchProcessBlender(string sNameBlenderFile, System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
-		string sFileProcess = CGame.GetPathBlenderApp();		//###TODO<17> Name
+		string sFileProcess = CGame.GetPathBlenderApp();		//###TODO17: Name
         string sArguments = string.Format("\"{0}/{1}\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends(), sNameBlenderFile);       //###IMPROVE: Don't show console during releases!
 		System.Diagnostics.Process oProcess = CGame.LaunchProcess(sFileProcess, sArguments, false, eWinStyle);	//###IMPROVE: Try to redirect!
 		oProcess.Exited				+= oProcess_Exited;
@@ -1037,7 +1036,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     //---------------------------------------------------------------------------	UTILITY
 
     public static CBody GetSelectedBody() {
-		return null;		//###BROKEN<11>	CGame.INSTANCE._aBodyBases[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
+		return null;		//###BROKEN11:	CGame.INSTANCE._aBodyBases[CGame.INSTANCE._nSelectedBody - 1];		//###NOTROBUST
 	}
 
 	public static void SetGuiMessage(EGameGuiMsg eGameGuiMsg, string sMsg) {
@@ -1114,7 +1113,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//}
 
 	public CBody FindFirstCharacterWithPenis() {
-		//###OBS???  ###BROKEN<11>
+		//###OBS???  ###BROKEN11:
 		//foreach (CBody oBody in _aBodyBases) {
 		//	if (oBody._eBodySex != EBodySex.Woman) 
 		//		return oBody;
@@ -1122,7 +1121,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		return null;
 	}
 	public CBody GetBodyOther(CBody oBody) {        // Returns the other body.  Assumes only a 2-body scene.
-		return null;		//###BROKEN<11>
+		return null;		//###BROKEN11:
 		//if (oBody == _aBodyBases[0])		//###DESIGN: Revisit this once we fix assumptions as to bodies in body 0/1
 		//	return _aBodyBases[1];
 		//else
@@ -1132,7 +1131,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//--------------------------------------------------------------------------	SCENE LOAD / SAVE  ###MOVE??
 
 	public void ScenePose_Load(string sNameScenePose, bool bScenePoseFlipped) {		// Load a 'scene' = The pose & position of each character plus CPoseRoot position.  bInvert loads pose for body 2 into body 1 and vice versa
-		//###BROKEN<11>: Some of this in CBodyBase?
+		//###BROKEN11: Some of this in CBodyBase?
 
 		//string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 
@@ -1182,7 +1181,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     }
 
     public void ScenePose_Save(string sNameScenePose) {
-		//###BROKEN<11>: Some of this in CBodyBase?
+		//###BROKEN11: Some of this in CBodyBase?
 		//_sNameScenePose = sNameScenePose;
 		//_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
 
@@ -1260,7 +1259,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
-		//###BROKEN<11>: What GUI does CGame has?  Options??
+		//###BROKEN11: What GUI does CGame has?  Options??
 		//if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
 		//	_oHotSpot.WndPopup_Create(_aBodyBases[0], new CObject[] { _oObj });        //###DESIGN: What to do??  ###U
 	}

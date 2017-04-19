@@ -139,7 +139,7 @@ public class CActorArm : CActor {
 			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, "Arm" + _sSidePrefixU, "Arm" + _sSidePrefixU);		//###PROBLEM<19>: Name for scripting and label name!
+		_oObj = new CObject(this, "Arm" + _sSidePrefixU, "Arm" + _sSidePrefixU);		//###PROBLEM19: Name for scripting and label name!
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorArm));
 		AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
 		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");

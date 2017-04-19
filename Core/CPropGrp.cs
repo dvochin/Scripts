@@ -128,11 +128,11 @@ public class CPropGrpBlender : CPropGrp {           // CObjectBlender: Specializ
 	public CPropGrpBlender(CObject oObj, string sNamePropGrp, string sBlenderAccessString) : base(oObj, sNamePropGrp) {
 		_sBlenderAccessString = sBlenderAccessString;
 
-		string sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".Serialize()");            //###MOVE<11> to another blender codefile?
+		string sSerializedCSV = CGame.gBL_SendCmd("CBody", _sBlenderAccessString + ".Serialize()");            //###MOVE11: to another blender codefile?
 
 		string[] aFields = CUtility.SplitCommaSeparatedPythonListOutput(sSerializedCSV);
 
-		//_sNameObject = aFields[0];				//###CHECK<19>: Save Blender's name as our own?
+		//_sNameObject = aFields[0];				//###CHECK19: Save Blender's name as our own?
 		int nProps = int.Parse(aFields[1]);
 
 		for (int nProp = 0; nProp < nProps; nProp++) {
@@ -143,7 +143,7 @@ public class CPropGrpBlender : CPropGrp {           // CObjectBlender: Specializ
 			float nValue = float.Parse(aFields[2]);
 			float nMin = float.Parse(aFields[3]);
 			float nMax = float.Parse(aFields[4]);
-			//int eFlags              = int  .Parse(aFields[5]);		//###CHECK<19>: Name = label below??
+			//int eFlags              = int  .Parse(aFields[5]);		//###CHECK19: Name = label below??
 			CProp oProp = PropAdd(nProp, sName, sName, nValue, nMin, nMax, sDescription, 0, null);//, CProp.Blender, null);	//###NOTE: No longer a Blender property as we don't update every slider value change for better performance (we batch update during mode change now)
 			oProp._nValueLocal = nValue;              // Bit of a hack for optimization: set value directly as we just retrieved it from Blender to save a trip back and forth.
 		}

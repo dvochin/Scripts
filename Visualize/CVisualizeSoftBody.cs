@@ -41,7 +41,12 @@ public class CVisualizeSoftBody : MonoBehaviour {      // CDebugSoftBody: Manage
             oVisShape.Initialize(this, nShape);
         }
 
-        GetComponent<MeshRenderer>().enabled = false;           // Hide the soft body renderer out of convenience so we see inside ###IMPROVE: Set transparent?
+		MeshRenderer oMeshRenderer = GetComponent<MeshRenderer>();
+		if (oMeshRenderer != null)			// Hide the soft body renderer out of convenience so we see inside ###IMPROVE: Set transparent?
+			oMeshRenderer.enabled = false;           
+		uFlex.FlexParticlesRenderer oParRend = GetComponent<uFlex.FlexParticlesRenderer>();
+		if (oParRend != null)
+			oParRend.enabled = false;
     }
 
     void Update() {

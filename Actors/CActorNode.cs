@@ -10,7 +10,7 @@ public class CActorNode : CActor {			// CActorNode: Simple 'node based' actor wi
         _oHotSpot = CHotSpot.CreateHotspot(this, transform, transform.name, true, Vector3.zero, C_SizeHotSpot_BodyNodes);		//###DESIGN!!!!: How can user move actors apart that get too close??
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, transform.name, transform.name);		//###PROBLEM<19>: Name for scripting and label name!
+		_oObj = new CObject(this, transform.name, transform.name);		//###PROBLEM19: Name for scripting and label name!
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, transform.name, typeof(EActorNode));
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
 		//###DESIGN? _oPropGrp.PropAdd(EActorNode.Height,	"Height",		0.5f,	0.5f,	1.2f,	"", CProp.Local);		//###DESIGN: Range tuned to standing height

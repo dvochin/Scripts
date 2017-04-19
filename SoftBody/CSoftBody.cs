@@ -70,7 +70,7 @@ public class CSoftBody : CSoftBodyBase {
 		string sNameSoftBody = oTypeBMesh.Name.Substring(1);                            // Obtain the name of our detached body part ('Breasts', 'Penis', 'Vagina') from a substring of our class name.  Must match Blender!!  ###WEAK?
         CGame.gBL_SendCmd("CBody", "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").oBody.CreateSoftBody('" + sNameSoftBody + "', " + CGame.INSTANCE.nSoftBodyFlexColliderShrinkRatio.ToString() + ")");      // Separate the softbody from the source body.
 		CSoftBody oSoftBody = (CSoftBody)CBMesh.Create(null, oBody._oBodyBase, ".oBody.aSoftBodies['" + sNameSoftBody + "'].oMeshSoftBody", oTypeBMesh, false, sNameBoneAnchor);       // Create the softbody mesh from the just-created Blender mesh.
-		oSoftBody.gameObject.name = oBody._oBodyBase._sBodyPrefix + "-SoftBody-" + oTypeBMesh.ToString();		//###IMPROVE<18>: Put this stuff in CBMesh.Create()?
+		oSoftBody.gameObject.name = oBody._oBodyBase._sBodyPrefix + "-SoftBody-" + oTypeBMesh.ToString();		//###IMPROVE18: Put this stuff in CBMesh.Create()?
         return oSoftBody;
     }
 
@@ -97,7 +97,7 @@ public class CSoftBody : CSoftBodyBase {
 
         //=== Obtain the Unity2Blender mesh so we can pass particles to Blender for processing there ===
         CBMesh oMesh_Unity2Blender = CBMesh.Create(null, _oBodyBase, _sBlenderInstancePath_CSoftBody + ".oMeshUnity2Blender", typeof(CBMesh), true);       // Also obtain the Unity2Blender mesh call above created.    // Keep link to Blender mesh open so we can upload our verts        //###IMPROVE: When/where to release??
-		oMesh_Unity2Blender.transform.SetParent(transform);		//###IMPROVE<13>: Set parent in Create() above?
+		oMesh_Unity2Blender.transform.SetParent(transform);		//###IMPROVE13: Set parent in Create() above?
 
 		//=== Upload our particles to Blender so it can select those that are pinned and skin them ===
 		for (int nVertTetra = 0; nVertTetra < nVertTetras; nVertTetra++)
@@ -136,11 +136,11 @@ public class CSoftBody : CSoftBodyBase {
 
 		base.PreContainerUpdate(solver, cntr, parameters);
 
-        _oPinnedParticles.UpdatePositionsOfPinnedParticles();                // Update the position of our pinned particles so this softbody follows the surface of its body
+        _oPinnedParticles.UpdatePositionsOfPinnedParticles();						// Update the position of our pinned particles so this softbody follows the surface of its body
 
         //=== Bake the skinned softbody into a regular mesh (so we can update edge-of-softbody position and normals to pertinent rim verts ===
         _oFlexGeneratedSMR.BakeMesh(_oFlexGeneratedSMR_BakedMesh);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
-        Vector3[] aVertsFlexGenerated = _oFlexGeneratedSMR_BakedMesh.vertices;
+        Vector3[] aVertsFlexGenerated	= _oFlexGeneratedSMR_BakedMesh.vertices;
         Vector3[] aNormalsFlexGenerated = _oFlexGeneratedSMR_BakedMesh.normals;
 
         UpdateVisibleSoftBodySurfaceMesh(ref aVertsFlexGenerated, ref aNormalsFlexGenerated);      // Call base class to update the visible mesh (and manually adjust sb rim verts for seamless connection to main skinned body)

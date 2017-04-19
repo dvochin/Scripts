@@ -8,17 +8,17 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
 
     void Awake()			//###LEARN: Start() too late for Flex.  Awake is a must.
     {
-        Color color = Color.green;      //###TODO: Colors!
+        Color color = Color.grey;      //###TODO: Colors!
 
 		_oSMR = gameObject.GetComponent<SkinnedMeshRenderer>();
         _oMeshSkinBaked = new Mesh();
         _oSMR.BakeMesh(_oMeshSkinBaked);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
-        _nVerts = _oMeshSkinBaked.vertexCount;
+		_nVerts = 1;// _oMeshSkinBaked.vertexCount;
 
         Vector3[] vertices = _oMeshSkinBaked.vertices;
-        int vertexCount = _oMeshSkinBaked.vertexCount;
+        int vertexCount = _nVerts;
 
-        m_maxParticlesCount = m_particlesCount = vertexCount;                         //###IMPROVE<15>: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
+        m_maxParticlesCount = m_particlesCount = vertexCount;                         //###IMPROVE15: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
 		m_particles = new uFlex.Particle[vertexCount];
 		m_restParticles = new uFlex.Particle[vertexCount];
         m_colours = new Color[vertexCount];
@@ -26,14 +26,14 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
         m_densities = new float[vertexCount];
         m_particlesActivity = new bool[vertexCount];
         m_colour = color;
-        m_interactionType = uFlex.FlexInteractionType.SelfCollideAll;
+		m_interactionType = uFlex.FlexInteractionType. SelfCollideAll;				// We're a static collider with all pinned particles.  We should repel EVERYTHING!
         m_collisionGroup = -1;
 
         Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         for (int i = 0; i < vertexCount; i++) {
             m_particles[i].pos = vertices[i];
-            m_particles[i].invMass = 0;        // These are pinned particles.  They never move from the simulation (we move them to repel clothing, softbody and fluids)
+            m_restParticles[i].invMass = m_particles[i].invMass = 0;        // These are pinned particles.  They never move from the simulation (we move them to repel clothing, softbody and fluids)
             m_colours[i] = color;
             m_particlesActivity[i] = true;
             min = uFlex.FlexUtils.Min(min, vertices[i]);
@@ -46,7 +46,7 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
         partRend.m_radius = partRend.m_size / 2.0f;
         partRend.enabled = false;
 
-        //Material oMat = new Material(Shader.Find("Diffuse"));
+        //Material oMat = new Material(Shader.Find("Standard"));
         //Texture oTex = Resources.Load("Textures/Woman/A/Torso", typeof(Texture)) as Texture;
         //oMat.mainTexture = oTex;
         //_oSMR.material = oMat;

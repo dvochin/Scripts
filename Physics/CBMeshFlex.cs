@@ -12,8 +12,8 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
 
     public static CBMeshFlex CreateForClothSrc(CBodyBase oBodyBase, string sNameClothSrc) {
-        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".oClothSrcSelected_HACK = CGlobals.cm_aClothSources['" + sNameClothSrc + "']");		//###HACK<18>!! Injecting a temp variable so a limitation of CMesh create below can be overcome (needing all meshes to be accessible from our CBodyBase isntance)
-        CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".SelectClothSrc_HACK('" + sNameClothSrc + "')");		//###HACK<18>!! Injecting a temp variable so a limitation of CMesh create below can be overcome (needing all meshes to be accessible from our CBodyBase isntance)
+        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".oClothSrcSelected_HACK = CGlobals.cm_aClothSources['" + sNameClothSrc + "']");		//###HACK18:!! Injecting a temp variable so a limitation of CMesh create below can be overcome (needing all meshes to be accessible from our CBodyBase isntance)
+        CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".SelectClothSrc_HACK('" + sNameClothSrc + "')");		//###HACK18:!! Injecting a temp variable so a limitation of CMesh create below can be overcome (needing all meshes to be accessible from our CBodyBase isntance)
         CBMeshFlex oBMeshFlex = (CBMeshFlex)CBMesh.Create(null, oBodyBase, ".oClothSrcSelected_HACK", typeof(CBMeshFlex), true);		// Obtain the simulated-part of the cloth that was created in call above.  Keep shared in Blender so we can upload our simulate vert positions
 		oBMeshFlex.gameObject.name = oBodyBase._sBodyPrefix + "-ClothSrc";
 		return oBMeshFlex;
@@ -21,19 +21,19 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
     public static CBMeshFlex CreateForClothEdit(CBodyBase oBodyBase, string sNameClothEdit) {
         string sBlenderAccessString_ClothInCollection = ".aCloths['" + sNameClothEdit + "']";
-		//###WEAK<19>!!: Class has a lot of duplicated code with CBCloth.  Split so we can keep cloth cutting separate from more complex CBCloth
+		//###WEAK19:!!: Class has a lot of duplicated code with CBCloth.  Split so we can keep cloth cutting separate from more complex CBCloth
         //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + ".CreateCloth('" + sNameClothEdit + "', '" + sClothType + "', '" + sNameClothSrc + "', '')");      // Create the Blender-side entity to service our requests
         //CGame.gBL_SendCmd("CBody", sBodyID + CBCloth.s_sNameClothEditSrc_HACK + ".UpdateCutterCurves()");
-		//###TODO<19>: Need to load cutting properties before cutting... this cut at init is only good to cut Blender cutting defaults!
+		//###TODO19: Need to load cutting properties before cutting... this cut at init is only good to cut Blender cutting defaults!
         CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".CutClothWithCutterCurves()");
-        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame()");		//###IMPROVE<13>!!  Damn period before... make consistent!!
+        //CGame.gBL_SendCmd("CBody", oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".PrepareClothForGame()");		//###IMPROVE13:!!  Damn period before... make consistent!!
         CBMeshFlex oBMeshFlex = (CBMeshFlex)CBMesh.Create(null, oBodyBase, sBlenderAccessString_ClothInCollection + ".oMesh_3DD", typeof(CBMeshFlex), false, sNameClothEdit);		// Obtain the simulated-part of the cloth that was created in call above
 		oBMeshFlex.gameObject.name = oBodyBase._sBodyPrefix + "-ClothEdit";
 
 		return oBMeshFlex;
 	}
 
-	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {		//###DESIGN<17>: Not a natural way to wrapup the two meshes (simulated and skinned) by creating skinned in override function of simulated...
+	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {		//###DESIGN17: Not a natural way to wrapup the two meshes (simulated and skinned) by creating skinned in override function of simulated...
 		base.OnDeserializeFromBlender(aExtraArgs);
 
         //=== Create the simulated part of the cloth ===
@@ -45,7 +45,7 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 		_oMeshNow.MarkDynamic();                // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
 		//=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
-		//###PROBLEM<17>: Makes UpdateBlenderVerts fail for some reason... because we pull from the same name twice I think.
+		//###PROBLEM17: Makes UpdateBlenderVerts fail for some reason... because we pull from the same name twice I think.
 		//_oBMeshClothAtStartup = CBMesh.Create(null, _oBodyBase, ".oClothSrc.oMeshClothSrc", typeof(CBMesh));
 		//_oBMeshClothAtStartup.transform.SetParent(_oBodyBase.FindBone("chestUpper"));      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
         //_oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = false;
@@ -75,7 +75,7 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 		//	Destroy(_oFlexParticles);
 		//	_oFlexParticles = null;
 		//}
-		_oFlexParticles.gameObject.SetActive(false);			//###CHECK<18>: Keep de-activation instead of destruction??
+		_oFlexParticles.gameObject.SetActive(false);			//###CHECK18: Keep de-activation instead of destruction??
 	}
 
 	void UploadClothSrcToBlender() {				// Update Blender verts from our Flex-simulated verts.  Blender will need this to cut cloth that fit the body!

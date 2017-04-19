@@ -53,7 +53,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		CBMesh oBMesh = (CBMesh)CUtility.FindOrCreateComponent(oBMeshGO.transform, oTypeBMesh);
 		oBMesh._oBodyBase = oBodyBase;									// Push-in some important args manually (so we don't have to push them in OnDeserializeFromBlender()
 		oBMesh._sNameCBodyInstanceMember = sNameCBodyInstanceMember;
-		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			//###DESIGN<11>!!!  IMPROVE THIS CRAPPY Node name!!  Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
+		oBMesh.gameObject.name = oBMesh._sNameCBodyInstanceMember;			//###DESIGN11:!!!  IMPROVE THIS CRAPPY Node name!!  Give Unity node the 'Blender node name (i.e. not path to instance variable string!)
         oBMesh._bKeepBlenderShare = bKeepBlenderShare;
 
         //=== Obtain the name of the Blender mesh object from the data-member of Blender's CBody class we're paired to ===
@@ -101,56 +101,67 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		for (byte nMat = 0; nMat < nMats; nMat++) {
 			string sCodedMaterial = oBA.ReadString();
 			sCodedMaterial = sCodedMaterial.Replace('\\', '/');						// Replace backslashes to the slash Unity requires.
-			if (sCodedMaterial != "NoTexture") {			//###IMPROVE: What to do??  ###IMPROVE: Standarize constants between blender and Unity!
+			if (sCodedMaterial != "NoTexture") {            //###IMPROVE: What to do??  ###IMPROVE: Standarize constants between blender and Unity!
 
-				if (sCodedMaterial.StartsWith("Material_")) {			// Blender material that start with this string are processed differently: We attempt to find the same name material here and attach to this submesh.
-
-					Material oMat = Resources.Load("Materials/" + sCodedMaterial, typeof(Material)) as Material;
-					if (oMat != null)
-						_aMats[nMat] = oMat;
-					else
-						Debug.LogWarning("ERROR: Unknown special material '" + sCodedMaterial + "' in CBMesh.ctor()");
-
-				} else {
-
-					int nLocTexPath = sCodedMaterial.IndexOf(CGame.C_RelPath_Textures);		// Blender gives a fully-qualified path that MUST point to our Resources folder
-					if (nLocTexPath != -1) {
-						string sTextureResourcePath = sCodedMaterial.Substring(nLocTexPath + CGame.C_RelPath_Textures.Length);
-						int nLocExtDot = sTextureResourcePath.IndexOf('.');			// Strip the extension... ###CHECK: Assume jpg throughout??
-						if (nLocExtDot != -1)
-							sTextureResourcePath = sTextureResourcePath.Substring(0, nLocExtDot);
-
-						Material oMat = Resources.Load(sTextureResourcePath + "_Mat", typeof(Material)) as Material;		// We attempt to load the pre-defined material with _Mat suffix if its there...
-						if (oMat == null) {
-							if (sTextureResourcePath.EndsWith("_Transp"))			// If texture ends with this string we create a standard transparent material
-								oMat = new Material(Shader.Find("Transparent/Diffuse"));
-							else
-								oMat = new Material(Shader.Find("Diffuse"));		// If material was not found (usual case) we just create a standard diffuse on
-							//Debug.Log("-Texture: " + sTextureResourcePath);
-							object o = Resources.Load(sTextureResourcePath, typeof(Texture));
-							Texture oTex = o as Texture;
-							if (oTex != null) {
-								int nLocLastSlash = sTextureResourcePath.LastIndexOf('/');
-								oMat.name = sTextureResourcePath.Substring(nLocLastSlash + 1);
-								oMat.mainTexture = oTex;
-							} else {
-								Debug.LogError("**ERROR: Texture '" + sTextureResourcePath + "' not found!");
-							}
-						} else {
-							//Debug.Log("-Material: " + sTextureResourcePath);			// If material was defined we leave it to material designer to connect whatever texture...
-						}
-						_aMats[nMat] = oMat;
-					} else {
-						Debug.LogError("ERROR: in CBMesh.ctor().  Could not find Unity resource path in texture path " + sCodedMaterial);
-					}
+				int nPosOfDot = sCodedMaterial.IndexOf(".");
+				if (nPosOfDot != -1)
+					sCodedMaterial = sCodedMaterial.Substring(0, nPosOfDot);		//###HACK19: To catch Blender's stupid automatic Material rename during imports!
+				Material oMat = Resources.Load("ModelsNEW/Materials/" + sCodedMaterial, typeof(Material)) as Material;	//###TODO19:!!!: Need to have Blender tell us which character it is so we look at right place??
+				if (oMat == null) { 
+					Debug.LogWarningFormat("CBMesh.Create() could not find material '{0}' on mesh '{1}'", sCodedMaterial, gameObject.name);
+					//CUtility.ThrowExceptionF("Could not find material '{0}'", sCodedMaterial);
+					oMat = new Material(Shader.Find("Standard"));				// Give a standard material with no texture (anything to avoid shadeless hot pink!)
 				}
+				_aMats[nMat] = oMat;
+
+				//if (sCodedMaterial.StartsWith("Material_")) {				 // Blender material that start with this string are processed differently: We attempt to find the same name material here and attach to this submesh.
+
+				//	Material oMat = Resources.Load("Materials/" + sCodedMaterial, typeof(Material)) as Material;
+				//	if (oMat != null)
+				//		_aMats[nMat] = oMat;
+				//	else
+				//		Debug.LogWarning("ERROR: Unknown special material '" + sCodedMaterial + "' in CBMesh.ctor()");
+
+				//} else {
+
+				//	int nLocTexPath = sCodedMaterial.IndexOf(CGame.C_RelPath_Textures);		// Blender gives a fully-qualified path that MUST point to our Resources folder
+				//	if (nLocTexPath != -1) {
+				//		string sTextureResourcePath = sCodedMaterial.Substring(nLocTexPath + CGame.C_RelPath_Textures.Length);
+				//		int nLocExtDot = sTextureResourcePath.IndexOf('.');			// Strip the extension... ###CHECK: Assume jpg throughout??
+				//		if (nLocExtDot != -1)
+				//			sTextureResourcePath = sTextureResourcePath.Substring(0, nLocExtDot);
+
+				//		Material oMat = Resources.Load(sTextureResourcePath + "_Mat", typeof(Material)) as Material;		// We attempt to load the pre-defined material with _Mat suffix if its there...
+				//		if (oMat == null) {
+				//			if (sTextureResourcePath.EndsWith("_Transp"))			// If texture ends with this string we create a standard transparent material
+				//				oMat = new Material(Shader.Find("Transparent/Diffuse"));
+				//			else
+				//				oMat = new Material(Shader.Find("Standard"));		// If material was not found (usual case) we just create a standard diffuse on
+				//			//Debug.Log("-Texture: " + sTextureResourcePath);
+				//			object o = Resources.Load(sTextureResourcePath, typeof(Texture));		//###DEV19: Add normal if exists!
+				//			Texture oTex = o as Texture;
+				//			if (oTex != null) {
+				//				int nLocLastSlash = sTextureResourcePath.LastIndexOf('/');
+				//				oMat.name = sTextureResourcePath.Substring(nLocLastSlash + 1);
+				//				oMat.mainTexture = oTex;
+				//			} else {
+				//				Debug.LogError("**ERROR: Texture '" + sTextureResourcePath + "' not found!");
+				//			}
+				//		} else {
+				//			//Debug.Log("-Material: " + sTextureResourcePath);			// If material was defined we leave it to material designer to connect whatever texture...
+				//		}
+				//		_aMats[nMat] = oMat;
+				//	} else {
+				//		Debug.LogError("ERROR: in CBMesh.ctor().  Could not find Unity resource path in texture path " + sCodedMaterial);
+				//	}
+				//}
 			}
 		}
 		
 		if (nMats == 0) {					// If Blender didn't have a material for this mesh we now create a dummy one as we need at least one 'submesh' for DLL to pass in triangles to us ===
 			nMats = 1;	
 			_aMats = new Material[nMats];
-			_aMats[0] = new Material(Shader.Find("Diffuse"));	// Create a default material so we can see the material-less Blender mesh in Unity
+			_aMats[0] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
 		}
 		_oMeshNow.subMeshCount = nMats;
 		oBA.CheckMagicNumber_End();                 // Check the 'end magic number' that always follows a stream.
@@ -287,7 +298,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		//###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
 		CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
 		memVertsCopy.L = (Vector3[])_memVerts.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
-		memVertsCopy.PinInMemory();			//###PROBLEM<17>: Dll would get only zeros without this line... Previous call to Pin too soon? ###BUG<17>: Memory leak??
+		memVertsCopy.PinInMemory();			//###PROBLEM17: Dll would get only zeros without this line... Previous call to Pin too soon? ###BUG17: Memory leak??
 		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
 		if (nError != 0)
 			CUtility.ThrowExceptionF("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error {0} on mesh '{0}'.", nError, gameObject.name);

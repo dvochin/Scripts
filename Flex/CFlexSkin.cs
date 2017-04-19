@@ -9,132 +9,132 @@
 
 
 
-using UnityEngine;
-using System.Collections.Generic;
+//using UnityEngine;
+//using System.Collections.Generic;
 
 
-public class CFlexSkin_OBS : CBMesh, uFlex.IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
-    // Created from Blender implementation that converts a regular mesh portion and gives it 'thickness' by pulling presentation mesh along its normals
-    // Blender defines what is a particle and what is a shape by sending us arrays that are compatible with the Flex implementation for 'FlexShapeMatching' (e.g. softbody)
+//public class CFlexSkin_OBS : CBMesh, uFlex.IFlexProcessor {       // CFlexSkin: a specialized Flex softbody that handles like 'thick skin'
+//    // Created from Blender implementation that converts a regular mesh portion and gives it 'thickness' by pulling presentation mesh along its normals
+//    // Blender defines what is a particle and what is a shape by sending us arrays that are compatible with the Flex implementation for 'FlexShapeMatching' (e.g. softbody)
 
-    List<int> aShapeVerts            = new List<int>();       // Array of which vert / particle is also a shape
-    List<int> aShapeParticleIndices  = new List<int>();       // Flattened array of which shape match to which particle (as per Flex softbody requirements)
-    List<int> aShapeParticleCutoffs  = new List<int>();       // Cutoff in 'aShapeParticleIndices' between sets defining which particle goes to which shape. 
+//    List<int> aShapeVerts            = new List<int>();       // Array of which vert / particle is also a shape
+//    List<int> aShapeParticleIndices  = new List<int>();       // Flattened array of which shape match to which particle (as per Flex softbody requirements)
+//    List<int> aShapeParticleCutoffs  = new List<int>();       // Cutoff in 'aShapeParticleIndices' between sets defining which particle goes to which shape. 
 
-    public string _sBlenderInstancePath_CFlexSkin;				// Blender access string to our instance (form our CBody instance)
-    static string s_sNameFlexSkin_HACK;
+//    public string _sBlenderInstancePath_CFlexSkin;				// Blender access string to our instance (form our CBody instance)
+//    static string s_sNameFlexSkin_HACK;
 
-    public static CFlexSkin_OBS Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
-        string sBodyID = "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").";
-        string sNameFlexSkinArg = string.Format("aFlexSkins['{0}']", sNameFlexSkin);
-        string sBlenderInstancePath = CFlexSkin_OBS.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
-        CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
-        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody._oBodyBase, sBlenderInstancePath, typeof(CFlexSkin_OBS), false, sNameFlexSkinArg);
-		return oFlexSkin;
-	}
+//    public static CFlexSkin_OBS Create(CBody oBody, string sNameFlexSkin) {    // Static function override from CBMesh::Create() to route to proper Blender request command
+//        string sBodyID = "CBodyBase_GetBodyBase(" + oBody._oBodyBase._nBodyID.ToString() + ").";
+//        string sNameFlexSkinArg = string.Format("aFlexSkins['{0}']", sNameFlexSkin);
+//        string sBlenderInstancePath = CFlexSkin_OBS.s_sNameFlexSkin_HACK + ".oMeshFlexSkin";
+//        CGame.gBL_SendCmd("CBody", sBodyID + "CreateFlexSkin('" + sNameFlexSkin + "')");      // Create the Blender-side CCloth entity to service our requests
+//        CFlexSkin_OBS oFlexSkin = (CFlexSkin_OBS)CBMesh.Create(null, oBody._oBodyBase, sBlenderInstancePath, typeof(CFlexSkin_OBS), false, sNameFlexSkinArg);
+//		return oFlexSkin;
+//	}
 
-	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
-        base.OnDeserializeFromBlender(aExtraArgs);
+//	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+//        base.OnDeserializeFromBlender(aExtraArgs);
 
-		//=== Construct the fully-qualified path to the Blender CMesh instance we need ===
-		_sBlenderInstancePath_CFlexSkin = aExtraArgs[0] as string;
-        string sBlenderInstancePath = _sBlenderInstancePath_CFlexSkin + ".oMeshFlexSkin";       // Both the visible (driven) mesh and the driving skinned Flex mesh are from the same Blender CMesh
+//		//=== Construct the fully-qualified path to the Blender CMesh instance we need ===
+//		_sBlenderInstancePath_CFlexSkin = aExtraArgs[0] as string;
+//        string sBlenderInstancePath = _sBlenderInstancePath_CFlexSkin + ".oMeshFlexSkin";       // Both the visible (driven) mesh and the driving skinned Flex mesh are from the same Blender CMesh
 
-		//=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
-		aShapeVerts				= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeVerts.Unity_GetBytes()");
-		aShapeParticleIndices	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleIndices.Unity_GetBytes()");
-		aShapeParticleCutoffs	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleCutoffs.Unity_GetBytes()");
+//		//=== Obtain the collections for the edge and non-edge verts that Blender calculated for us ===
+//		aShapeVerts				= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeVerts.Unity_GetBytes()");
+//		aShapeParticleIndices	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleIndices.Unity_GetBytes()");
+//		aShapeParticleCutoffs	= CByteArray.GetArray_INT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + "." + _sBlenderInstancePath_CFlexSkin + ".aShapeParticleCutoffs.Unity_GetBytes()");
 
-        ////=== Instantiate the FlexProcessor component so we get hooks to update ourselves during game frames ===
-        //uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
-        //oFlexProc._oFlexProcessor = this;
+//        ////=== Instantiate the FlexProcessor component so we get hooks to update ourselves during game frames ===
+//        //uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
+//        //oFlexProc._oFlexProcessor = this;
 
-        //=== Define Flex particles from Blender mesh made for Flex ===
-        int nParticles = GetNumVerts();
-        uFlex.FlexParticles oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
-        oFlexParticles.m_particlesCount = nParticles;
-        oFlexParticles.m_particles = new uFlex.Particle[nParticles];
-        oFlexParticles.m_colours = new Color[nParticles];
-        oFlexParticles.m_velocities = new Vector3[nParticles];
-        oFlexParticles.m_densities = new float[nParticles];
-        oFlexParticles.m_particlesActivity = new bool[nParticles];
-        oFlexParticles.m_colour = Color.green;                //###TODO: Colors!
-        oFlexParticles.m_interactionType = uFlex.FlexInteractionType.SelfCollideFiltered;
-        oFlexParticles.m_collisionGroup = -1;
-        //part.m_bounds.SetMinMax(min, max);            //###IMPROVE Bounds?
-        for (int nParticle = 0; nParticle < nParticles; nParticle++) {
-            oFlexParticles.m_particles[nParticle].pos = _memVerts.L[nParticle];
-            oFlexParticles.m_particles[nParticle].invMass = 1;            //###TODO: Mass
-            oFlexParticles.m_colours[nParticle] = oFlexParticles.m_colour;
-            oFlexParticles.m_particlesActivity[nParticle] = true;
-        }
+//        //=== Define Flex particles from Blender mesh made for Flex ===
+//        int nParticles = GetNumVerts();
+//        uFlex.FlexParticles oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
+//        oFlexParticles.m_particlesCount = nParticles;
+//        oFlexParticles.m_particles = new uFlex.Particle[nParticles];
+//        oFlexParticles.m_colours = new Color[nParticles];
+//        oFlexParticles.m_velocities = new Vector3[nParticles];
+//        oFlexParticles.m_densities = new float[nParticles];
+//        oFlexParticles.m_particlesActivity = new bool[nParticles];
+//        oFlexParticles.m_colour = Color.green;                //###TODO: Colors!
+//        oFlexParticles.m_interactionType = uFlex.FlexInteractionType.SelfCollideFiltered;
+//        oFlexParticles.m_collisionGroup = -1;
+//        //part.m_bounds.SetMinMax(min, max);            //###IMPROVE Bounds?
+//        for (int nParticle = 0; nParticle < nParticles; nParticle++) {
+//            oFlexParticles.m_particles[nParticle].pos = _memVerts.L[nParticle];
+//            oFlexParticles.m_particles[nParticle].invMass = 1;            //###TODO: Mass
+//            oFlexParticles.m_colours[nParticle] = oFlexParticles.m_colour;
+//            oFlexParticles.m_particlesActivity[nParticle] = true;
+//        }
 
-        //=== Define Flex shapes from the Blender particles that have been set as shapes too ===
-        int nShapes = aShapeVerts.Count;
-        uFlex.FlexShapeMatching oFlexShapeMatching = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexShapeMatching)) as uFlex.FlexShapeMatching;
-        oFlexShapeMatching.m_shapesCount = nShapes;
-        oFlexShapeMatching.m_shapeIndicesCount = aShapeParticleIndices.Count;
-        oFlexShapeMatching.m_shapeIndices = aShapeParticleIndices.ToArray();            //###LEARN: How to convert a list to a straight .Net array.
-        oFlexShapeMatching.m_shapeOffsets = aShapeParticleCutoffs.ToArray();
-        oFlexShapeMatching.m_shapeCenters = new Vector3[nShapes];
-        oFlexShapeMatching.m_shapeCoefficients = new float[nShapes];
-        oFlexShapeMatching.m_shapeTranslations = new Vector3[nShapes];
-        oFlexShapeMatching.m_shapeRotations = new Quaternion[nShapes];
-        oFlexShapeMatching.m_shapeRestPositions = new Vector3[oFlexShapeMatching.m_shapeIndicesCount];
+//        //=== Define Flex shapes from the Blender particles that have been set as shapes too ===
+//        int nShapes = aShapeVerts.Count;
+//        uFlex.FlexShapeMatching oFlexShapeMatching = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexShapeMatching)) as uFlex.FlexShapeMatching;
+//        oFlexShapeMatching.m_shapesCount = nShapes;
+//        oFlexShapeMatching.m_shapeIndicesCount = aShapeParticleIndices.Count;
+//        oFlexShapeMatching.m_shapeIndices = aShapeParticleIndices.ToArray();            //###LEARN: How to convert a list to a straight .Net array.
+//        oFlexShapeMatching.m_shapeOffsets = aShapeParticleCutoffs.ToArray();
+//        oFlexShapeMatching.m_shapeCenters = new Vector3[nShapes];
+//        oFlexShapeMatching.m_shapeCoefficients = new float[nShapes];
+//        oFlexShapeMatching.m_shapeTranslations = new Vector3[nShapes];
+//        oFlexShapeMatching.m_shapeRotations = new Quaternion[nShapes];
+//        oFlexShapeMatching.m_shapeRestPositions = new Vector3[oFlexShapeMatching.m_shapeIndicesCount];
         
-        //=== Calculate shape centers from attached particles ===
-        int nShapeStart = 0;
-        for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
-            oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###TODO
+//        //=== Calculate shape centers from attached particles ===
+//        int nShapeStart = 0;
+//        for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
+//            oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.05f;                   //###TODO
 
-            int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
-            Vector3 vecCenter = Vector3.zero;
-            for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
-                int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
-                Vector3 vecParticlePos = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
-                vecCenter += vecParticlePos;
-            }
-            vecCenter /= (nShapeEnd - nShapeStart);       //###TODO Off by one??
-            oFlexShapeMatching.m_shapeCenters[nShape] = vecCenter;
-            nShapeStart = nShapeEnd;
-        }
+//            int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
+//            Vector3 vecCenter = Vector3.zero;
+//            for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
+//                int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
+//                Vector3 vecParticlePos = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
+//                vecCenter += vecParticlePos;
+//            }
+//            vecCenter /= (nShapeEnd - nShapeStart);       //###TODO Off by one??
+//            oFlexShapeMatching.m_shapeCenters[nShape] = vecCenter;
+//            nShapeStart = nShapeEnd;
+//        }
         
-        //=== Set the shape rest positions ===
-        nShapeStart = 0;
-        int nShapeIndexOffset = 0;
-        for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
-            int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
-            for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
-                int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
-                Vector3 vecParticle = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
-                oFlexShapeMatching.m_shapeRestPositions[nShapeIndexOffset] = vecParticle - oFlexShapeMatching.m_shapeCenters[nShape];
-                nShapeIndexOffset++;
-            }
-            nShapeStart = nShapeEnd;
-        }
+//        //=== Set the shape rest positions ===
+//        nShapeStart = 0;
+//        int nShapeIndexOffset = 0;
+//        for (int nShape = 0; nShape < oFlexShapeMatching.m_shapesCount; nShape++) {
+//            int nShapeEnd = oFlexShapeMatching.m_shapeOffsets[nShape];
+//            for (int nShapeIndex = nShapeStart; nShapeIndex < nShapeEnd; ++nShapeIndex) {
+//                int nParticle = oFlexShapeMatching.m_shapeIndices[nShapeIndex];
+//                Vector3 vecParticle = oFlexParticles.m_particles[nParticle].pos;          // remap indices and create local space positions for each shape
+//                oFlexShapeMatching.m_shapeRestPositions[nShapeIndexOffset] = vecParticle - oFlexShapeMatching.m_shapeCenters[nShape];
+//                nShapeIndexOffset++;
+//            }
+//            nShapeStart = nShapeEnd;
+//        }
 
-        //=== Add particle renderer ===
-        uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        partRend.m_size = CGame.INSTANCE.particleSpacing;
-        partRend.m_radius = partRend.m_size / 2.0f;
-        partRend.enabled = false;           // Hidden by default
+//        //=== Add particle renderer ===
+//        uFlex.FlexParticlesRenderer partRend = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
+//        partRend.m_size = CGame.INSTANCE.particleSpacing;
+//        partRend.m_radius = partRend.m_size / 2.0f;
+//        partRend.enabled = false;           // Hidden by default
 
-        //=== Add visualizer ===
-        CVisualizeSoftBody oVisSB = CUtility.FindOrCreateComponent(gameObject, typeof(CVisualizeSoftBody)) as CVisualizeSoftBody;
-        //oVisSB.enabled = false;
-    }
+//        //=== Add visualizer ===
+//        CVisualizeSoftBody oVisSB = CUtility.FindOrCreateComponent(gameObject, typeof(CVisualizeSoftBody)) as CVisualizeSoftBody;
+//        //oVisSB.enabled = false;
+//    }
 
-    public void HideShowMeshes() {
-        //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
-        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
-        if (GetComponent<uFlex.FlexParticlesRenderer>() != null)
-            GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
-    }
+//    public void HideShowMeshes() {
+//        //###IMPROVE ###DESIGN Collect show/hide flags in a global array?
+//        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
+//        if (GetComponent<uFlex.FlexParticlesRenderer>() != null)
+//            GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
+//    }
 
 
-    public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
-    }
-}
+//    public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
+//    }
+//}
 
 
 

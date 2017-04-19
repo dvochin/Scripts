@@ -221,7 +221,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	}
 
 	public void AddBaseActorProperties() {
-		//###IMPROVE<19>: Prop add label and prop name a pain
+		//###IMPROVE19: Prop add label and prop name a pain
 		_oObj.PropAdd(0, EActorNode.Pinned,				"Pinned",			"Pinned",	0,	0,		0,		"", CProp.AsCheckbox);
 		_oObj.PropAdd(0, EActorNode.PosX,				"PosX",				"PosX",		0,	-2,		2,		"", CProp.Hide);
 		_oObj.PropAdd(0, EActorNode.PosY,				"PosY",				"PosY",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???

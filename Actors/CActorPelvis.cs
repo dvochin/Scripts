@@ -128,7 +128,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					_oCurveAnimZ.AddKey(_nAnimClipLength, 0);
 
 					//=== Find the other body (if it exists) and slow-down or speed up our clip if our clip time is nearby the cliptime of the other body
-					//###BROKEN<11>
+					//###BROKEN11:
 					//CBody oBodyOther = null;
 					//foreach (CBody oBody in CGame.INSTANCE._aBodyBases) {
 					//	if (oBody != _oBody) {

@@ -21,7 +21,7 @@ public class CScriptRecord {		// CScriptRecord: Appends scriptable-actions to an
 		// Serialize_OBS all CProp properties of this object onto currently opened script recorder onto a 'SetAll()' function
 
 		string sScriptLine = string.Format("SetAll(0, Body.{0}, [", oObject._sNameObject);		//###DESIGN!!! Sometimes write which body??
-		//###BROKEN<19>
+		//###BROKEN19:
 		//foreach (CProp oProp in oObject._aProps)
 		//	sScriptLine += oProp.PropGet().ToString("F3") + ",";
 		sScriptLine = sScriptLine.Substring(0, sScriptLine.Length - 1) + "]);";

@@ -96,7 +96,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 	//---------------------------------------------------------------------------	GET / SET
 	public float PropGet() {
-		if (_oPropGrp.GetType() == typeof(CPropGrpBlender)) {	// For Blender-side objects we must fetch from related CProp_PropGet() in Blender python		###DESIGN<19>: Catch Blender get/set in CPropGrpBlender instead?
+		if (_oPropGrp.GetType() == typeof(CPropGrpBlender)) {	// For Blender-side objects we must fetch from related CProp_PropGet() in Blender python		###DESIGN19: Catch Blender get/set in CPropGrpBlender instead?
 			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;       // Blender property means that we must be owned by a CObjectBlender
 			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropGetString('" + _sNameProp + "')"));
 			return _nValueLocal;
@@ -109,7 +109,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		nValueNew += _nRndVal;					// Apply separated random value at the very top		###OBS? Random value still used??
 
 		//=== Avoid doing again if we're setting to the same value ===
-		if (_nValueLocal == nValueNew)			//###CHECK<11>: Really safe?  Could some use cases be affected?
+		if (_nValueLocal == nValueNew)			//###CHECK11: Really safe?  Could some use cases be affected?
 			return _nValueLocal;
 
 		//=== Cap the value to pre-set bounds ===
@@ -122,7 +122,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 		//=== Set the value in our remote counterparts if flagged as such ===
 		if (_oPropGrp.GetType() == typeof(CPropGrpBlender)) {    // For blender properties we invoke its corresponding CProp_PropSet() method
-			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;  //###CHECK<19> Move??     // Blender property means that we must be owned by a CObjectBlender
+			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;  //###CHECK19: Move??     // Blender property means that we must be owned by a CObjectBlender
 			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropSetString('" + _sNameProp + "'," + nValueNew.ToString() + ")"));
 		} else {      // In local mode we just set local value directly
 			_nValueLocal = nValueNew;
@@ -149,7 +149,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			}
 		}
 		//=== Notify object that we really did change.  This will in turn notify any owning object that have registered for this event ===
-		_oPropGrp._oObj.Notify_PropertyValueChanged(this, nValueOld);		//###TODO<13>: Convert previous codebase that needed this functionality with this new event-based mechanism!
+		_oPropGrp._oObj.Notify_PropertyValueChanged(this, nValueOld);		//###TODO13: Convert previous codebase that needed this functionality with this new event-based mechanism!
 
 		return _nValueLocal;
 	}

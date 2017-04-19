@@ -66,7 +66,7 @@
 	- Q: How to save the whole thing?
 
 
-###LATEST<17>: UV cloth cutting
+###LATEST17: UV cloth cutting
 # BMesh boolean cut can fail sometimes... go to carve and store custom layers differently?
 # Merge var names of old and new
 # Need to adopt angle + distance on seams... with backside its own different length (and same angle)    
@@ -83,7 +83,7 @@
 #- Have to remove the old single-side source mesh, cut mesh, etc and its behavior (duplicate before batch cut)
 #- Folder positions of cloth stuff... a new parent node?
 
-        ###RESUME<17>: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
+        ###RESUME17: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
 #- Points not deleted on back mesh!!
 #- Side curve bezier tedious to adjust as it is dependent on incident angle... make based on that angle??
     #- Should have different lenght possible for each side of seam beziers?  (go for angle + length with diff lenght on each side??)
@@ -133,8 +133,8 @@ public class CClothEdit {            // CClothEdit: Helper class hosted by CBody
 		}
 
 		//=== Create Canvas for GUI for this mode ===
-		_oCanvas = CUICanvas.Create(_oBodyBase._oBodyRootGO.transform);				//###CHECK<19> What root??
-		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK<11>: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		_oCanvas = CUICanvas.Create(_oBodyBase._oBodyRootGO.transform);				//###CHECK19: What root??
+		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
 		_oCanvas.CreatePanel("Cloth Cutting", null, _oObj);
 	}
 

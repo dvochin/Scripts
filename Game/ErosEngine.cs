@@ -89,7 +89,7 @@ public class ErosEngine {		//###DESIGN: Is there really a need for CGame???
 	[DllImport(ErosDll)] public static extern void 		gBL_Cmd_GetLastInBuf(IntPtr pBufUnityPtr, int nSize);
 
 	//---------------------------------------------------------------------------	BLENDER MESH ACCESS
-	[DllImport(ErosDll)] public static extern int		gBL_GetMeshArrays(string sNameMesh, int nMaterials, IntPtr pVertsPtr, IntPtr pNormalsPtr, IntPtr pUVsPtr);	//###IMPROVE<13>: Ditch requirement for mesh name and somehow rely on Blender's CMesh instance??
+	[DllImport(ErosDll)] public static extern int		gBL_GetMeshArrays(string sNameMesh, int nMaterials, IntPtr pVertsPtr, IntPtr pNormalsPtr, IntPtr pUVsPtr);	//###IMPROVE13: Ditch requirement for mesh name and somehow rely on Blender's CMesh instance??
 	[DllImport(ErosDll)] public static extern int		gBL_UpdateClientVerts(string sNameMesh, IntPtr pVertsPtr);
 	[DllImport(ErosDll)] public static extern int		gBL_UpdateBlenderVerts(string sNameMesh, IntPtr pVertsPtr);
 	[DllImport(ErosDll)] public static extern int		gBL_GetNumTrianglesAtMaterial(int nMaterial);

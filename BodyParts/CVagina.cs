@@ -1,9 +1,9 @@
 using UnityEngine;
 using System.Collections;
 
-public class CVagina : CSoftBody
-{
-}
+//public class CVagina : CSoftBodySkin
+//{
+//}
 
 ///*###DISCUSSION: Vagina
 //=== NEXT ===

@@ -374,7 +374,7 @@
 
 //	public void OnPropSet_FluidMeshOpacity(float nValueOld, float nValueNew) {
 //        //###BROKEN
-//		//_oMatFluidMesh.shader = Shader.Find((nValueNew == 1.0f) ? "Diffuse" : "Transparent/Diffuse");			// Switch shader to diffuse if opacity is 1 (Transparent shader at 1 opacity still has that bad rendering problem with additive render of back parts of the mesh)
+//		//_oMatFluidMesh.shader = Shader.Find((nValueNew == 1.0f) ? "Standard" : "Transparent/Diffuse");			// Switch shader to diffuse if opacity is 1 (Transparent shader at 1 opacity still has that bad rendering problem with additive render of back parts of the mesh)
 //		//Color col = _oMatFluidMesh.color;								// Also change the mesh opacity on demand.
 //		//col.a = nValueNew;												//###IMPROVE: Solid material when 1!
 //		//_oMatFluidMesh.color = col;

@@ -386,15 +386,14 @@ public class CUtility {         // Collection of static utility functions
 
     public static uFlex.FlexParticles CreateFlexObjects(GameObject oGO, uFlex.IFlexProcessor iFlexProcessor, int nParticleCount, uFlex.FlexInteractionType nFlexInterationType, Color oColor) {
         uFlex.FlexParticles oFlexParticles = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
-		int nExtraAdded_HACK = 0;			//###HACK<18>!!!! Add extra space at end of buffers.  Used as a hack to overcome some situation where Flex codebase tries to access further into array... (Because of our code to add particles for spring?)  ###BUG<18>!!!!!!!!
         oFlexParticles.m_maxParticlesCount = oFlexParticles.m_particlesCount = nParticleCount;                             // The non-edge particle are the ones that require driving between skinned and visible mesh.
         oFlexParticles.m_type = uFlex.FlexBodyType.Other;
-        oFlexParticles.m_particles = new uFlex.Particle[nParticleCount+nExtraAdded_HACK];
-        oFlexParticles.m_restParticles = new uFlex.Particle[nParticleCount+nExtraAdded_HACK];
-        oFlexParticles.m_colours = new Color[nParticleCount+nExtraAdded_HACK];
-        oFlexParticles.m_velocities = new Vector3[nParticleCount+nExtraAdded_HACK];
-        oFlexParticles.m_densities = new float[nParticleCount+nExtraAdded_HACK];
-        oFlexParticles.m_particlesActivity = new bool[nParticleCount+nExtraAdded_HACK];
+        oFlexParticles.m_particles = new uFlex.Particle[nParticleCount];
+        oFlexParticles.m_restParticles = new uFlex.Particle[nParticleCount];
+        oFlexParticles.m_colours = new Color[nParticleCount];
+        oFlexParticles.m_velocities = new Vector3[nParticleCount];
+        oFlexParticles.m_densities = new float[nParticleCount];
+        oFlexParticles.m_particlesActivity = new bool[nParticleCount];
         oFlexParticles.m_colour = oColor;
         oFlexParticles.m_interactionType = nFlexInterationType;				// The simulated particles collide with everything (other than ourselves)
         oFlexParticles.m_collisionGroup = -1;								// Flex runtime will allocate to its own collision group to collide with everything
@@ -811,16 +810,20 @@ public class CUtility {         // Collection of static utility functions
 		Debug.LogError("[EXCEPTION] " + sMsg);
 		EditorApplication.isPaused = true;			//###LEARN: How to programatically pause game in Unity editor.  (Doesn't work in player)
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
-		//CUtility.ThrowException(sMsg);				
 	}
 
 	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###LEARN: How to accept and process variable arguments!
 		sMsg = "[EXCEPTION] " + sMsg;
+		EditorApplication.isPaused = true;
 		Debug.LogErrorFormat(sMsg, aArgs);
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
-	
+	public static void ThrowException(Exception e) {
+		Debug.LogException(e);
+		EditorApplication.isPaused = true;
+		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
+	}
 	#endregion
 }
 

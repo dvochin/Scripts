@@ -45,7 +45,7 @@ public class CPinnedParticles : MonoBehaviour {
             ushort nParticleSimulatedPinned     = nNextPinnedParticle++;                            // The ordinal of the (new) pinned Flex-simulated particle is the next ordinal.
             ushort nSpring                      = nNextSpring++;
             _aMapPinnedParticles[nMappingX2 + 1] = nParticleSimulatedPinned;                     // We never need to address the moving particle after this loop... so re-use the map to point to the pinned particle we'll need to move everyframe instead.
-            _oFlexParticles.m_particles[nParticleSimulatedPinned].invMass = 0;        // The extra particle is always the skinned one which we drive so it gets infinite mass to not be simulated
+            _oFlexParticles.m_restParticles[nParticleSimulatedPinned].invMass = _oFlexParticles.m_particles[nParticleSimulatedPinned].invMass = 0;        // The extra particle is always the skinned one which we drive so it gets infinite mass to not be simulated
             _oFlexParticles.m_particles[nParticleSimulatedPinned].pos = _oFlexParticles.m_particles[nParticleSimulatedMoving].pos;
             _oFlexParticles.m_colours[nParticleSimulatedPinned] = Color.gray;        //###TODO: Standardize Flex colors!
             _oFlexParticles.m_particlesActivity[nParticleSimulatedPinned] = true;

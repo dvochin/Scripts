@@ -238,7 +238,7 @@ namespace uFlex
 
                 if (flexAsset.mNumParticles > 0)
                 {
-					int nExtraAdded_HACK = 0;			//###HACK<18>!!!! Add extra space at end of buffers.  Used as a hack to overcome some situation where Flex codebase tries to access further into array... (Because of our code to add particles for spring?)  ###BUG<18>!!!!!!!!
+					int nExtraAdded_HACK = 0;			//###HACK18:!!!! Add extra space at end of buffers.  Used as a hack to overcome some situation where Flex codebase tries to access further into array... (Because of our code to add particles for spring?)  ###BUG18:!!!!!!!!
 
                     FlexParticles part = go.AddComponent<FlexParticles>();
                     part.m_particlesCount = flexAsset.mNumParticles;
@@ -471,7 +471,7 @@ namespace uFlex
                     }
 
 					/*###MOD
-                    Material mat = new Material(Shader.Find("Diffuse"));
+                    Material mat = new Material(Shader.Find("Standard"));
                     mat.name = this.newName + "Mat";
                     mat.color = color;
 					rend.material = mat;

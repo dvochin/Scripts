@@ -8,6 +8,8 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
     CVisualizeSoftBody _oVisSoftBody;
     Dictionary<int, LineRenderer> _mapLines;
 
+	static Color32 s_oColor_Unselected	= new Color32(0, 255, 0, 255);			// Unselected	= Green
+
     public void Initialize(CVisualizeSoftBody oVisSoftBody, int nShapeID) {
         _oVisSoftBody = oVisSoftBody;
         _ShapeID = nShapeID;
@@ -47,7 +49,7 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
         } else {
             Debug.LogFormat("Debug Shape {0} unselected", _ShapeID);
             transform.localScale = _oVisSoftBody._vecSizeShapes;
-            GetComponent<MeshRenderer>().material.color = Color.green;      //###IMPROVE: Return to start color.
+			GetComponent<MeshRenderer>().material.color = CVisualizeShape.s_oColor_Unselected;
 
             if (_mapLines != null) {
                 foreach (LineRenderer oLR in _mapLines.Values)

@@ -137,11 +137,11 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	public CBreastL 		    _oBreastL;					// The left and right breasts as softbodies
 	public CBreastR 		    _oBreastR;
 	public CPenis				_oPenis;
-    public CVagina				_oVagina;
+    //public CVagina				_oVagina;
     public List<CSoftBody>	    _aSoftBodies	= new List<CSoftBody>();		// List of all our _oSoftBodiesXXX above... used to simplify iterations.
 
 	//---------------------------------------------------------------------------	CLOTHING		//###DESIGN: ###CHECK?
-	public List<CBCloth>		_aCloths		= new List<CBCloth>();	//###OBS<14>???  Belongs to base??	// List of our simulated cloth.  Used to iterate during runtime
+	public List<CBCloth>		_aCloths		= new List<CBCloth>();	//###OBS14:???  Belongs to base??	// List of our simulated cloth.  Used to iterate during runtime
 
 	//---------------------------------------------------------------------------	ACTORS
 	public CActorNode			_oActor_Base;			// The smart 'actors' associated with our body.  Adds much intelligent functionality!
@@ -178,9 +178,9 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	///CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 
 
-    public CBody(CBodyBase oBodyBase) {		//###NOW<11>
+    public CBody(CBodyBase oBodyBase) {		//###NOW11:
 		_oBodyBase = oBodyBase;
-		_oBodyBase._oBody = this;           //###WEAK<13>: Convenience early-set of our instance into owning parent.  Needed as some of init code needs to access us from our parent! ###DESIGN!
+		_oBodyBase._oBody = this;           //###WEAK13: Convenience early-set of our instance into owning parent.  Needed as some of init code needs to access us from our parent! ###DESIGN!
 		_oBodySkinnedMeshGO_HACK = new GameObject("RuntimeBody");       // Create the game object that will contain our important CBody component early (complex init tree needs it!)
 		_oBodySkinnedMeshGO_HACK.transform.SetParent(_oBodyBase._oBodyRootGO.transform);
 		_bEnabled = true;			// Enabled at creation by defnition.
@@ -190,7 +190,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 		_oObj = new CObject(this, "Body", "Body");
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Body", typeof(EBodyDef));
-		oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN<11>
+		oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN11:
 		_oObj.FinishInitialization();
 
 
@@ -200,8 +200,10 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (_oBodyBase._eBodySex != EBodySex.Man) {
-			_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));        //###DEVNOW
-            _aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
+			// CSoftBodySkin.Create(this, typeof(CVagina), "chestUpper/chestLower");		//###DEV19: bone?
+			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));
+			//_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
+			COrificeRig oOR = new COrificeRig(this);
         }
         if (_oBodyBase._eBodySex == EBodySex.Woman) {
             //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
@@ -209,15 +211,15 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
             //_aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "chest/abdomen/hip"));
         }
 
-		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN<18>: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
-		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK<18>!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
+		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN18: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
+		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK18:!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
 		
 
 
 
 		//===== MAIN SKINNED BODY PROCESSING =====
 		//=== Get the main body skinned mesh (has to be done once all softbody parts have been detached) ===
-        _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodySkinnedMeshGO_HACK, _oBodyBase, ".oBody.oMeshBody", typeof(CBSkin)); //###IMPROVE<13>: Create blender instance string for our CBody?
+        _oBodySkinnedMesh = (CBSkin)CBMesh.Create(_oBodySkinnedMeshGO_HACK, _oBodyBase, ".oBody.oMeshBody", typeof(CBSkin)); //###IMPROVE13: Create blender instance string for our CBody?
 		_oBodySkinnedMesh.name = _oBodyBase._sBodyPrefix + "-SkinnedBody";
 		//_oBodySkinnedMesh.GetComponent<SkinnedMeshRenderer>().enabled = false;
 
@@ -263,7 +265,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(0, EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
-		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN<15>! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
 		_oActor_Base.gameObject.name = _oBodyBase._sBodyPrefix + "_Base";
 
 		//=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
@@ -303,10 +305,13 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		CGame.gBL_SendCmd("CBody", _oBodyBase._sBlenderInstancePath_CBodyBase + ".oBody.CreateFlexCollider(" + CGame.INSTANCE.nDistFlexColliderShrinkMult + ")");
 		_oBodyFlexCollider = (CBSkin)CBMesh.Create(null, _oBodyBase, ".oBody.oMeshFlexCollider", typeof(CBSkin));
 		_oBodyFlexCollider.name = _oBodyBase._sBodyPrefix + "-BodyFlexCollider";
-		_oBodyFlexCollider.transform.SetParent(_oBodySkinnedMesh.transform);		//###IMPROVE<15>: Put this common re-parenting and re-naming in Create!
+		_oBodyFlexCollider.transform.SetParent(_oBodySkinnedMesh.transform);		//###IMPROVE15: Put this common re-parenting and re-naming in Create!
 		_oBodyFlexCollider.gameObject.AddComponent<CFlexSkinnedBody>();
 		_oBodyFlexCollider.GetComponent<SkinnedMeshRenderer>().enabled = false;     //###IMPROVE: Move into CFlexSkinnedBody??
-		_oBodyFlexCollider.UpdateNormals();			//###NOW<15>
+		_oBodyFlexCollider.UpdateNormals();			//###NOW15:
+
+
+		//_oBodySkinnedMesh._oSkinMeshRendNow.enabled = false;		//###TEMP19:
 	}
 
 	public CUICanvas FindClosestCanvas() {				// Find the closest body canvas to the camera.  Used to insert new GUI panel at most appropriate editing spot left of right of body.
@@ -337,7 +342,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 			oActor.OnStart(this);
 	}
 
-	public void Destroy() {             //###TODO<15>: ###OBS? Needed still with DoDestory()  Merge!
+	public void Destroy() {             //###TODO15: ###OBS? Needed still with DoDestory()  Merge!
 		//Debug.Log("CBody.OnDestroy(): " + _oBodyBase._sBodyPrefix);
 		//foreach (CActor oActor in _aActors)
 		//	GameObject.DestroyImmediate(oActor);
@@ -466,7 +471,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		Transform oBoneT = _oBodyBase.FindBone(sPathBone);
 		oPinT.position = oBoneT.position;
 	}
-	public void SelectBody() {			//###MOVE<11>: To base?
+	public void SelectBody() {			//###MOVE11: To base?
 		CGame.INSTANCE._nSelectedBody = _oBodyBase._nBodyID;
 		CGame.SetGuiMessage(EGameGuiMsg.SelectedBody, _oBodyBase._sHumanCharacterName);
 	}
@@ -504,8 +509,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
             oSoftBody.HideShowMeshes();
         foreach (CBCloth oCloth in _aCloths)
             oCloth.HideShowMeshes();
-        if (_oVagina != null)
-            _oVagina.HideShowMeshes();
+        //if (_oVagina != null)
+        //    _oVagina.HideShowMeshes();
     }
 
 
@@ -591,8 +596,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		CGame.gBL_SendCmd("CBody", _oBodyBase._sBlenderInstancePath_CBodyBase + ".DestroyCBody()");
 
 		//=== Reparent base nodes to where it originated before init moved it to global pose node ===
-		_oActor_Base.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN<15>! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
-		_oActor_Base.gameObject.name = "Base";				//###WEAK<18>: Kind of shitty to name differently during init / shutdown...  Do we really need this??
+		_oActor_Base.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		_oActor_Base.gameObject.name = "Base";				//###WEAK18: Kind of shitty to name differently during init / shutdown...  Do we really need this??
 		GameObject.Destroy(_oBodySkinnedMesh.gameObject);   // Destroys *everything*  Every mesh we've created and every one of our components
 		return null;						// Return convenience null so DoDestroy() can also nullify CBodyBase's reference... which makes this instance reference-less and flagged for garbage collection
 	}

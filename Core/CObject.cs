@@ -86,7 +86,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 	}
 
 	public void FinishInitialization() {				// Initialize all properties to their default value.  Done right after all properties have been added to push the default values onto their final destination (e.g. server)
-		//###TODO<19>: Still relevant?  need to propagate
+		//###TODO19: Still relevant?  need to propagate
 		//foreach (CProp oProp in _aProps)
 		//	if (oProp != null)
 		//		oProp.PropSet(oProp._nValueLocal);		// Push onto property the local value that was set during init.
@@ -96,7 +96,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 
 	//---------------------------------------------------------------------------	LOAD / SAVE
 
-	public void Serialize(FileStream oStream) {		//###BROKEN<19>: Delegate to CPropGrp too now
+	public void Serialize(FileStream oStream) {		//###BROKEN19: Delegate to CPropGrp too now
 		//if (oStream.CanWrite) {
 		//	oStream.WriteByte(GetNumProps());
 		//} else {
