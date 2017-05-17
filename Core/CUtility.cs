@@ -432,6 +432,16 @@ public class CUtility {         // Collection of static utility functions
 			CUtility.ThrowException(String.Format("FindChild(Parent='{0}', ChildPath='{1}'", oParentT.name, sChildPath));
 		return oChildT;
 	}
+
+	 public static GameObject FindObject(/*this*/ GameObject oParentGO, string sNameNode) {     //###LEARN: 'this' in function parameter is a 'extension method'!  See http://stackoverflow.com/questions/3045242/this-in-function-parameter
+		// Finds the node 'sNameNode' in the descendents of 'oParentGO'.  Can find inactive nodes!!
+		//object o = oParentGO.GetComponentsInChildren(typeof(Transform), true);		
+		object[] aNodesT = oParentGO.GetComponentsInChildren(typeof(Transform), true);		//###LEARN: last argument = include inactive!
+		 foreach(Transform oNodeT in aNodesT)
+			 if(oNodeT.name == sNameNode)
+				  return oNodeT.gameObject;
+		 return null;
+	 }
 	#endregion
 
 	#region === Bones ===
@@ -809,20 +819,20 @@ public class CUtility {         // Collection of static utility functions
 	public static void ThrowException(string sMsg) {
 		Debug.LogError("[EXCEPTION] " + sMsg);
 		EditorApplication.isPaused = true;			//###LEARN: How to programatically pause game in Unity editor.  (Doesn't work in player)
-		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
+		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
 	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###LEARN: How to accept and process variable arguments!
 		sMsg = "[EXCEPTION] " + sMsg;
 		EditorApplication.isPaused = true;
 		Debug.LogErrorFormat(sMsg, aArgs);
-		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
+		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
 	public static void ThrowException(Exception e) {
 		Debug.LogException(e);
 		EditorApplication.isPaused = true;
-		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###LEARN: Put breakpoint here to catch all exception and look up stack tree.
+		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 	#endregion
 }

@@ -114,7 +114,7 @@ public class CActorArm : CActor {
 		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
 
 		//=== Init Bones and Joints ===
-        CJointDriver oJointChestUpper = _oBody._oActor_Chest._oJointExtremity;
+        CJointDriver oJointChestUpper = _oBody._oActor_Chest._oJointChestUpper;
 		_aJoints.Add(_oJointCollar	        = CJointDriver.Create(this, oJointChestUpper,	    _sSidePrefixL+"Collar",	        30, 2.5f, -010,  050,  030,  021, 1));		// X = Collar Up/Down OK, Z has 17 back and 25 forward (avg looks ok)
 		_aJoints.Add(_oJointShoulderBend    = CJointDriver.Create(this, _oJointCollar,		    _sSidePrefixL+"ShldrBend",	    15, 2.0f, -085,  035,  000,  110, 1));		// X = Shoulder Up/Down OK, Z = Back goes to -40, Forward to 110!!!  (###IMPROVE: Another joint?)
 		_aJoints.Add(_oJointShoulderTwist   = CJointDriver.Create(this, _oJointShoulderBend,    _sSidePrefixL+"ShldrTwist",	    20, 1.5f, -000,  000,  080,  000, 1));		// Y = Shoulder twist goes from -95 to 80 so max.  ###PROBLEM: Shimmer in high rotation!
@@ -134,9 +134,9 @@ public class CActorArm : CActor {
 
 		//=== Init Hotspot ===
 		if (_eBodySide == 0)
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));		//###IMPROVE20: Horrible path!  Shorten by using some var!
 		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
 		_oObj = new CObject(this, "Arm" + _sSidePrefixU, "Arm" + _sSidePrefixU);		//###PROBLEM19: Name for scripting and label name!

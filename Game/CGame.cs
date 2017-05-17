@@ -1,4 +1,5 @@
 /*# New DAZ3D mesh based on G3F:
+- Read https://unity3d.com/learn/tutorials/temas/best-practices/assets-objects-and-serialization for ideas on object serialization
 - Bones are inverted!  Invert verts in gBlender C?  (Set vert in Blender to see)
 - Actors are pulling from wrong bones... redo the whole lot
 - Broke head look, head, hair
@@ -69,7 +70,7 @@
 === DESIGN ===
 
 === IDEAS ===
-
+- You can use Application.RegisterLogCallback to get everything that goes into the unity log.   See http://answers.unity3d.com/questions/232589/is-there-a-way-to-catch-global-application-expceti.html
 === LEARNED ===
 
 === PROBLEMS ===
@@ -219,6 +220,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	public uFlex.CFlex _oFlex = new uFlex.CFlex();
 
+	public const string C_sNameBlenderFile = "EroticVR.blend";          // The name of the Blender file to open as 'main'
+
+	public Vector3[] _aCardinalAxis;						// Three vectors for each of the cardinal axis where X = 0, Y = 1, Z = 2
+
+
+
     #region === INIT
     public void Start() {
 		//    StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
@@ -228,6 +235,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		Debug.Log("=== CGame.StartGame() ===");
 		INSTANCE = this;
 		_nTimeAtStart = Time.time;
+
+		//=== Define the cardinal axis for faster angle-axis rotation ===
+		_aCardinalAxis = new Vector3[3];
+		_aCardinalAxis[0] = new Vector3(1, 0, 0);
+		_aCardinalAxis[1] = new Vector3(0, 1, 0);
+		_aCardinalAxis[2] = new Vector3(0, 0, 1);
 
 
 		_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
@@ -302,7 +315,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//=== Spawn Blender process ===
 		Debug.Log("2. Background Server Start.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);	//###CHECK: Cannot wait long!!
 		_hWnd_Unity = (IntPtr)GetActiveWindow();			// Just before we start Blender obtain the HWND of our Unity editor / player window.  We will need this to re-activate our window.  (Starting blender causes it to activate and would require user to alt-tab back to game!!)
-		_oProcessBlender = CGame.LaunchProcessBlender("EroticVR.blend");
+		_oProcessBlender = CGame.LaunchProcessBlender();
 		if (_oProcessBlender == null)
 			CUtility.ThrowException("ERROR: Could not start Blender!  Game unusable.");
         //_nWnd_Blender_HACK = (IntPtr)GetActiveWindow();
@@ -392,6 +405,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
+		//_aBodyBases[0] = new CBodyBase(0, EBodySex.Man);
 		_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
         //###BROKEN _aBodyBases[0].SelectBody();
 
@@ -472,8 +486,10 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		if (Input.GetKeyDown(KeyCode.F3))
 			ChangeGameMode(EGameModes.Play);
 
-		//if (Input.GetKeyDown(KeyCode.F4))
-		//	_aBodyBases[0]._oClothSrc.ClothEdit_Start();
+		if (Input.GetKeyDown(KeyCode.F4))			//###TEMP20:
+			SetBodiesAsKinematic(true);
+		if (Input.GetKeyDown(KeyCode.F5))
+			SetBodiesAsKinematic(false);
 
 
 
@@ -491,21 +507,21 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
             HideShowMeshes();
 
             //=== Process standard keys === ###IMPROVE: Switch them to CKeyHook???
-            if (Input.GetKeyDown(KeyCode.CapsLock)) //###IMPROVE?
+        if (Input.GetKeyDown(KeyCode.CapsLock)) //###IMPROVE?
             SetGameModeBasicInteractions(!_bGameModeBasicInteractions);
 
-        if (Input.GetKeyDown(KeyCode.Alpha1))
-            ScenePose_Load("Standing", false);
-        if (Input.GetKeyDown(KeyCode.Alpha2))
-            ScenePose_Load("Bedfront Fuck", false);
-        if (Input.GetKeyDown(KeyCode.Alpha3))
-            ScenePose_Load("Bedfront Spread", false);
-        if (Input.GetKeyDown(KeyCode.Alpha4))
-            ScenePose_Load("Bedside Fuck", false);
-        if (Input.GetKeyDown(KeyCode.Alpha5))
-            ScenePose_Load("Spreading on bed - backfacing", false);
-        if (Input.GetKeyDown(KeyCode.Alpha6))
-            ScenePose_Load("Spreading on bed", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha1))
+        //    ScenePose_Load("Standing", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha2))
+        //    ScenePose_Load("Bedfront Fuck", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha3))
+        //    ScenePose_Load("Bedfront Spread", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha4))
+        //    ScenePose_Load("Bedside Fuck", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha5))
+        //    ScenePose_Load("Spreading on bed - backfacing", false);
+        //if (Input.GetKeyDown(KeyCode.Alpha6))
+        //    ScenePose_Load("Spreading on bed", false);
 
 
 
@@ -564,7 +580,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         //}
 
         //=== Process scene / pose load and save ===
-        if (CGame.INSTANCE._bKeyControl) {
+        if (CGame.INSTANCE._bKeyControl) {					//###BUG20:!!!! WTF game instance is not created sometime???
             if (Input.GetKeyDown(KeyCode.Equals)) {
                 if (CGame.INSTANCE._bKeyShift)
                     new CDlgPrompter(true, "Scene Save", "Scene Name:", new CDlgPrompter.DelegateOnOk(CDlgPrompter.Delegate_OnDlgPrompterOk_SavePose), _sNameScenePose);
@@ -1002,9 +1018,9 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		return oProc;		//###CHECK: Will above throw if there was an error??  We need to throw if error!
 	}
 
-	public static System.Diagnostics.Process LaunchProcessBlender(string sNameBlenderFile, System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
-		string sFileProcess = CGame.GetPathBlenderApp();		//###TODO17: Name
-        string sArguments = string.Format("\"{0}/{1}\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends(), sNameBlenderFile);       //###IMPROVE: Don't show console during releases!
+	public static System.Diagnostics.Process LaunchProcessBlender(System.Diagnostics.ProcessWindowStyle eWinStyle = System.Diagnostics.ProcessWindowStyle.Minimized) {
+		string sFileProcess = CGame.GetPathBlenderApp();		//###TODO20: Rebuild Blender with new EroticVR symbol! (below)
+        string sArguments = string.Format("\"{0}/{1}\" --Wait-for-Erotic9 --enable-autoexec --start-console", CGame.GetPathBlends(), C_sNameBlenderFile);       //###IMPROVE: Don't show console during releases!
 		System.Diagnostics.Process oProcess = CGame.LaunchProcess(sFileProcess, sArguments, false, eWinStyle);	//###IMPROVE: Try to redirect!
 		oProcess.Exited				+= oProcess_Exited;
 		oProcess.OutputDataReceived += oProcess_OutputDataReceived;
@@ -1273,15 +1289,15 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	public static string GetFolderPathRuntime() {					// Returns the path to the EroticVR root directory, whether we are an editor build or a player build  ###NOTE: Assumes the editor build and player build are in the same parent directory!!!
 		string sNameFolder = Application.dataPath;
-		string sPathSuffixToRemove = (Application.isEditor) ? "Unity/Assets" : "EroticVR_Data";			// Application.dataPaty returns a string like "C:/Src/E9/EroticVR/EroticVR_Data" in player but "C:/Src/E9/Unity/Assets" in editor.  We convert this into a string like "D:\Src\E9\EroticVR" for both builds for constant directory access
+		string sPathSuffixToRemove = (Application.isEditor) ? "Unity/Assets" : "EroticVR_Data";			// Application.dataPaty returns a string like "C:/Src/EroticVR/EroticVR/EroticVR_Data" in player but "C:/Src/E9/Unity/Assets" in editor.  We convert this into a string like "D:\Src\E9\EroticVR" for both builds for constant directory access
 		int nPosSuffix = sNameFolder.IndexOf(sPathSuffixToRemove);
 		if (nPosSuffix == -1)
 			CUtility.ThrowException("CGame.GetFolderPathRuntime() could not recognize dataPath suffix: " + sPathSuffixToRemove);		//###IMPROVE: Do once at start and remember string?
 		sNameFolder = sNameFolder.Substring(0, nPosSuffix);
 		if (Application.isEditor)
-			sNameFolder += "Erotic9/";
+			sNameFolder += "EroticVR/";
 		sNameFolder += "Runtime/";
-		return sNameFolder;				// This should always return a string like "D:/Src/E9/EroticVR/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
+		return sNameFolder;				// This should always return a string like "D:/Src/EroticVR/EroticVR/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
 	}
 
 	public static string GetPathPoses() { return GetFolderPathRuntime() + "Poses/"; }
@@ -1292,8 +1308,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	public static string GetPathScreenCaptures() { return GetFolderPathRuntime() + "ScreenCaptures/"; }
 	public static string GetPathBlends() { return GetFolderPathRuntime() + "Blends"; }
     public static string GetPathBlender()				{ return GetFolderPathRuntime() + "Blender"; }
-    //public static string GetPathBlender()			    { return "C:/src/E9/EroticVR/Runtime/Blender" }
-    //public static string GetPathBlender()			    { return "C:/src/E9/blender-build/bin/Debug"; }	//###HACK!!!
+    //public static string GetPathBlender()			    { return "C:/src/EroticVR/EroticVR/Runtime/Blender" }
+    //public static string GetPathBlender()			    { return "C:/src/EroticVR/blender-build/bin/Debug"; }	//###HACK!!!
     public static string GetPathBlenderApp()			{ return GetPathBlender() + "/blender.exe"; }
 	
 	public static float GetRandom(float nFrom, float nTo) {

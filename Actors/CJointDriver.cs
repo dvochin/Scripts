@@ -2,7 +2,7 @@ using UnityEngine;
 
 
 public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
-    [HideInInspector] public CActor				_oActor;			                // The actor who owns us
+    [HideInInspector] public CActor				_oActor;			                // The actor that owns us
 	[HideInInspector] public CJointDriver		_oJointDrvParent;                   // The parent joint driver (and bone) we connect to
 	[HideInInspector] public Rigidbody			_oRigidBody;                        // Our rigid body (also a component of our same game object)
 	[HideInInspector] public ConfigurableJoint	_oConfJoint;                        // Our D6 configurable joint.  Responsibly for PhysX processing to keep our two bone extremities at their proper rotation
@@ -18,7 +18,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
     public static CJointDriver Create(CActor oActor, CJointDriver oJointDrvParent, string sNameBone, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL, int nFinalized=0) {
         Transform oTransform;
         if (oJointDrvParent == null)
-            oTransform = CUtility.FindChild(oActor._oBody._oBodyBase._oBonesT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
+            oTransform = CUtility.FindChild(oActor._oBody._oBodyBase._oBoneRootT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
         else
             oTransform = CUtility.FindChild(oJointDrvParent.transform, sNameBone);
 

@@ -31,9 +31,9 @@ public class CActorLeg : CActor {
 
 		//=== Init Hotspot ===
 		if (_eBodySide == 0)            //###IMPROVE: Rediculously long path... switch to 'search for bone' (would not be as fast tho)
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/lThighBend/lThighTwist/lShin/lFoot/lMetatarsals/lToe"), "Left Leg", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/pelvis/lThighBend/lThighTwist/lShin/lFoot/lMetatarsals/lToe"), "Left Leg", true, new Vector3(0, 0, 0));
 		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis/rThighBend/rThighTwist/rShin/rFoot/rMetatarsals/rToe"), "Right Leg", true, new Vector3(0, 0, 0));
+			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/pelvis/rThighBend/rThighTwist/rShin/rFoot/rMetatarsals/rToe"), "Right Leg", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
 		_oObj = new CObject(this, "Leg" + _sSidePrefixU, "Leg" + _sSidePrefixU);		//###PROBLEM19: Name for scripting and label name!

@@ -579,7 +579,7 @@
 - Gloss on vagina
 
 === LEARN ===
-- Application.persistentDataPath: Returns something like: C:/Users/<UserName>/AppData/LocalLow/DefaultCompany/E9
+- Application.persistentDataPath: Returns something like: C:/Users/<UserName>/AppData/LocalLow/DefaultCompany/EroticVR
 - Can sandwidth long code in profiler sandwitch to show up in nice profiler GUI!
 - REMEMBER: Don't ever move static colliders!!!  Add a rigid body, set it kinematic and collider to trigger!  -> revisit entire project on this!
 	- Even having cutter cursor not collider trigger & kinematic rigid body caused hard-to-debug PhysX problems -> Be thorough!!!

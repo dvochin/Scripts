@@ -1,5 +1,11 @@
 /*###DISCUSSION: CBody rewrite
 === TODAY ===
+--- Also some AMAZING new ideas
+- Have VR wands control each body simultaneously!
+	- Pressing trigger controls the pelvis node only, pressing grip controls the whole torso (to orient the complete bodies in real time!!0
+- Making tease animations and penetration work accross various poses and penis orientation
+	- Animation of woman's pelvis is relative to the tip of the penis as oriented toward penis base.
+		
 
 === NEXT ===
 
@@ -176,6 +182,9 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	public GameObject _oBodySkinnedMeshGO_HACK;        // Reference to game object containing main skinned body.  Kept as a member because of complex init tree needing this before '_oBodySkinnedMesh' is set!
 	public CUICanvas[] _aUICanvas = new CUICanvas[2];           // The UI canvases that display various user interface panels to provide end-user edit capability on this body.  One for each left / right.
 	///CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
+	CUICanvas _oCanvas_HACK;
+	public Dictionary<string, CBone> _mapBones = new Dictionary<string, CBone>();
+
 
 
     public CBody(CBodyBase oBodyBase) {		//###NOW11:
@@ -188,10 +197,55 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _oBodyBase._nBodyID));
 
-		_oObj = new CObject(this, "Body", "Body");
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Body", typeof(EBodyDef));
-		oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN11:
+		//_oObj = new CObject(oBodyBase, "Body", "Body");
+		//CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Body", typeof(EBodyDef));
+		//oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN11:
+		//_oObj.FinishInitialization();
+
+		//=== Iterate through all our CBone instances and connect them to this body ===		###MOVE20:?
+		object[] aBones = _oBodyBase._oBoneRootT.GetComponentsInChildren(typeof(CBone), true);
+		_oObj = new CObject(oBodyBase, "Body Direct Bones", "Body Direct Bones");
+		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
+		CPropGrp oPropGrp = new CPropGrp(_oObj, "Body Direct Bones");
+		int nProp = 0;
+		foreach (CBone oBone in aBones) {
+			oBone.Initialize(this);
+			_mapBones[oBone.gameObject.name] = oBone;	// Store back-reference so our hierachy of bones can quickly be retrieved in a flat dictioonary by our (unique) bone name.
+			//foreach (KeyValuePair<string, CBone> oPair in oBody._mapBones) {
+			//	oBone = oPair.Value;
+			//###DEV20: Direct bone control from GUI
+			if (
+//				oBone.gameObject.name.Contains("hip") ||
+//				oBone.gameObject.name.Contains("pelvis") ||
+//				oBone.gameObject.name.Contains("abdomen") ||
+//				oBone.gameObject.name.Contains("chest") ||
+				oBone.gameObject.name.Contains("Shldr") ||
+				oBone.gameObject.name.Contains("Forearm") ||
+//				oBone.gameObject.name.Contains("Hand") ||
+				oBone.gameObject.name.Contains("Thigh") ||
+				oBone.gameObject.name.Contains("lIndex3") ||
+				oBone.gameObject.name.Contains("lBigToe_2") ||
+				oBone.gameObject.name.Contains("Shin") ||
+				oBone.gameObject.name.Contains("Foot") ||
+				oBone.gameObject.name.Contains("Collar")) {
+					for (int nBoneRot = 0; nBoneRot < oBone._aBoneRots.Length; nBoneRot++) { 
+						CBoneRot oBoneRot = oBone._aBoneRots[nBoneRot];
+						if (oBoneRot != null) {			// Our three possbile slots (x,y,z) are not necessarily defined for all bones...
+							string sPropName = oBone.gameObject.name + " " + oBoneRot._chAxis + ":" + oBoneRot._sNameRotation;
+							CProp oProp = oPropGrp.PropAdd(nProp++, sPropName, sPropName, oBoneRot._nValue, oBoneRot._nMin, oBoneRot._nMax, sPropName);
+							oProp._oObjectExtraFunctionality = oBoneRot;			// Store back-reference so OnPropertyChanged can readily adjust the bone
+						}
+					}
+			}
+		}
+		//oPropGrp.PropAdd(0, "Test", "Test", 50, 0, 100, "Test Description");
 		_oObj.FinishInitialization();
+
+		_oCanvas_HACK = CUICanvas.Create(_oBodySkinnedMeshGO_HACK.transform);
+		_oCanvas_HACK.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		_oCanvas_HACK.CreatePanel("Body Direct Bone", null, _oObj);
+
+
 
 
 		//=== Tell Blender to create our CBody instance for us ===
@@ -200,20 +254,22 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
         if (_oBodyBase._eBodySex != EBodySex.Man) {
-			// CSoftBodySkin.Create(this, typeof(CVagina), "chestUpper/chestLower");		//###DEV19: bone?
-			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "chestUpper"));
-			//_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "chestUpper"));
-			COrificeRig oOR = new COrificeRig(this);
+			// CSoftBodySkin.Create(oBodyBase, typeof(CVagina), "chestUpper/chestLower");		//###DEV19: bone?
+			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
+			//_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
+			//COrificeRig oOR = new COrificeRig(this);
         }
         if (_oBodyBase._eBodySex == EBodySex.Woman) {
-            //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(this, typeof(CVagina), "chest/abdomen/hip"));
+            //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(oBodyBase, typeof(CVagina), "chest/abdomen/hip"));
         } else {
-            //_aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "chest/abdomen/hip"));
+            //_aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis"));
         }
 
 		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN18: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
 		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK18:!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
+
 		
+
 
 
 
@@ -226,7 +282,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//=== Create a hotspot at the character's head the user can use to invoke our (important) context menu ===
 		//###BROKENN
 		//      Transform oHeadT = FindBone("chest/neck/head");         // Our hotspot is located on the forehead of the character.
-		//_oHotSpot = CHotSpot.CreateHotspot(this, oHeadT, this._sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);     //###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
+		//_oHotSpot = CHotSpot.CreateHotspot(oBodyBase, oHeadT, this._sHumanCharacterName, false, new Vector3(0, 0.09f, 0.03f), 2.0f);     //###IMPROVE: Get these offsets from pre-placed nodes on bone structure??
 
 		////=== Create the head look controller to look at parts of the other body ===
 		//###BROKENN
@@ -292,7 +348,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
 		}
 
-        ///_oClothEdit_HACK = new CClothEdit(this, "Shirt");
+        ///_oClothEdit_HACK = new CClothEdit(oBodyBase, "Shirt");
 
         ///CGame.gBL_SendCmd("CBody", "CBodyBase_GetBodyBase(" + _oBodyBase._nBodyID.ToString() + ").Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (1.6, 1.6, 1.6, 0), None)");       //###F ###HACK!!!
 
@@ -604,6 +660,35 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 	public void DoEnable(bool bEnabled) {
 		_bEnabled = bEnabled;
+	}
+
+
+
+
+	void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
+		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
+
+		Debug.LogFormat("CBody property property '{0}' of group '{1}' changed to value '{2}'", oArgs.PropertyName, oArgs.PropertyGroup._sNamePropGrp, oArgs.ValueNew);
+
+		CBoneRot oBoneRotChanged = oArgs.Property._oObjectExtraFunctionality as CBoneRot;
+		oBoneRotChanged._nValue = oArgs.ValueNew;
+		CBone oBone = oBoneRotChanged._oBone;
+		Quaternion quatRot = new Quaternion(oBoneRotChanged._oBone._quatBoneRotationStartup.x, oBoneRotChanged._oBone._quatBoneRotationStartup.y, oBoneRotChanged._oBone._quatBoneRotationStartup.z, oBoneRotChanged._oBone._quatBoneRotationStartup.w);
+
+		//=== Iterate *in DAZ-provided order* through out three possible rotations.  (Not all may be defined) ===
+		foreach (char chAxisThisRotation in oBone._sRotOrder) {             //###LEARN: How to access characters as ascii from a string
+			int nAxisThisRotation = chAxisThisRotation - 'X';				// Obtain 0 for 'X', 1 for 'Y', 2 for 'Z' so we can access proper rotation in '_aBoneRots'
+			CBoneRot oBoneRot = oBone._aBoneRots[nAxisThisRotation];
+			if (oBoneRot != null) {                     // If not defined no big deal... just nothing to do for this rotation order...
+				float nBoneRotValue = oBoneRot._nValue;
+				if (oBoneRot._bAxisNegated)			// Invert final Quaternion rotation for this axis if bone rotation is negated
+					nBoneRotValue = -nBoneRotValue;
+				Quaternion quatRotThisAxis = Quaternion.AngleAxis(nBoneRotValue, CGame.INSTANCE._aCardinalAxis[nAxisThisRotation]);		//###DEV20:
+				quatRot *= quatRotThisAxis;			// "Rotating by the product lhs * rhs is the same as applying the two rotations in sequence: lhs first and then rhs, relative to the reference frame resulting from lhs rotation"
+			}
+		}
+
+		oBone.transform.localRotation = quatRot;		
 	}
 }
 

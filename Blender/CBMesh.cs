@@ -105,8 +105,11 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 				int nPosOfDot = sCodedMaterial.IndexOf(".");
 				if (nPosOfDot != -1)
-					sCodedMaterial = sCodedMaterial.Substring(0, nPosOfDot);		//###HACK19: To catch Blender's stupid automatic Material rename during imports!
-				Material oMat = Resources.Load("ModelsNEW/Materials/" + sCodedMaterial, typeof(Material)) as Material;	//###TODO19:!!!: Need to have Blender tell us which character it is so we look at right place??
+					sCodedMaterial = sCodedMaterial.Substring(0, nPosOfDot);        //###HACK19: To catch Blender's stupid automatic Material rename during imports!
+				//###TODO19:!!! Clean up all legacy textures and materials and make material and texture paths coherent!!
+				//string sPathMaterial = String.Format("Models/{0}/Materials/{1}", _oBodyBase._sMeshSource, sCodedMaterial);
+				string sPathMaterial = String.Format("Models/(Tests)/Ana4-Bones/Materials/{0}", sCodedMaterial);		//###HACK20:!!!
+				Material oMat = Resources.Load(sPathMaterial, typeof(Material)) as Material;	//###TODO19:!!!: Need to have Blender tell us which character it is so we look at right place??
 				if (oMat == null) { 
 					Debug.LogWarningFormat("CBMesh.Create() could not find material '{0}' on mesh '{1}'", sCodedMaterial, gameObject.name);
 					//CUtility.ThrowExceptionF("Could not find material '{0}'", sCodedMaterial);

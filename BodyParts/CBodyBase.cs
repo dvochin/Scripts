@@ -68,8 +68,8 @@ public class CBodyBase : uFlex.IFlexProcessor {
 	public string           _sBlenderInstancePath_CBodyBase;                // The Blender fully-qualified instance path where our corresponding CBodyBase is accessed (from Blender global scope)
 	public string           _sHumanCharacterName;   // The human first-name given to this character... purely cosmetic
 	public string           _sBodyPrefix;           // The 'body prefix' string used to identify Blender & Unity node for this body (Equals to 'BodyA', 'BodyB', 'BodyC', etc)
-	public string           _sMeshSource;           //###KEEP11:
-	public string           _sNameSrcGenitals;
+	public string           _sMeshSource;           // The 'mesh source' in Blender such as "WomanA", "ManA", etc
+	public string           _sNameSrcGenitals_OBSOLETE;
 	//---------------------------------------------------------------------------	USER INTERFACE
 	CObject					_oObj;					// The Blender-implemented Object that exposes RTTI-like information for change Blender shape keys from Unity UI panels
 	//---------------------------------------------------------------------------	###TODO14: SORT
@@ -80,8 +80,9 @@ public class CBodyBase : uFlex.IFlexProcessor {
 	public CClothEdit		_oClothEdit;				// The one-and-only cutting (editing) cloth.  Only valid during cloth cutting game mode.
 
 	public GameObject           _oBodyRootGO;           // The root game object of every Unity object for this body.  (Created from prefab)
-	public Transform            _oBonesT;               // The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
+	public Transform            _oBoneRootT;            // The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
 	public Transform            _oBaseT;                // The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
+
 
 
 	public CBodyBase(int nBodyID, EBodySex eBodySex) {
@@ -100,13 +101,13 @@ public class CBodyBase : uFlex.IFlexProcessor {
 
 		switch (_eBodySex) {                                 //###CHECK	####TEMP ####DESIGN: Loaded from file or user top-level selection! ####DESIGN: Public properties?
 			case EBodySex.Man:
-				_sNameSrcGenitals = "PenisM-EroticVR-A-Big";		//###TODO11: Cleanup?
+				_sNameSrcGenitals_OBSOLETE = "PenisM-EroticVR-A-Big";		//###TODO11: Cleanup?
 				break;
 			case EBodySex.Woman:
-				_sNameSrcGenitals = "Vagina-EroticVR-A";                  //###DESIGN??? Crotch and not vagina???
+				_sNameSrcGenitals_OBSOLETE = "Vagina-EroticVR-A";                  //###DESIGN??? Crotch and not vagina???
 				break;
 			case EBodySex.Shemale:
-				_sNameSrcGenitals = "PenisW-EroticVR-A-Big";              //###TODO: Comes from GUI!
+				_sNameSrcGenitals_OBSOLETE = "PenisW-EroticVR-A-Big";              //###TODO: Comes from GUI!
 				break;
 		}
 
@@ -118,12 +119,11 @@ public class CBodyBase : uFlex.IFlexProcessor {
 		_oBodyRootGO.SetActive(true);           // Prefab is stored with top object deactivated to ease development... activate it here...
 
 		//=== Obtain references to needed sub-objects of our prefab ===
-		_oBonesT    = CUtility.FindChild(_oBodyRootGO.transform, "Bones");            // Set key nodes of Bones and Base we'll need quick access to over and over.
-		_oBaseT     = CUtility.FindChild(_oBodyRootGO.transform, "Base");
-
+		_oBoneRootT	= CUtility.FindChild(_oBodyRootGO.transform, "Bones");            // Set key nodes of Bones and Base we'll need quick access to over and over.
+		_oBaseT		= CUtility.FindChild(_oBodyRootGO.transform, "Base");
 
 		//===== CREATE THE BODY PYTHON INSTANCE IN BLENDER =====  
-		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + _sMeshSource + "', '" + eBodySex.ToString() + "','" + _sNameSrcGenitals + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
+		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + _sMeshSource + "', '" + eBodySex.ToString() + "','" + _sNameSrcGenitals_OBSOLETE + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
 		_sBlenderInstancePath_CBodyBase = "CBodyBase_GetBodyBase(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBodyBase instance
 
 		//=== Download our morphing non-skinned body from Blender ===
@@ -222,7 +222,8 @@ public class CBodyBase : uFlex.IFlexProcessor {
 			_oBody = _oBody.DoDestroy();					// Destroys *everthing* related to gametime (softbodies, cloth, flex colliders, etc) on both Unity and Blender side!
 			//_oMeshMorphResult.GetComponent<MeshRenderer>().enabled = true;     // Show the morphing mesh
 			FlexObject_BodyStaticCollider_Enable();             // Make body base / morphing body visible and active again.
-			_oClothEdit.GameMode_EnterMode_EditCloth();
+			if (_oClothEdit != null)
+				_oClothEdit.GameMode_EnterMode_EditCloth();
 
 		} else if (_eBodyBaseMode == EBodyBaseModes.CutCloth && eBodyBaseModeNew == EBodyBaseModes.MorphBody) {
 
@@ -262,7 +263,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 			_oBody.HideShowMeshes();
 	}
 	public Transform FindBone(string sBonePath) {
-		Transform oBoneT = _oBonesT.FindChild(sBonePath);
+		Transform oBoneT = _oBoneRootT.FindChild(sBonePath);
 		if (oBoneT == null)
 			CUtility.ThrowExceptionF("ERROR: CBody.FindBone() cannot find bone '{0}'", sBonePath);
 		return oBoneT;
@@ -311,6 +312,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 		}
 	}
 }
+
 
 public enum EBodyBaseModes {
 	Uninitialized,					// CBodyBase just got created at the start of the game and has not yet been initialized to any meaningful mode.  (Can't go back to this mode)
