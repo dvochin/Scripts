@@ -89,15 +89,19 @@ public class CGizmo : MonoBehaviour {
 				if (oGizmo != null) {
 					if (_oHighlightedGizmoCollider != _oRayHit_LayerGizmo.collider) {
 						if (_oHighlightedGizmoCollider) {
-							Color oColorGizmoCollider = _oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color;
-							oColorGizmoCollider.a = oColorGizmoCollider.a / C_GizmoColliderHighlight;
-							_oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color = oColorGizmoCollider;
+							if (_oHighlightedGizmoCollider.GetComponent<Renderer>() != null) {		//###CHECK21: Why does this fail??
+								Color oColorGizmoCollider = _oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color;
+								oColorGizmoCollider.a = oColorGizmoCollider.a / C_GizmoColliderHighlight;
+								_oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color = oColorGizmoCollider;
+							}
 						}
 						_oHighlightedGizmoCollider = _oRayHit_LayerGizmo.collider;
 						if (_oHighlightedGizmoCollider) {
-							Color oColorGizmoCollider = _oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color;
-							oColorGizmoCollider.a = oColorGizmoCollider.a * C_GizmoColliderHighlight;
-							_oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color = oColorGizmoCollider;
+							if (_oHighlightedGizmoCollider.GetComponent<Renderer>() != null) {		//###CHECK21: Why does this fail??
+								Color oColorGizmoCollider = _oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color;
+								oColorGizmoCollider.a = oColorGizmoCollider.a * C_GizmoColliderHighlight;
+								_oHighlightedGizmoCollider.GetComponent<Renderer>().sharedMaterial.color = oColorGizmoCollider;
+							}
 						}
 					}
 				}

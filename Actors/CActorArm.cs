@@ -85,13 +85,13 @@ using System;
 
 public class CActorArm : CActor {
 
-	[HideInInspector]	public 	CJointDriver 	_oJointCollar;
-	[HideInInspector]	public 	CJointDriver 	_oJointShoulderBend;
-	[HideInInspector]	public 	CJointDriver 	_oJointShoulderTwist;
-    [HideInInspector]	public 	CJointDriver 	_oJointForearmBend;
-    [HideInInspector]	public 	CJointDriver 	_oJointForearmTwist;
+	[HideInInspector]	public 	CBone 	_oBoneCollar;
+	[HideInInspector]	public 	CBone 	_oBoneShoulderBend;
+	[HideInInspector]	public 	CBone 	_oBoneShoulderTwist;
+    [HideInInspector]	public 	CBone 	_oBoneForearmBend;
+    [HideInInspector]	public 	CBone 	_oBoneForearmTwist;
 
-	[HideInInspector]	public 	CJointDriver[,] _aaFingers = new CJointDriver[5,3];			// Array of the three bones for each five fingers of this hand
+	[HideInInspector]	public 	CBone[,] _aaFingers = new CBone[5,3];			// Array of the three bones for each five fingers of this hand
 
 	[HideInInspector]	public 	CHandTarget		_oHandTarget;			// Our connected hand target (if any) responsible for pinning and animate the hand...
 
@@ -114,32 +114,32 @@ public class CActorArm : CActor {
 		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
 
 		//=== Init Bones and Joints ===
-        CJointDriver oJointChestUpper = _oBody._oActor_Chest._oJointChestUpper;
-		_aJoints.Add(_oJointCollar	        = CJointDriver.Create(this, oJointChestUpper,	    _sSidePrefixL+"Collar",	        30, 2.5f, -010,  050,  030,  021, 1));		// X = Collar Up/Down OK, Z has 17 back and 25 forward (avg looks ok)
-		_aJoints.Add(_oJointShoulderBend    = CJointDriver.Create(this, _oJointCollar,		    _sSidePrefixL+"ShldrBend",	    15, 2.0f, -085,  035,  000,  110, 1));		// X = Shoulder Up/Down OK, Z = Back goes to -40, Forward to 110!!!  (###IMPROVE: Another joint?)
-		_aJoints.Add(_oJointShoulderTwist   = CJointDriver.Create(this, _oJointShoulderBend,    _sSidePrefixL+"ShldrTwist",	    20, 1.5f, -000,  000,  080,  000, 1));		// Y = Shoulder twist goes from -95 to 80 so max.  ###PROBLEM: Shimmer in high rotation!
-		_aJoints.Add(_oJointForearmBend	    = CJointDriver.Create(this, _oJointShoulderTwist,	_sSidePrefixL+"ForearmBend",	10, 1.5f, -020,  135,  000,  000, 1));		// X = Elbow bend from -20 to 135. ok.
-		_aJoints.Add(_oJointForearmTwist    = CJointDriver.Create(this, _oJointForearmBend,	    _sSidePrefixL+"ForearmTwist",	20, 1.0f, -000,  000,  080,  000, 1));		// Y = Forearm twist from -90 to 80 so max.		###IMPROVE: Could rotate the axes on the twists so we use XL/XH
-		_aJoints.Add(_oJointExtremity       = CJointDriver.Create(this, _oJointForearmTwist,	_sSidePrefixL+"Hand",			10, 0.5f, -070,  080,  010,  029, 1));		// X = Hand -down(-70) / +up (+80), Y = Hand twist +/-10, Z = Hand side-to-side -28 to +30
+        CBone oBoneChestUpper = _oBody._oActor_Chest._oBoneChestUpper;			//###DEV21:!!! Cleanup all the old crap!
+		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	    30, 2.5f, -010,  050,  030,  021, 1));		// X = Collar Up/Down OK, Z has 17 back and 25 forward (avg looks ok)
+		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",	    15, 2.0f, -085,  035,  000,  110, 1));		// X = Shoulder Up/Down OK, Z = Back goes to -40, Forward to 110!!!  (###IMPROVE: Another joint?)
+		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",	20, 1.5f, -000,  000,  080,  000, 1));		// Y = Shoulder twist goes from -95 to 80 so max.  ###PROBLEM: Shimmer in high rotation!
+		_aBones.Add(_oBoneForearmBend		= CBone.Connect(this, _oBoneShoulderTwist,	_chSidePrefixL+"ForearmBend",	10, 1.5f, -020,  135,  000,  000, 1));		// X = Elbow bend from -20 to 135. ok.
+		_aBones.Add(_oBoneForearmTwist		= CBone.Connect(this, _oBoneForearmBend,	_chSidePrefixL+"ForearmTwist",	20, 1.0f, -000,  000,  080,  000, 1));		// Y = Forearm twist from -90 to 80 so max.		###IMPROVE: Could rotate the axes on the twists so we use XL/XH
+		_aBones.Add(_oBoneExtremity			= CBone.Connect(this, _oBoneForearmTwist,	_chSidePrefixL+"Hand",			10, 0.5f, -070,  080,  010,  029, 1));		// X = Hand -down(-70) / +up (+80), Y = Hand twist +/-10, Z = Hand side-to-side -28 to +30
 		
 		//ConfigFingerRoot(1, "Index");			// Thumb is handled below		###DESIGN!!! Fingers in Unity PhysX is just a no-go because of extremely poor latency... what to do?????
 		//ConfigFingerRoot(2, "Mid");
 		//ConfigFingerRoot(3, "Ring");			//??? ###HACK!! Disabled man's carpal1&2 in 3dsMax so we can use same code as women's!
 		//ConfigFingerRoot(4, "Pinky");
 
-		//CJointDriver oJointFingerBoneParent = _oJointExtremity;
+		//CJointDriver oJointFingerBoneParent = _oBoneExtremity;
 		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 0, "Thumb", 005f, -030f,  005f,  025f);
 		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 1, "Thumb", 010f, -015f,  000f,  000f);
 		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 2, "Thumb", 010f, -015f,  000f,  000f);
 
 		//=== Init Hotspot ===
-		if (_eBodySide == 0)
+		if (_eBodySide == EBodySide.Left)
 			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));		//###IMPROVE20: Horrible path!  Shorten by using some var!
 		else
 			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
 
 		//=== Init CObject ===
-		_oObj = new CObject(this, "Arm" + _sSidePrefixU, "Arm" + _sSidePrefixU);		//###PROBLEM19: Name for scripting and label name!
+		_oObj = new CObject(this, "Arm" + _chSidePrefixU, "Arm" + _chSidePrefixU);		//###PROBLEM19: Name for scripting and label name!
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorArm));
 		AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
 		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");
@@ -155,14 +155,14 @@ public class CActorArm : CActor {
 	}
 
 	//void ConfigFingerRoot(int nFingerID, string sFingerName) {		//###OBS?					//###WEAK: 3dsMax bone rotation for fingers need massive rework... these ranges kept limited to compensate... FIX MODEL!
-	//	CJointDriver oJointFingerBoneParent = _oJointExtremity;
+	//	CJointDriver oJointFingerBoneParent = _oBoneExtremity;
 	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 0, sFingerName, 020f, -020f, -009f,  000f);		// First  bone: Can twist about y also
 	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 1, sFingerName, 010f, -020f,  000f,  000f);		// Second bone: Only X
 	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 2, sFingerName, 010f, -020f,  000f,  000f);		// Third  bone: Only X (more limited)		//###CHECK: Joint free vs fixed affecting these??
 	//}
 	
 	//CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {		//###OBS?
-	//	CJointDriver oJointDrv = CJointDriver.Create(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
+	//	CJointDriver oJointDrv = CBone.Connect(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
 	//	_aJoints.Add(oJointDrv);
 	//	JointDrive oDrive = oJointDrv._oConfJoint.slerpDrive;
 	//	oDrive.positionSpring = 1;						//###TUNE
@@ -194,7 +194,7 @@ public class CActorArm : CActor {
 	public void ArmRaycastPin_Begin() {
 		_oHandTarget = _oHandTarget_RaycastPin;
 		_oHandTarget.ConnectHandToHandTarget(this);
-		_oHandTarget.transform.position = _oJointExtremity.transform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
+		_oHandTarget.transform.position = _oBoneExtremity.transform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
 		_oBodyArmPin = null;
 		//_nArmPinBodyColVert = -1;
 		//_nTimeStartPinSet = 0;			// Reset our start-of-slerp time to zero so it's initialize at first real pin position
@@ -277,26 +277,26 @@ public class CActorArm : CActor {
 	//	}
 
 		//} else if (eHandTarget == EHandTargets.DumpPos_TEMP) {		//###OBS? Keep??
-		//	_oJointShoulder	.DumpBonePos_DEV();
-		//	_oJointMidLimb	.DumpBonePos_DEV();
-		//	_oJointExtremity.DumpBonePos_DEV();
+		//	_oBoneShoulder	.DumpBonePos_DEV();
+		//	_oBoneMidLimb	.DumpBonePos_DEV();
+		//	_oBoneExtremity.DumpBonePos_DEV();
 
 		//if (eHandTarget == EHandTargets.Driven_DEV) {			//###WEAK!!!?
 		//	_oObj.PropSet(0, EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
 		//	transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-		//	_oJointShoulder	.SetRotationRaw_HACK(new Quaternion(-0.109f,0.592f,0.133f,0.787f));
-		//	_oJointMidLimb	.SetRotationRaw_HACK(new Quaternion(-0.398f,0.818f,0.281f,0.307f));
-		//	_oJointExtremity.SetRotationRaw_HACK(new Quaternion(-0.207f,0.124f,-0.200f,0.950f));
+		//	_oBoneShoulder	.SetRotationRaw_HACK(new Quaternion(-0.109f,0.592f,0.133f,0.787f));
+		//	_oBoneMidLimb	.SetRotationRaw_HACK(new Quaternion(-0.398f,0.818f,0.281f,0.307f));
+		//	_oBoneExtremity.SetRotationRaw_HACK(new Quaternion(-0.207f,0.124f,-0.200f,0.950f));
 		//} else {
-		//	_oJointShoulder	.SetRotationDefault_HACK();
-		//	_oJointMidLimb	.SetRotationDefault_HACK();
-		//	_oJointExtremity.SetRotationDefault_HACK();
+		//	_oBoneShoulder	.SetRotationDefault_HACK();
+		//	_oBoneMidLimb	.SetRotationDefault_HACK();
+		//	_oBoneExtremity.SetRotationDefault_HACK();
 		//}
 	//}
 
-	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oJointExtremity.RotateX2(nValueNew); }
-	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oJointExtremity.RotateY2(nValueNew); }
-	public void OnPropSet_Hand_Twist	(float nValueOld, float nValueNew) { _oJointExtremity.RotateZ2(nValueNew); }
+	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oBoneExtremity.RotateX2(nValueNew); }
+	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oBoneExtremity.RotateY2(nValueNew); }
+	public void OnPropSet_Hand_Twist	(float nValueOld, float nValueNew) { _oBoneExtremity.RotateZ2(nValueNew); }
 	//public void OnPropSet_Fingers_Close	(float nValueOld, float nValueNew) {
 	//	for (int nFingerID = 1; nFingerID < 5; nFingerID++)												// Thumb excluded
 	//		for (int nFingerBoneID = 0; nFingerBoneID < 3; nFingerBoneID++)

@@ -112,11 +112,11 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	[HideInInspector]	public	CObject			_oObj;				// Our object responsible for 'super public' properties exposed to GUI and animation system.  Each CActor-derived subclass fills this with its own properties
 	[HideInInspector]	public 	CHotSpot		_oHotSpot;			// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
 	[HideInInspector]	public 	CBody			_oBody;
-	[HideInInspector]	public 	EBodySide		_eBodySide;								// Left side =  0 , right side =  1
-	[HideInInspector]	public 	string 			_sSidePrefixL, _sSidePrefixU;		// Left side = 'l", right side = "r".  Used to locate our bone structure by string name
+	[HideInInspector]	public 	EBodySide		_eBodySide;							// Side of actor: Left, Right or Center
+	[HideInInspector]	public 	char			_chSidePrefixL, _chSidePrefixU;		// Left side = 'l", right side = r.  Used to locate our bone structure by string name
 
-	[HideInInspector]	public 	CJointDriver 	_oJointExtremity;					//###MOVE? This is the 'extremity point' of the limb (hand for arm and foot for leg).  Kept here so CHarnessSphereActorWalker can orient itself to our knee / elbow for more natural hand and toe placement
-	[HideInInspector]	public 	List<CJointDriver> _aJoints = new List<CJointDriver>();		// The array of joints defined for this actor.  Duplicated in there for easy enable/disable as we change game mode
+	[HideInInspector]	public 	CBone 			_oBoneExtremity;					//###MOVE? This is the 'extremity bone' of the limb (hand for arm and foot for leg).  Kept here so CHarnessSphereActorWalker can orient itself to our knee / elbow for more natural hand and toe placement
+	[HideInInspector]	public 	List<CBone>		_aBones = new List<CBone>();		// The array of bones defined for this actor.  Duplicated in there for easy enable/disable as we change game mode
 	[HideInInspector]	public 	ConfigurableJoint _oConfJoint_Extremity;			// The joint of our extremity.  Stored for faster pin/unpin
 	
 	[HideInInspector]	public	float			_nDrivePos = C_DrivePos;			// The strength of the spring force pulling actor to its pin position
@@ -132,16 +132,26 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	public virtual void OnStart(CBody oBody) {
 		_oBody 	= oBody;
 
-		_eBodySide = gameObject.name.EndsWith("R") ? EBodySide.Right : EBodySide.Left;		// Extract what side we are from our node name (e.g. ArmL, LegR, etc)
-		_sSidePrefixL = (_eBodySide == 0) ? "l" : "r";
-		_sSidePrefixU = _sSidePrefixL.ToUpper();
+		//=== Determine if we're a left, right or 'center' actor (e.g. ArmL, LegR, etc) === (NOTE: Applies to Actors, NOT bones!!)
+		if (gameObject.name.EndsWith("L")) { 
+			_eBodySide = EBodySide.Left;
+			_chSidePrefixL = 'l';
+		} else if (gameObject.name.EndsWith("R")) { 
+			_eBodySide = EBodySide.Right;		
+			_chSidePrefixL = 'r';
+		} else { 
+			_eBodySide = EBodySide.Center;		
+			_chSidePrefixL = 'X';					//###CHECK21: What to do??
+		}
+		_chSidePrefixU = _chSidePrefixL.ToString().ToUpper()[0];
 		_oConfJoint_Extremity = GetComponent<ConfigurableJoint>();
 
 		GetComponent<Renderer>().enabled = false;					// Hidden by default.  CGame shows/hides us with call to OnBroadcast_HideOrShowHelperObjects
 		
 		OnStart_DefineLimb();
 
-        _oObj.PropSet(0, EActorNode.Pinned, 1);            //###NOW### Pin by default??
+		if (GetType() != typeof(CActorArm) && GetType() != typeof(CActorLeg))
+			_oObj.PropSet(0, EActorNode.Pinned, 1);            //###DEV21:!!!
 
         SetActorPosToBonePos();         //###CHECK
 	}
@@ -165,8 +175,8 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	}
 
 	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
-		foreach (CJointDriver oJoint in _aJoints)							// Propagate the change in game mode to all our joints
-			oJoint.OnChangeGameMode(eGameModeNew, eGameModeOld);
+		foreach (CBone oBone in _aBones)							// Propagate the change in game mode to all our joints
+			oBone.OnChangeGameMode(eGameModeNew, eGameModeOld);
 		//switch (eGameModeNew) {
 		//	case EGameModes.Play:
 		//		break;
@@ -176,16 +186,16 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	}
 
     public void SetActorPosToBonePos() {
-		if (_oJointExtremity != null) {
-            transform.position = _oJointExtremity.transform.position;           // Reset this actor's pin to where the bone extremity is right now
-            transform.rotation = _oJointExtremity.transform.rotation;
+		if (_oBoneExtremity != null) {
+            transform.position = _oBoneExtremity.transform.position;           // Reset this actor's pin to where the bone extremity is right now
+            transform.rotation = _oBoneExtremity.transform.rotation;
         }
     }
 
     //---------------------------------------------------------------------------	COBJECT EVENTS
 
     public void OnPropSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
-		if (_oJointExtremity == null)			//###CHECK
+		if (_oBoneExtremity == null)			//###CHECK
 			return;
 
 		if (_oConfJoint_Extremity == null)
@@ -198,13 +208,13 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			//###IMPROVE: When user pins make pin location where limb extremity is (ie. no movement)
 			Vector3 vecPosOld = transform.position;
 			Quaternion quatRotOld = transform.rotation;
-			Transform oAnchorT = _oJointExtremity.transform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
+			Transform oAnchorT = _oBoneExtremity.transform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
 			Transform oAnchorChildT = oAnchorT.FindChild("Anchor");
 			if (oAnchorChildT != null)
 				oAnchorT = oAnchorChildT;
 			transform.position = oAnchorT.position;			//? Doesn't matter as it gets calculated every frame anyway but just to be cleaner in 3D scene...
 			transform.rotation = oAnchorT.rotation;			
-			_oConfJoint_Extremity.connectedBody = _oJointExtremity._oRigidBody;
+			_oConfJoint_Extremity.connectedBody = _oBoneExtremity._oRigidBody;
 			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime?? ###TUNE?
             oJointLimit.limit = 0.001f;				//###LEARN: If this is zero there is NO spring functionality!!
 			SoftJointLimitSpring oJointLimitSpring = new SoftJointLimitSpring();    //###WEAK: Do everytime??		//####MOD: To Unity5
@@ -222,7 +232,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 
 	public void AddBaseActorProperties() {
 		//###IMPROVE19: Prop add label and prop name a pain
-		_oObj.PropAdd(0, EActorNode.Pinned,				"Pinned",			"Pinned",	0,	0,		0,		"", CProp.AsCheckbox);
+		_oObj.PropAdd(0, EActorNode.Pinned,				"Pinned",			"Pinned",	0,	0,		1,		"", CProp.AsCheckbox);
 		_oObj.PropAdd(0, EActorNode.PosX,				"PosX",				"PosX",		0,	-2,		2,		"", CProp.Hide);
 		_oObj.PropAdd(0, EActorNode.PosY,				"PosY",				"PosY",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???
 		_oObj.PropAdd(0, EActorNode.PosZ,				"PosZ",				"PosZ",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
@@ -292,6 +302,11 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	}
 }
 
+public enum EBodySide {
+	Center,
+	Left,
+	Right,
+}
 
 //public enum EActorAnchor_OBS {
 //	HandPalmCenter,
@@ -327,9 +342,9 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 //public Transform FetchActorAnchor_OBS(EActorAnchor_OBS eActorAnchor) {		//###TODO: Add more anchors!
 //	Transform oNodeAnchor = null;
 //	switch (eActorAnchor) {
-//		case EActorAnchor_OBS.HandPalmCenter:	oNodeAnchor = _oJointExtremity._oTransform.FindChild("Anchor-HandPalmCenter");					break;
-//		case EActorAnchor_OBS.MidFingerMidway:	oNodeAnchor = _oJointExtremity._oTransform.FindChild(_sSidePrefixL+"Mid1/"+_sSidePrefixL+"Mid2/Anchor-MidFingerMidway");	break;
-//		case EActorAnchor_OBS.MidFingerTip:	 	oNodeAnchor = _oJointExtremity._oTransform.FindChild(_sSidePrefixL+"Mid1/"+_sSidePrefixL+"Mid2/"+_sSidePrefixL+"Mid3/Anchor-MidFingerTip");	break;
+//		case EActorAnchor_OBS.HandPalmCenter:	oNodeAnchor = _oBoneExtremity._oTransform.FindChild("Anchor-HandPalmCenter");					break;
+//		case EActorAnchor_OBS.MidFingerMidway:	oNodeAnchor = _oBoneExtremity._oTransform.FindChild(_sSidePrefixL+"Mid1/"+_sSidePrefixL+"Mid2/Anchor-MidFingerMidway");	break;
+//		case EActorAnchor_OBS.MidFingerTip:	 	oNodeAnchor = _oBoneExtremity._oTransform.FindChild(_sSidePrefixL+"Mid1/"+_sSidePrefixL+"Mid2/"+_sSidePrefixL+"Mid3/Anchor-MidFingerTip");	break;
 //	}
 //	if (oNodeAnchor == null)
 //		Debug.LogWarning("CActor.FetchActorAnchor_OBS() could not find actor anchor " + eActorAnchor);	

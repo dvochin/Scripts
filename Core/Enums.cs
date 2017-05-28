@@ -114,13 +114,13 @@ public enum EActorArm {
 	RotY,
 	RotZ,
 	RotW,
-	HandTarget,
+//	HandTarget,
 	Hand_UpDown,
 	Hand_LeftRight,
 	Hand_Twist,
-	Fingers_Close,
-	Fingers_Spread,
-	Fingers_ThumbPose,
+	//Fingers_Close,
+	//Fingers_Spread,
+	//Fingers_ThumbPose,
 //	UserControl					// Special property CKeyHook uses for user control of pushing / pulling hands.
 };
 

@@ -122,8 +122,8 @@ public class CBodyBase : uFlex.IFlexProcessor {
 		_oBoneRootT	= CUtility.FindChild(_oBodyRootGO.transform, "Bones");            // Set key nodes of Bones and Base we'll need quick access to over and over.
 		_oBaseT		= CUtility.FindChild(_oBodyRootGO.transform, "Base");
 
-		//===== CREATE THE BODY PYTHON INSTANCE IN BLENDER =====  
-		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + _sMeshSource + "', '" + eBodySex.ToString() + "','" + _sNameSrcGenitals_OBSOLETE + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
+		//===== CREATE THE BODY PYTHON INSTANCE IN BLENDER =====		###DESIGN21: Reconsider argument passing here... would be better to have a 'mesh version' (e.g. A, B, C) of each sex and separate 'Shemale' to 'Woman'
+		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + eBodySex.ToString() + "', '" + _sMeshSource + "','" + _sNameSrcGenitals_OBSOLETE + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
 		_sBlenderInstancePath_CBodyBase = "CBodyBase_GetBodyBase(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBodyBase instance
 
 		//=== Download our morphing non-skinned body from Blender ===
@@ -144,7 +144,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 		_oObj = new CObject(this, "Body Morphing", "Body Morphing");
 		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
 		CPropGrpBlender oPropGrpBlender = new CPropGrpBlender(_oObj, "Body Morphing", _sBlenderInstancePath_CBodyBase + ".oObjectMeshShapeKeys");
-		_oCanvas.CreatePanel("Body Morphing", null, _oObj);
+		//###BROKEN21: _oCanvas.CreatePanel("Body Morphing", null, _oObj);			###IMPROVE:21!!!: Find way for GUI to not crash when props are null!!
 
 		//=== Change some morphing channels ===		//###TEMP18:		###BROKEN19:
 		//_oObj.PropSet(0, "Breasts-Implants", 1.2f);			//###TODO: Load these from a 'body file'
@@ -199,13 +199,14 @@ public class CBodyBase : uFlex.IFlexProcessor {
 				_oClothSrc.FlexObject_ClothSrc_Disable();
 			_oCanvas.gameObject.SetActive(false);                               // Hide the entire morphing UI
 
-			//=== Perform special processing when user has done morphing the body to update the morph mesh in Blender. Send Blender all the sliders values so it updates its morphing body for game-time body generation (This because we were morphing locally for much better performance) ===
-			CPropGrpBlender oPropGrpBlender = _oObj._aPropGrps[0] as CPropGrpBlender;
-			foreach (CProp oProp in oPropGrpBlender._aProps)			// Manually dump all our Blender properties into Blender so UpdateMorphResultMesh() has the user's morph sliders.  (We don't update at every slider value change for performance)
-				oProp._nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oPropGrpBlender._sBlenderAccessString + ".PropSetString('" + oProp._sNameProp + "'," + oProp._nValueLocal.ToString() + ")"));
-			//=== Ask Blender to update its morphing body from user-selected slider choices ===
-			CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".UpdateMorphResultMesh()");
-			//###BROKEN18:!!!: Can no longer re-enter cloth cutting as gBlender loses access?? _oMeshStaticCollider.UpdateVertsFromBlenderMesh(true);         // Morphing can radically change normals.  Recompute them. (Accurate normals needed below anyways for Flex collider)
+			//###BROKEN21:!!!!
+			////=== Perform special processing when user has done morphing the body to update the morph mesh in Blender. Send Blender all the sliders values so it updates its morphing body for game-time body generation (This because we were morphing locally for much better performance) ===
+			//CPropGrpBlender oPropGrpBlender = _oObj._aPropGrps[0] as CPropGrpBlender;
+			//foreach (CProp oProp in oPropGrpBlender._aProps)			// Manually dump all our Blender properties into Blender so UpdateMorphResultMesh() has the user's morph sliders.  (We don't update at every slider value change for performance)
+			//	oProp._nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oPropGrpBlender._sBlenderAccessString + ".PropSetString('" + oProp._sNameProp + "'," + oProp._nValueLocal.ToString() + ")"));
+			////=== Ask Blender to update its morphing body from user-selected slider choices ===
+			//CGame.gBL_SendCmd("CBody", _sBlenderInstancePath_CBodyBase + ".UpdateMorphResultMesh()");
+			////###BROKEN18:!!!: Can no longer re-enter cloth cutting as gBlender loses access?? _oMeshStaticCollider.UpdateVertsFromBlenderMesh(true);         // Morphing can radically change normals.  Recompute them. (Accurate normals needed below anyways for Flex collider)
 
 			//###TEMP19:!!!! _oClothEdit = new CClothEdit(this, "MyShirt", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop");    //###HACK18:!!!: Choose what cloth to edit from GUI choice  ###DESIGN!!!
 

@@ -1,9 +1,9 @@
 using UnityEngine;
 
-
+//###OBS21:!!!! Now integrated in CBone!
 public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulates common usage of the important configurable joint used for ragdoll-style physics movement of body bones  ###MOVE? To own file?
     [HideInInspector] public CActor				_oActor;			                // The actor that owns us
-	[HideInInspector] public CJointDriver		_oJointDrvParent;                   // The parent joint driver (and bone) we connect to
+	[HideInInspector] public CJointDriver		_oBoneDrvParent;                   // The parent joint driver (and bone) we connect to
 	[HideInInspector] public Rigidbody			_oRigidBody;                        // Our rigid body (also a component of our same game object)
 	[HideInInspector] public ConfigurableJoint	_oConfJoint;                        // Our D6 configurable joint.  Responsibly for PhysX processing to keep our two bone extremities at their proper rotation
 	                  Vector3					_vecStartingPos;					// Pose and rotation stored so we can return to 'configure' game mode at any time
@@ -32,7 +32,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
 
     public void Initialize(CActor oActor, CJointDriver oJointDrvParent, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL, bool bFinalized) {
 		_oActor = oActor;
-		_oJointDrvParent = oJointDrvParent;
+		_oBoneDrvParent = oJointDrvParent;
         _nDriveStrengthMult = nDriveStrengthMult;
         _vecStartingPos         = transform.localPosition;
         _quatStartingRotation   = transform.localRotation;
@@ -55,7 +55,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
 
 
         //=== Process special handling needed when we are root (we are kinematic and we have no joint to parent) ===
-        if (_oJointDrvParent == null) {             // If we have a null parent then we're the root and we're kinematic with no joint to anyone!
+        if (_oBoneDrvParent == null) {             // If we have a null parent then we're the root and we're kinematic with no joint to anyone!
 
             _oRigidBody.isKinematic = true;
 
@@ -67,7 +67,7 @@ public class CJointDriver : MonoBehaviour {         // CJointDriver: Encapsulate
 
             //=== Create the D6 configurable joint between our parent and us ===
 		    _oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
-		    _oConfJoint.connectedBody = _oJointDrvParent._oRigidBody;
+		    _oConfJoint.connectedBody = _oBoneDrvParent._oRigidBody;
 
             //=== Set the joint limits as per our arguments ===
             bool bInvertX = (_XL > _XH);                    //###OBS??? If the logical range is inverted we can't send this to PhysX as lowAngularXLimit MUST be < than highAngularXLimit!

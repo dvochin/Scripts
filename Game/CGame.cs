@@ -1,69 +1,24 @@
-/*# New DAZ3D mesh based on G3F:
-- Read https://unity3d.com/learn/tutorials/temas/best-practices/assets-objects-and-serialization for ideas on object serialization
-- Bones are inverted!  Invert verts in gBlender C?  (Set vert in Blender to see)
-- Actors are pulling from wrong bones... redo the whole lot
-- Broke head look, head, hair
-- Missing texture on eyes.
--###LEARN: Unity is a 'left handed coordinate system' while Blender is 'right handed' = unfortunate!!
-
-
-- IDEA: Have colliders be defined in Blender and serialized during
-
-=== TODO ===
-- Blender breast needs to be separated during original import method?
-- What to do about Flex collider?
-
-- Need to create Unity bones in Editor from scratch.
-- Q: Do we define colliders in Unity or Blender??
-- Need to change the actors to add D6 joints that are appropriate
-- We need to create a BodyA, BodyB, BodyC collider groups
-- Previous implementation reversed bones to have chest as root.  Can we adapt DAZ's bone structure?
-- We'll need to re-calibrate each bone movement again
-- Q: How about hands: Do we go with intricate bones or softbody the whole hand?
-- Need to remove existing face implementation and re-implement facial expressions by driving bones!
-- Need to centralize all modifications applied to incoming DAZ body in one function:
-    - We need to keep a vanilla DAZ body in main Blender file.  This is where our custom vertex groups go... morphed body inputs have no custom groups!
-    - Glue vagina to base mesh
-    - Add geometry to breasts
-    - Move penis to position and morph base for seamless connection.
-
-
-- PROBLEM: Right thigh twist is out of position!
-- PROBLEM: Vagina mesh is shipped as 2nd mesh!  Also it does not coincide perfectly on some morphs!
-
-
-*/
-/*###DISCUSSION: Panels
-
+/*###DISCUSSION: CGAME
 
 === LAST ===
-- Would be nice to have SB auto-reset during teleports!
-
-
-- Problem with depth of cursor and GUI... when far we get greater depth... Is this a problem between the overlay cam and main one?  (Or just for VR / Space Navigator??)
--###IMPROVE: Add various 'cursor depth traps' around major body parts so cursor has a max depth?
-   - Or... use body PhysX colliders?  BETTER! -> map to cursors??
-
-
-- Rethink anchor points now that we can clip a little bit.
-- Can't select a widget without unselecting first one
-- Move canvas center or owning pin?
-   - Finalize pin
-- Cleanup panel creation
-- Panel center mesh
-- Panel divider sucks
-- Slider grabber bigger
-
-
-- Mesh show / hide shows extra softbodies, rim, collider body, sb skinned, etc
-- Why are pins so small now?
-- Cursor hit buggy as shit... redo!
 
 === NEXT ===
 
 === TODO ===
 
 === LATER ===
+- GUI / CURSORS
+	- Rethink anchor points now that we can clip a little bit.
+	- Can't select a widget without unselecting first one
+	- Move canvas center or owning pin?
+	   - Finalize pin
+	- Cleanup panel creation
+	- Panel center mesh
+	- Panel divider sucks
+	- Slider grabber bigger
+	- Mesh show / hide shows extra softbodies, rim, collider body, sb skinned, etc
+	- Why are pins so small now?
+	- Cursor hit buggy as shit... redo!
 
 === IMPROVE ===
 
@@ -71,17 +26,32 @@
 
 === IDEAS ===
 - You can use Application.RegisterLogCallback to get everything that goes into the unity log.   See http://answers.unity3d.com/questions/232589/is-there-a-way-to-catch-global-application-expceti.html
+- Read https://unity3d.com/learn/tutorials/temas/best-practices/assets-objects-and-serialization for ideas on object serialization
+- IDEA: Have colliders be defined in Blender and serialized during
+
 === LEARNED ===
 
 === PROBLEMS ===
+- Problem with depth of cursor and GUI... when far we get greater depth... Is this a problem between the overlay cam and main one?  (Or just for VR / Space Navigator??)
+	- Add various 'cursor depth traps' around major body parts so cursor has a max depth?
+	- Or... use body PhysX colliders?  BETTER! -> map to cursors??
 
 === PROBLEMS??? ===
 
 === WISHLIST ===
 - Have button to zero VR camera
 - Panel auto-stacking is 'slots'
+- Would be nice to have SB auto-reset during teleports!
 
-*/
+=== REMAINING21: Fixing bone driving ===
+- Why the heck does min/max interchange seem to work???
+- Check L/R works at every bone
+- Verify startup rotation when D6 really Unity quaternion?  no startup angle?
+- Revise the kinematic / simulated game modes.  Related to softbody teleport as well?
+- Review / streamline the 'game modes' 
+- We *MUST* understand exactly what 'HMD view reset' does to the rig... what transform does it affect?  What is relation to VR cam??
+
+ */
 
 
 using UnityEngine;
@@ -363,8 +333,9 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_DefaultJointSpringOld = _DefaultJointSpring;		//###OBS
 		_DefaultJointDampingOld = _DefaultJointDamping;
 
-		_oCamTarget = GameObject.Find("CCamTarget").GetComponent<CCamTarget>();		//###WEAK!!!
-		_oCamTarget.OnStart();
+		//###BROKEN21:!!!!!!
+		//_oCamTarget = GameObject.Find("CCamTarget").GetComponent<CCamTarget>();		//###WEAK!!!
+		//_oCamTarget.OnStart();
 
 		Debug.Log("8. Body Assembly.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);		//###WEAK!!!
 
@@ -419,6 +390,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         //Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 
         ChangeGameMode(EGameModes.MorphBody);             // Set the initial game mode as statically requested		###DESIGN18:!!: We need to go in order but what about when user wants to play right away?  (Auto-progress through modes to morph and cut cloth or load from file?)
+		ChangeGameMode(EGameModes.CutCloth);		//###HACK21:!!!!!!!
+		ChangeGameMode(EGameModes.Play);
 
         Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
     }
@@ -490,6 +463,26 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			SetBodiesAsKinematic(true);
 		if (Input.GetKeyDown(KeyCode.F5))
 			SetBodiesAsKinematic(false);
+		if (Input.GetKeyDown(KeyCode.F6)) {
+			Transform oEyeCenterT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head/upperFaceRig/CenterBrow");
+			Transform oCameraRigT = GameObject.Find("[CameraRig]").transform;
+			Vector3 vecPosEye = oEyeCenterT.position;
+			vecPosEye.y = 0;
+			oCameraRigT.position = vecPosEye;
+			//oCameraRigT.rotation = oEyeCenterT.rotation;		//###DEV21: WTF rotation 90 degrees????
+		}
+		if (Input.GetKeyDown(KeyCode.F7)) {
+			GameObject oWandLGO = GameObject.Find("[CameraRig]/Controller (left)");
+			if (oWandLGO != null) {
+				Transform oWandLT = oWandLGO.transform;
+				_aBodyBases[0]._oBody._oActor_ArmL.transform.position = oWandLT.position;		//###HACK21:!!!! Find bettter way to get to proper pin!!
+			}
+			GameObject oWandRGO = GameObject.Find("[CameraRig]/Controller (right)");
+			if (oWandRGO != null) {
+				Transform oWandRT = oWandRGO.transform;
+				_aBodyBases[0]._oBody._oActor_ArmR.transform.position = oWandRT.position;
+			}
+		}
 
 
 
@@ -928,7 +921,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	public void SetGameModeBasicInteractions(bool bGameModeBasicInteractions) {
 		_bGameModeBasicInteractions = bGameModeBasicInteractions;
-		BroadcastMessageToAllBodies("OnBroadcast_HideOrShowHelperObjects", _bGameModeBasicInteractions == false);
+		//###BROKEN21:!!!!!!! BroadcastMessageToAllBodies("OnBroadcast_HideOrShowHelperObjects", _bGameModeBasicInteractions == false);
 		_oPoseRoot._oHotSpot.GetComponent<Renderer>().enabled = !_bGameModeBasicInteractions;		// Also show / hide pose root
 		if (_bGameModeBasicInteractions)			// Force move mode on cursor if going to hidden helper objects (we only fast track move operations)
 			_oCursor.SetEditMode(EEditMode.Move);

@@ -13,7 +13,7 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
 		_oSMR = gameObject.GetComponent<SkinnedMeshRenderer>();
         _oMeshSkinBaked = new Mesh();
         _oSMR.BakeMesh(_oMeshSkinBaked);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
-		_nVerts = 1;// _oMeshSkinBaked.vertexCount;
+		_nVerts = _oMeshSkinBaked.vertexCount;
 
         Vector3[] vertices = _oMeshSkinBaked.vertices;
         int vertexCount = _nVerts;

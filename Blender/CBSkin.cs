@@ -54,12 +54,20 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		int[] aBoneIndex = new int[32];			// Temp arrays 
 		float[] aBoneWeight = new float[32];
 		int nErrSumOutOfRange = 0;
+		int nVertsWithNoVertGroups = 0;
+		int nVertsWithTooManyVertGroups = 0;
 
 		int nVerts = GetNumVerts();
 		for (int nVert = 0; nVert < nVerts; nVert++) {
 			byte nVertGroups = oBA.ReadByte();
 			float nBoneWeightSum = 0;
-            if (nVertGroups >= 5) { 
+            if (nVertGroups == 0) {
+				nVertsWithNoVertGroups++;
+                //Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has 0 vert groups!", _sNameBlenderMesh, nVert);
+                //CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {} vertex groups!", nVertGroups);
+            }
+            if (nVertGroups >= 5) {
+				nVertsWithTooManyVertGroups++;
                 Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has {2} vert groups!", _sNameBlenderMesh, nVert, nVertGroups);
                 CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {} vertex groups!", nVertGroups);
             }
@@ -78,7 +86,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			}
 	
 			if (nBoneWeightSum < 0.999 || nBoneWeightSum > 1.001) {
-				Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
+				//###BROKEN: Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
 				nErrSumOutOfRange++;
 			}
 			BoneWeight oBoneWeight = new BoneWeight();
@@ -92,6 +100,12 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			
 		if (nErrSumOutOfRange > 0)		//###CHECK: What to do???
 			Debug.LogWarning("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with out-of-range sums!");
+			
+		if (nVertsWithNoVertGroups > 0)
+			Debug.LogError("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with zero bones!");
+			
+		if (nVertsWithTooManyVertGroups > 0)
+			Debug.LogError("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with too many bones!");
 			
 		//=== Read the number of errors detected when sending over the blender bone weights... what to do?? ===		
 		int nErrorsBoneGroups = oBA.ReadInt();

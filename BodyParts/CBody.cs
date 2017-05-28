@@ -183,7 +183,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	public CUICanvas[] _aUICanvas = new CUICanvas[2];           // The UI canvases that display various user interface panels to provide end-user edit capability on this body.  One for each left / right.
 	///CActorArm _oArm_SettingRaycastPin;      // The arm we are currently searching for raycasting hand target (when user placing hands)
 	CUICanvas _oCanvas_HACK;
-	public Dictionary<string, CBone> _mapBones = new Dictionary<string, CBone>();
+	//public Dictionary<string, CBone> _mapBones = new Dictionary<string, CBone>();
 
 
 
@@ -197,53 +197,15 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//bool bForMorphingOnly = false;  //###JUNK (CGame.INSTANCE._GameMode == EGameModes.MorphNew_TEMP);				//####DEV!!!!
 		Debug.Log(string.Format("+ Creating body #{0}", _oBodyBase._nBodyID));
 
-		//_oObj = new CObject(oBodyBase, "Body", "Body");
+		//_oObj = new CObject(oBodyBase, "Body", "Body");										//###BROKEN21:!! CBody GUI!!!
 		//CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Body", typeof(EBodyDef));
-		//oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		//###BROKEN11:
+		//oPropGrp.PropAdd(EBodyDef.BreastSize,		"Breast Size BROKEN",		1.0f, 0.5f, 2.5f, "");		
 		//_oObj.FinishInitialization();
-
-		//=== Iterate through all our CBone instances and connect them to this body ===		###MOVE20:?
-		object[] aBones = _oBodyBase._oBoneRootT.GetComponentsInChildren(typeof(CBone), true);
-		_oObj = new CObject(oBodyBase, "Body Direct Bones", "Body Direct Bones");
-		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
-		CPropGrp oPropGrp = new CPropGrp(_oObj, "Body Direct Bones");
-		int nProp = 0;
-		foreach (CBone oBone in aBones) {
-			oBone.Initialize(this);
-			_mapBones[oBone.gameObject.name] = oBone;	// Store back-reference so our hierachy of bones can quickly be retrieved in a flat dictioonary by our (unique) bone name.
-			//foreach (KeyValuePair<string, CBone> oPair in oBody._mapBones) {
-			//	oBone = oPair.Value;
-			//###DEV20: Direct bone control from GUI
-			if (
-//				oBone.gameObject.name.Contains("hip") ||
-//				oBone.gameObject.name.Contains("pelvis") ||
-//				oBone.gameObject.name.Contains("abdomen") ||
-//				oBone.gameObject.name.Contains("chest") ||
-				oBone.gameObject.name.Contains("Shldr") ||
-				oBone.gameObject.name.Contains("Forearm") ||
-//				oBone.gameObject.name.Contains("Hand") ||
-				oBone.gameObject.name.Contains("Thigh") ||
-				oBone.gameObject.name.Contains("lIndex3") ||
-				oBone.gameObject.name.Contains("lBigToe_2") ||
-				oBone.gameObject.name.Contains("Shin") ||
-				oBone.gameObject.name.Contains("Foot") ||
-				oBone.gameObject.name.Contains("Collar")) {
-					for (int nBoneRot = 0; nBoneRot < oBone._aBoneRots.Length; nBoneRot++) { 
-						CBoneRot oBoneRot = oBone._aBoneRots[nBoneRot];
-						if (oBoneRot != null) {			// Our three possbile slots (x,y,z) are not necessarily defined for all bones...
-							string sPropName = oBone.gameObject.name + " " + oBoneRot._chAxis + ":" + oBoneRot._sNameRotation;
-							CProp oProp = oPropGrp.PropAdd(nProp++, sPropName, sPropName, oBoneRot._nValue, oBoneRot._nMin, oBoneRot._nMax, sPropName);
-							oProp._oObjectExtraFunctionality = oBoneRot;			// Store back-reference so OnPropertyChanged can readily adjust the bone
-						}
-					}
-			}
-		}
 		//oPropGrp.PropAdd(0, "Test", "Test", 50, 0, 100, "Test Description");
-		_oObj.FinishInitialization();
-
-		_oCanvas_HACK = CUICanvas.Create(_oBodySkinnedMeshGO_HACK.transform);
-		_oCanvas_HACK.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
-		_oCanvas_HACK.CreatePanel("Body Direct Bone", null, _oObj);
+		//_oObj.FinishInitialization();
+		//_oCanvas_HACK = CUICanvas.Create(_oBodySkinnedMeshGO_HACK.transform);
+		//_oCanvas_HACK.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		//_oCanvas_HACK.CreatePanel("Body Direct Bone", null, _oObj);
 
 
 
@@ -262,8 +224,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
         if (_oBodyBase._eBodySex == EBodySex.Woman) {
             //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(oBodyBase, typeof(CVagina), "chest/abdomen/hip"));
         } else {
-            //_aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "chestUpper/chestLower/abdomenUpper/abdomenLower/hip/pelvis"));
         }
+        _aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "hip/pelvis"));		//###HACK21:!!!!!!
 
 		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN18: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
 		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK18:!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
@@ -396,6 +358,46 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 		foreach (CActor oActor in _aActors)
 			oActor.OnStart(this);
+
+		if (true) {				//###DEV21: Temp code to directly manipulate bones via GUI
+			//=== Iterate through all our CBone instances and connect them to this body ===		###MOVE20:?
+			//object[] aBones = _oBodyBase._oBoneRootT.GetComponentsInChildren(typeof(CBone), true);
+			_oObj = new CObject(_oBodyBase, "Body Direct Bones", "Body Direct Bones");
+			_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
+			CPropGrp oPropGrp = new CPropGrp(_oObj, "Body Direct Bones");
+			int nProp = 0;
+			foreach (CActor oActor in _aActors) { 
+				if (oActor._eBodySide != EBodySide.Right) {			// Only show center and left to save GUI space
+					foreach (CBone oBone in oActor._aBones) {
+						for (int nBoneRot = 0; nBoneRot < oBone._aBoneRots.Length; nBoneRot++) { 
+							CBoneRot oBoneRot = oBone._aBoneRots[nBoneRot];
+							if (oBoneRot != null) {			// Our three possbile slots (x,y,z) are not necessarily defined for all bones...
+								string sPropName = oBone.gameObject.name + " " + oBoneRot._chAxis + ":" + oBoneRot._sNameRotation;
+								CProp oProp = oPropGrp.PropAdd(nProp++, sPropName, sPropName, oBoneRot._nValue, oBoneRot._nMin, oBoneRot._nMax, sPropName);
+								oProp._oObjectExtraFunctionality = oBoneRot;			// Store back-reference so OnPropertyChanged can readily adjust the bone
+							}
+						}
+					}
+				}
+			}
+			_oObj.FinishInitialization();			//###TEMP21
+			_oCanvas_HACK = CUICanvas.Create(_oBodySkinnedMeshGO_HACK.transform);
+			_oCanvas_HACK.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+			_oCanvas_HACK.CreatePanel("Body Direct Bone", null, _oObj);
+		}
+		//oBone.gameObject.name.Contains("hip") ||
+		//oBone.gameObject.name.Contains("pelvis") ||
+		//oBone.gameObject.name.Contains("abdomen") ||
+		//oBone.gameObject.name.Contains("chest") ||
+		//oBone.gameObject.name.Contains("Shldr") ||
+		//oBone.gameObject.name.Contains("Forearm") ||
+		//oBone.gameObject.name.Contains("Hand") ||
+		//oBone.gameObject.name.Contains("Thigh") ||
+		//oBone.gameObject.name.Contains("lIndex3") ||
+		//oBone.gameObject.name.Contains("lBigToe_2") ||
+		//oBone.gameObject.name.Contains("Shin") ||
+		//oBone.gameObject.name.Contains("Foot") ||
+		//oBone.gameObject.name.Contains("Collar")) {
 	}
 
 	public void Destroy() {             //###TODO15: ###OBS? Needed still with DoDestory()  Merge!
@@ -536,8 +538,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	}
 	public CActorArm FindCloseOrFarArmFromCamera(bool bInvert) {		//###OBS? Used by hand placement functionality to auto-select the hand to move without user selection
 		if (IsBodySelected()) {		// Only the closest arm of the selected body responds
-			float nDistL = (_oActor_ArmL._oJointShoulderBend.transform.position - Camera.main.transform.position).magnitude;
-			float nDistR = (_oActor_ArmR._oJointShoulderBend.transform.position - Camera.main.transform.position).magnitude;
+			float nDistL = (_oActor_ArmL._oBoneShoulderBend.transform.position - Camera.main.transform.position).magnitude;
+			float nDistR = (_oActor_ArmR._oBoneShoulderBend.transform.position - Camera.main.transform.position).magnitude;
 			if (bInvert)
 				return (nDistL < nDistR) ? _oActor_ArmR : _oActor_ArmL;
 			else
@@ -673,7 +675,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		CBoneRot oBoneRotChanged = oArgs.Property._oObjectExtraFunctionality as CBoneRot;
 		oBoneRotChanged._nValue = oArgs.ValueNew;
 		CBone oBone = oBoneRotChanged._oBone;
-		Quaternion quatRot = new Quaternion(oBoneRotChanged._oBone._quatBoneRotationStartup.x, oBoneRotChanged._oBone._quatBoneRotationStartup.y, oBoneRotChanged._oBone._quatBoneRotationStartup.z, oBoneRotChanged._oBone._quatBoneRotationStartup.w);
+		//Quaternion quatRot = new Quaternion(oBoneRotChanged._oBone._quatBoneRotationStartup.x, oBoneRotChanged._oBone._quatBoneRotationStartup.y, oBoneRotChanged._oBone._quatBoneRotationStartup.z, oBoneRotChanged._oBone._quatBoneRotationStartup.w);
+		Quaternion quatRot = new Quaternion(0,0,0,1);		//###IMPROVE: Act upon straight bones versus D6.  ###DEV21: Startup rotation???????
 
 		//=== Iterate *in DAZ-provided order* through out three possible rotations.  (Not all may be defined) ===
 		foreach (char chAxisThisRotation in oBone._sRotOrder) {             //###LEARN: How to access characters as ascii from a string
@@ -688,11 +691,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 			}
 		}
 
-		oBone.transform.localRotation = quatRot;		
+		//oBone.transform.localRotation = quatRot;					//###IMPROVE21:!!! Enhance so it can directly set bone rotation in kinematic mode and D6 join in gametime mode
+		oBone._oConfJoint.targetRotation = quatRot;
 	}
-}
-
-public enum EBodySide {
-	Left,
-	Right,
 }

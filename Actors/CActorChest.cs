@@ -4,11 +4,11 @@ using System.Collections;
 
 public class CActorChest : CActor {
 
-	[HideInInspector]	public 	CJointDriver 		_oJointChestLower;
-	[HideInInspector]	public 	CJointDriver 		_oJointAbdomenUpper;
-	[HideInInspector]	public 	CJointDriver 		_oJointAbdomenLower;
-    [HideInInspector]	public 	CJointDriver 		_oJointChestUpper;
-	//[HideInInspector]	public 	CJointDriver 		_oJointPelvis;
+	[HideInInspector]	public 	CBone 		_oBoneChestLower;
+	[HideInInspector]	public 	CBone 		_oBoneAbdomenUpper;
+	[HideInInspector]	public 	CBone 		_oBoneAbdomenLower;
+    [HideInInspector]	public 	CBone 		_oBoneChestUpper;
+	//[HideInInspector]	public 	CBone 		_oBonePelvis;
 
 	const float C_RndPose_ValShift = 10.0f;			// Randomization applied to important chest properties to avoid a still character		//###TUNE
 	const float C_RndPos_TimeBetweenShifts = 3.0f;
@@ -18,21 +18,21 @@ public class CActorChest : CActor {
 
 	public override void OnStart_DefineLimb() {
 		//=== Init Bones and Joints ===
-		_aJoints.Add(_oJointExtremity	    = CJointDriver.Create(this, null,					"hip",				15,  8, -000,  000,  000,  000, 1));		//### The body's root bone... is kinematic and has no joint to a parent bone so all zeros
-		_aJoints.Add(_oJointAbdomenLower    = CJointDriver.Create(this, _oJointExtremity,		"abdomenLower",	    15,  6, -040,  025,  024,  020, 1));
-		_aJoints.Add(_oJointAbdomenUpper	= CJointDriver.Create(this, _oJointAbdomenLower,    "abdomenUpper",	    15,  6, -035,  025,  012,  020, 1));
-		_aJoints.Add(_oJointChestLower      = CJointDriver.Create(this, _oJointAbdomenUpper,	"chestLower",		15,  8, -015,  015,  010,  010, 1));
-		_aJoints.Add(_oJointChestUpper		= CJointDriver.Create(this, _oJointChestLower,		"chestUpper",	    15,  6, -035,  020,  015,  015, 1));
+		_aBones.Add(_oBoneExtremity	    = CBone.Connect(this, null,					"hip",				15,  8, -000,  000,  000,  000, 1));		//### The body's root bone... is kinematic and has no joint to a parent bone so all zeros
+		_aBones.Add(_oBoneAbdomenLower    = CBone.Connect(this, _oBoneExtremity,		"abdomenLower",	    15,  6, -040,  025,  024,  020, 1));
+		_aBones.Add(_oBoneAbdomenUpper	= CBone.Connect(this, _oBoneAbdomenLower,    "abdomenUpper",	    15,  6, -035,  025,  012,  020, 1));
+		_aBones.Add(_oBoneChestLower      = CBone.Connect(this, _oBoneAbdomenUpper,	"chestLower",		15,  8, -015,  015,  010,  010, 1));
+		_aBones.Add(_oBoneChestUpper		= CBone.Connect(this, _oBoneChestLower,		"chestUpper",	    15,  6, -035,  020,  015,  015, 1));
 
-		//_aJoints.Add(_oJointExtremity	    = CJointDriver.Create(this, null,					"chestUpper",		15,  8, -000,  000,  000,  000, 1));		//### The body's root bone... is kinematic and has no joint to a parent bone so all zeros
-		//_aJoints.Add(_oJointChestLower      = CJointDriver.Create(this, _oJointExtremity,		"chestLower",		15,  8, -015,  015,  010,  010, 1));
-		//_aJoints.Add(_oJointAbdomenUpper	= CJointDriver.Create(this, _oJointChestLower,      "abdomenUpper",	    15,  6, -035,  025,  012,  020, 1));
-		//_aJoints.Add(_oJointAbdomenLower    = CJointDriver.Create(this, _oJointAbdomenUpper,    "abdomenLower",	    15,  6, -040,  025,  024,  020, 1));
-		//_aJoints.Add(_oJointHip			    = CJointDriver.Create(this, _oJointAbdomenLower,	"hip",			    15,  6, -035,  020,  015,  015, 1));
+		//_aJoints.Add(_oBoneExtremity	    = CBone.Connect(this, null,					"chestUpper",		15,  8, -000,  000,  000,  000, 1));		//### The body's root bone... is kinematic and has no joint to a parent bone so all zeros
+		//_aJoints.Add(_oBoneChestLower      = CBone.Connect(this, _oBoneExtremity,		"chestLower",		15,  8, -015,  015,  010,  010, 1));
+		//_aJoints.Add(_oBoneAbdomenUpper	= CBone.Connect(this, _oBoneChestLower,      "abdomenUpper",	    15,  6, -035,  025,  012,  020, 1));
+		//_aJoints.Add(_oBoneAbdomenLower    = CBone.Connect(this, _oBoneAbdomenUpper,    "abdomenLower",	    15,  6, -040,  025,  024,  020, 1));
+		//_aJoints.Add(_oBoneHip			    = CBone.Connect(this, _oBoneAbdomenLower,	"hip",			    15,  6, -035,  020,  015,  015, 1));
 		//###NOTE: Pelvis bone is in CActorPelvis for extra processing there.
 
-		//###CHECK: Keep? _oJointExtremity._oRigidBody.isKinematic = (CGame.INSTANCE._GameMode == EGameModes.Configure);		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
-		//###OBS? _oJointExtremity._oRigidBody.isKinematic = false;				// We need to disable kinematic on bone as we're driving it with our pin!
+		//###CHECK: Keep? _oBoneExtremity._oRigidBody.isKinematic = (CGame.INSTANCE._GameMode == EGameModes.Configure);		//###HACK ###TEMP ####REVA If play no anim just set everything to kinematic... for temp cloth exploration
+		//###OBS? _oBoneExtremity._oRigidBody.isKinematic = false;				// We need to disable kinematic on bone as we're driving it with our pin!
 
 		//=== Init Hotspot ===
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Chest", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
@@ -79,24 +79,24 @@ public class CActorChest : CActor {
 	//---------------------------------------------------------------------------	COBJECT EVENTS
 
 	public void OnPropSet_Torso_LeftRight(float nValueOld, float nValueNew) {
-        _oJointChestLower.  RotateZ2(nValueNew);
-		_oJointAbdomenUpper.RotateZ2(nValueNew);
-        _oJointAbdomenLower.RotateZ2(nValueNew);
-		_oJointChestUpper.         RotateZ2(nValueNew);
-		_oBody._oActor_Pelvis._oJointExtremity.RotateZ2(nValueNew);         //###CHECK: Cross-reach to pelvis bone??
+        _oBoneChestLower.  RotateZ2(nValueNew);
+		_oBoneAbdomenUpper.RotateZ2(nValueNew);
+        _oBoneAbdomenLower.RotateZ2(nValueNew);
+		_oBoneChestUpper.         RotateZ2(nValueNew);
+		_oBody._oActor_Pelvis._oBoneExtremity.RotateZ2(nValueNew);         //###CHECK: Cross-reach to pelvis bone??
     }
     public void OnPropSet_Torso_UpDown   (float nValueOld, float nValueNew) {
-        _oJointChestLower.  RotateX2(nValueNew);
-        _oJointAbdomenUpper.RotateX2(nValueNew);
-        _oJointAbdomenLower.RotateX2(nValueNew);
-		_oJointChestUpper.         RotateX2(nValueNew);
-		_oBody._oActor_Pelvis._oJointExtremity.RotateX2(nValueNew);         //###CHECK: Cross-reach to pelvis bone??
+        _oBoneChestLower.  RotateX2(nValueNew);
+        _oBoneAbdomenUpper.RotateX2(nValueNew);
+        _oBoneAbdomenLower.RotateX2(nValueNew);
+		_oBoneChestUpper.         RotateX2(nValueNew);
+		_oBody._oActor_Pelvis._oBoneExtremity.RotateX2(nValueNew);         //###CHECK: Cross-reach to pelvis bone??
 	}
     public void OnPropSet_Torso_Twist    (float nValueOld, float nValueNew) {
-        _oJointChestLower.  RotateY2(nValueNew);
-        _oJointAbdomenUpper.RotateY2(nValueNew);
-        _oJointAbdomenLower.RotateY2(nValueNew);
-		_oJointChestUpper.         RotateY2(nValueNew);
-		_oBody._oActor_Pelvis._oJointExtremity.RotateY2(nValueNew);			//###CHECK: Cross-reach to pelvis bone??
+        _oBoneChestLower.  RotateY2(nValueNew);
+        _oBoneAbdomenUpper.RotateY2(nValueNew);
+        _oBoneAbdomenLower.RotateY2(nValueNew);
+		_oBoneChestUpper.         RotateY2(nValueNew);
+		_oBody._oActor_Pelvis._oBoneExtremity.RotateY2(nValueNew);			//###CHECK: Cross-reach to pelvis bone??
 	}
 }
