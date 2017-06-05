@@ -148,12 +148,12 @@ public class CCursor : MonoBehaviour {
 
         //=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
         CGame.SetGuiMessage(EGameGuiMsg.CursorStat1, "Cursor Mode: " + _eModeCursor.ToString());
-        _oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(0xFFFFFFFF);
+        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, 0xFFFFFFFF);
         if (_oRayHit_LayerHotSpot.collider != null)
             CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: " + _oRayHit_LayerHotSpot.transform.name);
         else
             CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: None");
-        _oRayHit_LayerHotSpot = GetHitOnLayerAtMousePos(nLayerTargetMask);
+        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, nLayerTargetMask);
 		if (_oRayHit_LayerHotSpot.collider != null)
 			_nDepth = _oRayHit_LayerHotSpot.distance * _DefaultCursorDepthOnHotspots;         // We adjust the '3D depth' of mouse cursor only when a collider is found.  ###IMPROVE: Implement slerp to gracefully change depth?
 
@@ -255,7 +255,7 @@ public class CCursor : MonoBehaviour {
 
 			case EModeCursor.S4_ActivatedHotspot:							// The user is now hovering over a valid Hotspot, but has not yet selected it with left mouse button.  (3D cursor displays name of Hotspot for visual feedback)
 				if (bClickDown) {
-					RaycastHit oRayHit_LayerHotSpotAndGizmo = GetHitOnLayerAtMousePos(nLayerTargetMask | CCursor.C_LayerMask_Gizmo);	// Test to see if user clicked on nothing in gizmo or hotspot layers (in 'void')
+					RaycastHit oRayHit_LayerHotSpotAndGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, nLayerTargetMask | CCursor.C_LayerMask_Gizmo);	// Test to see if user clicked on nothing in gizmo or hotspot layers (in 'void')
 
 					if (oRayHit_LayerHotSpotAndGizmo.collider == null) {			// If user didn't click on anything we cancel hotspot activation and return to start state.
 						_oHotSpotCurrent.OnDeactivate();
@@ -328,16 +328,6 @@ public class CCursor : MonoBehaviour {
 
 	public void SetCursorColor(Color oColor) {
 		GetComponent<Renderer>().sharedMaterials[1].color = oColor;
-	}
-
-
-
-	//---------------------------------------------------------------------------	UTLITY
-	public RaycastHit GetHitOnLayerAtMousePos(uint nLayerMask) {    			// Builds a ray from camera point to the viewspace position of the mouse cursor into the 3D scene... Returns the first physics collider it finds in the requested layers
-	    Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
-	    RaycastHit oRayHit;
-	    Physics.Raycast(oRay, out oRayHit, Mathf.Infinity, (int)nLayerMask);		// Casts the ray and get the first game object hit
-		return oRayHit;
 	}
 }
 

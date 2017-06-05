@@ -386,7 +386,7 @@ namespace uFlex
                             rigidRestPoses[i] = shapes.m_shapeCenters[i];
 
                             bones[i] = new GameObject("FlexShape_" + i).transform;
-                            bones[i].parent = go.transform;
+                            bones[i].SetParent(go.transform);
                             bones[i].localPosition = shapes.m_shapeCenters[i];
                             bones[i].localRotation = Quaternion.identity;
 

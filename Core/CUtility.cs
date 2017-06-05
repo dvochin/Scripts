@@ -340,7 +340,7 @@ public class CUtility {         // Collection of static utility functions
 		if (oChildTran == null) {
 			GameObject oChildGO = (oType != null) ? new GameObject(sName, oType) : new GameObject(sName);
 			oChildTran = oChildGO.transform;
-			oChildTran.parent = oNodeParent.transform;
+			oChildTran.SetParent(oNodeParent.transform);
 		}
 		return (oType != null) ? oChildTran.GetComponent(oType) : oChildTran.transform;
 	}
@@ -537,7 +537,7 @@ public class CUtility {         // Collection of static utility functions
 	//public static void BakeSkinnedMeshAndShow(Transform oNodeParent, string sNodeName, ref Mesh oMesh, Material oMat, bool bMakeVisible) {		//###OBS?
 	//	//###LEARN: This will draw what is baked...  Useful for debugging!	
 	//	GameObject oMeshBakedDumpGO = new GameObject(sNodeName, typeof(MeshFilter), typeof(MeshRenderer));
-	//	oMeshBakedDumpGO.transform.parent = oNodeParent;
+	//	oMeshBakedDumpGO.transform.SetParent(oNodeParent);
 	//	oMeshBakedDumpGO.GetComponent<MeshFilter>().mesh = oMesh;
 	//	MeshRenderer oMeshRend = oMeshBakedDumpGO.GetComponent<MeshRenderer>();
 	//	int nNumMaterials = 25;						// Give plenty of materials so every submesh is drawn
@@ -817,6 +817,14 @@ public class CUtility {         // Collection of static utility functions
   //      oCanvas.transform.position = CGame.INSTANCE._oCursor.transform.position;
   //      oCanvas.transform.rotation = Camera.main.transform.rotation;
     }
+
+	public static RaycastHit RaycastToCameraPoint2D(Vector3 vecScreenPoint, uint nLayerMask) {    			
+		// Builds a ray from camera point to the viewspace position of the mouse cursor into the 3D scene... Returns the first physics collider it finds in the requested layers
+	    Ray oRay = Camera.main.ScreenPointToRay(vecScreenPoint);
+	    RaycastHit oRayHit;
+	    Physics.Raycast(oRay, out oRayHit, Mathf.Infinity, (int)nLayerMask);		// Casts the ray and get the first game object hit
+		return oRayHit;
+	}
 	#endregion
 
 	#region === DEBUGGING ===

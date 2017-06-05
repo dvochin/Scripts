@@ -44,9 +44,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		if (oBMeshGO == null) {                     // When CBody or test meshes are creating itself this will be set, null for rim and softbody parts.  ###WEAK!!!
 			oBMeshGO = new GameObject(sNameCBodyInstanceMember, oTypeBMesh);        // If we're here it means we're rim or a body part.  Create a new game object...		####DEV ####NOW: Name problem here!
 			if (oBodyBase._oBody != null)											// Parent to body main node if available, to body base static collider if not.
-				oBMeshGO.transform.parent = oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform;   //... Parent it to the body if it's there  ###HACK!
+				oBMeshGO.transform.SetParent(oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);   //... Parent it to the body if it's there  ###HACK!
 			else
-				oBMeshGO.transform.parent = oBodyBase._oMeshStaticCollider.transform;		//... else to the body base
+				oBMeshGO.transform.SetParent(oBodyBase._oMeshStaticCollider.transform);		//... else to the body base
 		}
 
 		//=== Create our component (of the requested type) from the above-created game object ===

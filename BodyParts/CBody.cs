@@ -115,6 +115,7 @@
 
 
 using UnityEngine;
+using System;
 using System.IO;
 using System.Collections.Generic;
 
@@ -150,27 +151,27 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	public List<CBCloth>		_aCloths		= new List<CBCloth>();	//###OBS14:???  Belongs to base??	// List of our simulated cloth.  Used to iterate during runtime
 
 	//---------------------------------------------------------------------------	ACTORS
-	public CActorNode			_oActor_Base;			// The smart 'actors' associated with our body.  Adds much intelligent functionality!
-	public CActorNode			_oActor_Torso;
+	public CActorGenitals		_oActor_Genitals;		// The smart 'actors' associated with our body.  Adds much intelligent functionality!
 	public CActorPelvis			_oActor_Pelvis;
 	public CActorChest			_oActor_Chest;
 	public CActorArm 			_oActor_ArmL;
 	public CActorArm 			_oActor_ArmR;
+	public CActorFootCenter		_oActor_FootCenter;
 	public CActorLeg 			_oActor_LegL;
 	public CActorLeg 			_oActor_LegR;
 	public List<CActor>			_aActors = new List<CActor>();		// An array containing all the _oActor_xxx elements above.  Used to simplify iterations.
 
 	//---------------------------------------------------------------------------	SCRIPT ACCESS
-	public CObject				 Base;		// Flattened references to the oObj CObject member of our actors.  Done to offer scripting runtime simplified access to our scriptable members using friendlier names.
-	public CObject				 Torso;
-	public CObject				 Chest;
+	public CObject				 Genitals;		// Flattened references to the oObj CObject member of our actors.  Done to offer scripting runtime simplified access to our scriptable members using friendlier names.
 	public CObject				 Pelvis;
+	public CObject				 Chest;
 	public CObject				 ArmL;
 	public CObject				 ArmR;
+	public CObject				 FootCenter;
 	public CObject				 LegL;
 	public CObject				 LegR;
-	public CObject				 Face;
-	public CObject				 Penis;
+	//public CObject				 Face;
+	//public CObject				 Penis;
 
 	//---------------------------------------------------------------------------	KEYBOARD HOOKS
 	//CKeyHook _oKeyHook_PenisBaseUpDown;
@@ -187,7 +188,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 
 
-    public CBody(CBodyBase oBodyBase) {		//###NOW11:
+    public CBody(CBodyBase oBodyBase) {
 		_oBodyBase = oBodyBase;
 		_oBodyBase._oBody = this;           //###WEAK13: Convenience early-set of our instance into owning parent.  Needed as some of init code needs to access us from our parent! ###DESIGN!
 		_oBodySkinnedMeshGO_HACK = new GameObject("RuntimeBody");       // Create the game object that will contain our important CBody component early (complex init tree needs it!)
@@ -215,19 +216,21 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 
         //===== DETACHED SOFTBODY PARTS PROCESSING =====
-        if (_oBodyBase._eBodySex != EBodySex.Man) {
-			// CSoftBodySkin.Create(oBodyBase, typeof(CVagina), "chestUpper/chestLower");		//###DEV19: bone?
-			//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
-			//_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
-			//COrificeRig oOR = new COrificeRig(this);
-        }
-        if (_oBodyBase._eBodySex == EBodySex.Woman) {
-            //_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(oBodyBase, typeof(CVagina), "chest/abdomen/hip"));
-        } else {
-        }
-        _aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "hip/pelvis"));		//###HACK21:!!!!!!
-
-		////####TEMP ####DESIGN ####TEMP ####MOVE		###DESIGN18: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
+		if (CGame.INSTANCE._bQuickStart_HACK == false) { 
+			if (_oBodyBase._eBodySex != EBodySex.Man) {
+				// CSoftBodySkin.Create(oBodyBase, typeof(CVagina), "chestUpper/chestLower");		//###DEV19: bone?
+				//_aSoftBodies.Add(_oBreastL = (CBreastL)CSoftBody.Create(this, typeof(CBreastL), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
+				//_aSoftBodies.Add(_oBreastR = (CBreastR)CSoftBody.Create(this, typeof(CBreastR), "hip/abdomenLower/abdomenUpper/chestLower/chestUpper"));
+				//COrificeRig oOR = new COrificeRig(this);
+			}
+			if (_oBodyBase._eBodySex == EBodySex.Woman) {
+				//_aSoftBodies.Add(_oVagina = (CVagina)CSoftBody.Create(oBodyBase, typeof(CVagina), "chest/abdomen/hip"));
+			} else {
+			}
+			//if (_oBodyBase._nBodyID == 1)		//###DEV22:!!!!!!
+			//	_aSoftBodies.Add(_oPenis = (CPenis)CSoftBody.Create(this, typeof(CPenis), "hip/pelvis"));
+		}
+		////###DESIGN18: Flaw in auto-deletion means cloths must be named differently between cut-time versus play time!
 		//_aCloths.Add(CBCloth.Create(_oBodyBase, "MyShirtPLAY", "Shirt", "BodySuit", "_ClothSkinnedArea_ShoulderTop"));    //###HACK18:!!!: Choose what cloth to edit from GUI choice  ###DESIGN: Recutting from scratch??  Use what design time did or not??
 
 		
@@ -283,31 +286,31 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//_oKeyHook_ChestUpDown = new CKeyHook(_oActor_Chest._oObj.PropFind(0, EActorChest.Torso_UpDown), KeyCode.T, EKeyHookType.QuickMouseEdit, "Chest forward/back");
 
 		//=== Reparent our actor base to the pose root so that user can move / rotate all bodies at once ===
-		_oActor_Base.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
-		_oActor_Base.gameObject.name = _oBodyBase._sBodyPrefix + "_Base";
+		///_oActor_Genitals.transform.SetParent(CGame.INSTANCE._oPoseRoot.transform);		//###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		///_oActor_Genitals.gameObject.name = _oBodyBase._sBodyPrefix + "_Base";
 
 		//=== Copy references to our actors to our script-friendly CObject variables to provide friendlier access to our scriptable objects ===
-		Base    = _oActor_Base._oObj;              // CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
-		Chest   = _oActor_Chest._oObj;
-		Torso   = _oActor_Torso._oObj;
-		Pelvis  = _oActor_Pelvis._oObj;
-		ArmL    = _oActor_ArmL._oObj;
-		ArmR    = _oActor_ArmR._oObj;
-		LegL    = _oActor_LegL._oObj;
-		LegR    = _oActor_LegR._oObj;
-        Face = null;/// _oFace._oObj;
+		Genitals	= _oActor_Genitals._oObj;						// CGamePlay passed us the reference to the right (empty) static object.  We fill it here.
+		Pelvis		= _oActor_Pelvis._oObj;
+		Chest		= _oActor_Chest._oObj;
+		ArmL		= _oActor_ArmL._oObj;
+		ArmR		= _oActor_ArmR._oObj;
+		FootCenter	= _oActor_FootCenter._oObj;
+		LegL		= _oActor_LegL._oObj;
+		LegR		= _oActor_LegR._oObj;
+        //Face		= null;/// _oFace._oObj;
 		///###BROKEN ###DEVO Penis = (_oPenis == null) ? null : _oPenis._oObjDriver;
 
 		_oScriptPlay = CUtility.FindOrCreateComponent(_oBodyBase._oBodyRootGO.transform, typeof(CScriptPlay)) as CScriptPlay;
 		_oScriptPlay.OnStart(this);
 
 		//=== Rotate the 2nd body toward the first and separate slightly loading poses doesn't pile up one on another ===	####MOVE? ####OBS? (Depend on pose?)
-		//####PROBLEM: Set separation and don't do in all game modes
+		//###DEV22: Hack to artifially separate bodies before posing becomes available
 		if (_oBodyBase._nBodyID == 0) {
-			_oActor_Base.transform.position = new Vector3(0, 0, -CGame.C_BodySeparationAtStart);        //###DESIGN: Don't load base actor instead??  ###BUG Overwrites user setting of base!!!!
+			_oActor_Genitals.transform.position += new Vector3(0, 0, -CGame.C_BodySeparationAtStart);        //###DESIGN: Don't load base actor instead??  ###BUG Overwrites user setting of base!!!!
 		} else {
-			_oActor_Base.transform.position = new Vector3(0, 0, CGame.C_BodySeparationAtStart);
-			_oActor_Base.transform.rotation = Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
+			_oActor_Genitals.transform.position += new Vector3(0, 0, CGame.C_BodySeparationAtStart);
+			_oActor_Genitals.transform.rotation *= Quaternion.Euler(0, 180, 0);      // Rotate the 2nd body 180 degrees
 		}
 
         ///_oClothEdit_HACK = new CClothEdit(oBodyBase, "Shirt");
@@ -315,8 +318,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
         ///CGame.gBL_SendCmd("CBody", "CBodyBase_GetBodyBase(" + _oBodyBase._nBodyID.ToString() + ").Breasts_ApplyMorph('RESIZE', 'Nipple', 'Center', 'Wide', (1.6, 1.6, 1.6, 0), None)");       //###F ###HACK!!!
 
         //=== Create the left and right canvases on each side of the body so that panels have a place to be pinned for close-to-body editing ===
-        _aUICanvas[0] = CUICanvas.Create(CUtility.FindChild(_oActor_Chest.transform, "_CanvasPin_Left"));        //###HACK
-        _aUICanvas[1] = CUICanvas.Create(CUtility.FindChild(_oActor_Chest.transform, "_CanvasPin_Right"));        //###DESIGN: Which pin?  Torso or chest?
+        _aUICanvas[0] = CUICanvas.Create(Util_CreateCanvasPin("_CanvasPin_Left"));        //###DESIGN22: Canvas pin still our best design for panel starting points??
+        _aUICanvas[1] = CUICanvas.Create(Util_CreateCanvasPin("_CanvasPin_Right"));
 
 
 		//=== Create the Flex collider in Blender and serialize it to Unity ===
@@ -328,8 +331,14 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		_oBodyFlexCollider.GetComponent<SkinnedMeshRenderer>().enabled = false;     //###IMPROVE: Move into CFlexSkinnedBody??
 		_oBodyFlexCollider.UpdateNormals();			//###NOW15:
 
-
 		//_oBodySkinnedMesh._oSkinMeshRendNow.enabled = false;		//###TEMP19:
+	}
+
+	Transform Util_CreateCanvasPin(string sNameCanvas) {            //###DESIGN22: Keep?
+		Transform oParentT = _oActor_Chest.transform;           //###WEAK: Parent hardcoding?
+		Transform oCanvasPinT = new GameObject(sNameCanvas).transform;
+		oCanvasPinT.SetParent(oParentT);
+		return oCanvasPinT;
 	}
 
 	public CUICanvas FindClosestCanvas() {				// Find the closest body canvas to the camera.  Used to insert new GUI panel at most appropriate editing spot left of right of body.
@@ -345,21 +354,31 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		return oCanvasClosest;
 	}
 
-	public void Body_InitActors() {
-		//=== Fetch the body part components, assign them to easy-to-access variables (and a collection for easy iteration) and initialize them by telling them their 'side' ===
-		_aActors.Add(_oActor_Base	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base")					.GetComponent<CActorNode>());
-		_aActors.Add(_oActor_Torso	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/Torso")			.GetComponent<CActorNode>());
-		_aActors.Add(_oActor_Chest	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/Torso/Chest")		.GetComponent<CActorChest>());
-		_aActors.Add(_oActor_Pelvis	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/Torso/Pelvis")	.GetComponent<CActorPelvis>());
-		_aActors.Add(_oActor_ArmL	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/ArmL")			.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_ArmR	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/ArmR")			.GetComponent<CActorArm>());
-		_aActors.Add(_oActor_LegL	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/LegL")			.GetComponent<CActorLeg>());
-		_aActors.Add(_oActor_LegR	= CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base/LegR")			.GetComponent<CActorLeg>());
+	CActor CreateActor(Transform oParentT, string sNameActor, Type oTypeActor) {
+		GameObject oActorGOT = Resources.Load("Prefabs/Actor") as GameObject;
+		GameObject oActorGO = GameObject.Instantiate(oActorGOT) as GameObject;
+		oActorGO.name = sNameActor;
+		oActorGO.transform.parent = oParentT;
+		CActor oActor = CUtility.FindOrCreateComponent(oActorGO, oTypeActor) as CActor;
+		oActor.OnStart(this);
+		return oActor;
+	}
 
-		foreach (CActor oActor in _aActors)
-			oActor.OnStart(this);
+	public void Body_InitActors() {		     //'
+		////=== Fetch the body part components, assign them to easy-to-access variables (and a collection for easy iteration) and initialize them by telling them their 'side' ===
+		_aActors.Add(_oActor_Genitals	= CreateActor(_oBodyBase._oBodyRootGO.transform,	"Genitals",		typeof(CActorGenitals))		as CActorGenitals);
+		_aActors.Add(_oActor_Pelvis		= CreateActor(_oActor_Genitals.transform,			"Pelvis",		typeof(CActorPelvis))		as CActorPelvis);
+		_aActors.Add(_oActor_Chest		= CreateActor(_oActor_Genitals.transform,			"Chest",		typeof(CActorChest))		as CActorChest);
+		_aActors.Add(_oActor_ArmL		= CreateActor(_oActor_Chest.transform,				"ArmL",			typeof(CActorArm))			as CActorArm);
+		_aActors.Add(_oActor_ArmR		= CreateActor(_oActor_Chest.transform,				"ArmR",			typeof(CActorArm))			as CActorArm);
+		_aActors.Add(_oActor_FootCenter = CreateActor(_oActor_Genitals.transform,			"FootCenter",	typeof(CActorFootCenter))	as CActorFootCenter);
+		_aActors.Add(_oActor_LegL		= CreateActor(_oActor_FootCenter.transform,			"LegL",			typeof(CActorLeg))			as CActorLeg);
+		_aActors.Add(_oActor_LegR		= CreateActor(_oActor_FootCenter.transform,			"LegR",			typeof(CActorLeg))			as CActorLeg);
 
-		if (true) {				//###DEV21: Temp code to directly manipulate bones via GUI
+		//=== Reset all the actors to their default positions ===
+		SetActorPosToBonePos();
+
+		if (false) {				//###DEBUG21: Temp code to directly manipulate bones via GUI
 			//=== Iterate through all our CBone instances and connect them to this body ===		###MOVE20:?
 			//object[] aBones = _oBodyBase._oBoneRootT.GetComponentsInChildren(typeof(CBone), true);
 			_oObj = new CObject(_oBodyBase, "Body Direct Bones", "Body Direct Bones");
@@ -405,7 +424,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//foreach (CActor oActor in _aActors)
 		//	GameObject.DestroyImmediate(oActor);
 
-		//GameObject.DestroyImmediate(_oActor_Base.gameObject);          // Destroy our body's entry in top-level CPoseRoot
+		//GameObject.DestroyImmediate(_oActor_Genitals.gameObject);          // Destroy our body's entry in top-level CPoseRoot
 
 		////if (_oKeyHook_PenisBaseUpDown != null) _oKeyHook_PenisBaseUpDown.Dispose();     //###WEAK!!! Try to enable auto-dispose!!
 		////if (_oKeyHook_PenisShaftUpDown != null) _oKeyHook_PenisShaftUpDown.Dispose();
@@ -419,9 +438,9 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 	
 	//---------------------------------------------------------------------------	UPDATE
 
-	public void OnSimulatePre() {
-   //     if (_oBSkinRim != null)
-			//_oBSkinRim.OnSimulatePre();					// The very first thing we do is to get our rim to update itself so all pin positions for this frame will be refreshed...
+	public void OnSimulatePre() {		//###DEV22: Redo fucking update mechanism!! ###CLEANUP
+		//     if (_oBSkinRim != null)
+		//_oBSkinRim.OnSimulatePre();					// The very first thing we do is to get our rim to update itself so all pin positions for this frame will be refreshed...
 
 		///_oHeadLook.OnSimulatePre();
 
@@ -442,8 +461,13 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		//	_oArm_SettingRaycastPin = null;
 		//}
 
-		_oActor_ArmL.OnSimulatePre();		//###OBS? Arms need per-frame update to handle pinning to bodycol verts
-		_oActor_ArmR.OnSimulatePre();
+		//if (_oActor_ArmL != null)
+		//	_oActor_ArmL.OnSimulatePre();		//###OBS? Arms need per-frame update to handle pinning to bodycol verts
+		//if (_oActor_ArmR != null)
+		//	_oActor_ArmR.OnSimulatePre();
+		foreach (CActor oActor in _aActors)
+			oActor.OnSimulatePre();			//###DEV22: Redo fucking update mechanism!!
+
 
 		//=== Execute ejaculation if selected body and the pertinent global property is set ===//###BUG!!!!: Won't correctly process two of the same sex!!!
 		//if (_bIsCumming) {        ###DEVO ###OBS: Old Fluid
@@ -507,31 +531,35 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 	public void SetActorPosToBonePos() {                    // Places the actor pins to where the 'extremity' of each actor is now.
         //###IMPROVE: Reset doesn't account for the 'drop' that occurs from the influence of gravity on each actor pin... compensate somehow?
+		//###CLEANUP22:
         //=== Temporarily remove Chest and Pelvis as child of Torso so we can easily reset Torso to be between Chest and Pelvis below ===
-        _oActor_Chest. transform.SetParent(_oActor_Base.transform);
-        _oActor_Pelvis.transform.SetParent(_oActor_Base.transform);
+        //_oActor_Chest. transform.SetParent(_oActor_Genitals.transform);
+        //_oActor_Pelvis.transform.SetParent(_oActor_Genitals.transform);
 
         //=== Reset all our actor pins to their extremity's bone position ===
         foreach (CActor oActor in _aActors)
             oActor.SetActorPosToBonePos();
 
-        //=== Manually place Torso to be halfway between Chest and Pelvis ===
-        _oActor_Torso.transform.position = (_oActor_Chest.transform.position + _oActor_Pelvis.transform.position) / 2;
-        _oActor_Torso.transform.rotation = _oActor_Chest.transform.rotation;        // Set Torso to same rotation as chest.
+		//=== Manually place Torso to be halfway between Chest and Pelvis ===
+		//_oActor_Torso.transform.position = (_oActor_Chest.transform.position + _oActor_Pelvis.transform.position) / 2;
+		//_oActor_Torso.transform.rotation = _oActor_Chest.transform.rotation;        // Set Torso to same rotation as chest.
+		//Transform oVaginaOpeningT = _oActor_Pelvis._oBoneExtremity.transform.FindChild("VaginaOpening");		//###DEV22:!!!
+		//_oActor_Genitals.transform.position = oVaginaOpeningT.position;
+  //      _oActor_Genitals.transform.rotation = oVaginaOpeningT.rotation;
 
-        //=== Return Chest and Pelvis to being child of Torso as before ===
-        _oActor_Chest. transform.SetParent(_oActor_Torso.transform);
-        _oActor_Pelvis.transform.SetParent(_oActor_Torso.transform);
+  //      //=== Return Chest and Pelvis to being child of Torso as before ===
+  //      _oActor_Chest. transform.SetParent(_oActor_Genitals.transform);
+  //      _oActor_Pelvis.transform.SetParent(_oActor_Genitals.transform);
     }
     public void ResetPinToBone(string sPathPin, string sPathBone) {		//###IMPROVE: Fix to run during play-time... Have to re-root from CPoseRoot
-		Transform oRootPinT = (_oActor_Base != null) ? _oActor_Base.transform : CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Base");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
+		Transform oRootPinT = (_oActor_Genitals != null) ? _oActor_Genitals.transform : CUtility.FindChild(_oBodyBase._oBodyRootGO.transform, "Genitals");	// If we're in game mode we can fetch base actor, if not we have to find Bones node off our prefab tree
 		Transform oPinT = CUtility.FindChild(oRootPinT, sPathPin);
 		Transform oBoneT = _oBodyBase.FindBone(sPathBone);
 		oPinT.position = oBoneT.position;
 	}
 	public void SelectBody() {			//###MOVE11: To base?
 		CGame.INSTANCE._nSelectedBody = _oBodyBase._nBodyID;
-		CGame.SetGuiMessage(EGameGuiMsg.SelectedBody, _oBodyBase._sHumanCharacterName);
+		//CGame.SetGuiMessage(EGameGuiMsg.SelectedBody, _oBodyBase._sHumanCharacterName);
 	}
 	public bool IsBodySelected() {
 		return CGame.INSTANCE._nSelectedBody == _oBodyBase._nBodyID;
@@ -601,7 +629,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		string sPathPose = CGame.GetPathPoseFile(_sNamePose);
 		CScriptRecord oScriptRec = new CScriptRecord(sPathPose, "Body Pose " + sPathPose);
 		foreach (CActor oActor in _aActors)
-			if (oActor != _oActor_Base)						// We do not save the base actor.  User orients this to position the body in the scene.
+			if (oActor != _oActor_Genitals)						// We do not save the base actor.  User orients this to position the body in the scene.
 				oScriptRec.WriteObject(oActor._oObj);
 		Debug.Log(string.Format("Pose_Save() on body '{0}' saved '{1}'", _oBodyBase._sBodyPrefix, _sNamePose));
 	}
@@ -654,8 +682,8 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		CGame.gBL_SendCmd("CBody", _oBodyBase._sBlenderInstancePath_CBodyBase + ".DestroyCBody()");
 
 		//=== Reparent base nodes to where it originated before init moved it to global pose node ===
-		_oActor_Base.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
-		_oActor_Base.gameObject.name = "Base";				//###WEAK18: Kind of shitty to name differently during init / shutdown...  Do we really need this??
+		_oActor_Genitals.transform.SetParent(_oBodyBase._oBodyRootGO.transform);      //###DESIGN15:! Causes problems with regular init/destory of CBody?  Do we really want to keep reparenting for easy full pose movement??>
+		_oActor_Genitals.gameObject.name = "Base";				//###WEAK18: Kind of shitty to name differently during init / shutdown...  Do we really need this??
 		GameObject.Destroy(_oBodySkinnedMesh.gameObject);   // Destroys *everything*  Every mesh we've created and every one of our components
 		return null;						// Return convenience null so DoDestroy() can also nullify CBodyBase's reference... which makes this instance reference-less and flagged for garbage collection
 	}
@@ -669,7 +697,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 
 	void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
 		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
-
+		//###MOVE22: Super important functionality.  Probably needs to be moved and invoked from different contexts
 		Debug.LogFormat("CBody property property '{0}' of group '{1}' changed to value '{2}'", oArgs.PropertyName, oArgs.PropertyGroup._sNamePropGrp, oArgs.ValueNew);
 
 		CBoneRot oBoneRotChanged = oArgs.Property._oObjectExtraFunctionality as CBoneRot;
@@ -692,6 +720,7 @@ public class CBody : IHotSpotMgr { 		// Manages a 'body':  Does not actually rep
 		}
 
 		//oBone.transform.localRotation = quatRot;					//###IMPROVE21:!!! Enhance so it can directly set bone rotation in kinematic mode and D6 join in gametime mode
-		oBone._oConfJoint.targetRotation = quatRot;
+		if (oBone._oConfJoint != null)			//###IMPROVE22: Hip has not conf joint given that it's root bone... route to pelvis!
+			oBone._oConfJoint.targetRotation = quatRot;
 	}
 }

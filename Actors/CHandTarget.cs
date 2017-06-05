@@ -50,7 +50,7 @@ public class CHandTarget : MonoBehaviour, IHotSpotMgr {		// CHandTarget: A desti
 		// Create a right side node that will store the mirrored copy of the source left-side node.
 		string sNameHandTargetRight = oHandTargetL.gameObject.name + "-Right";				// Right-side hand targets are generated & mirrored as needed.  Their name is suffixed with '-Right'
 		CHandTarget oHandTargetR = CUtility.FindOrCreateNode(oHandTargetL.transform.parent, sNameHandTargetRight, typeof(CHandTarget)) as CHandTarget;
-		oHandTargetR.transform.parent = oHandTargetL.transform.parent;			// Right side gets same parent as left side
+		oHandTargetR.transform.SetParent(oHandTargetL.transform.parent);			// Right side gets same parent as left side
 
 		//=== Calculate the mirrored position of right side ===
 		Vector3 vecTarget = oHandTargetL.transform.localPosition;

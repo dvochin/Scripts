@@ -25,7 +25,8 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 	//---------------------------------------------------------------------------	STATIC CREATION
 	public static CHotSpot CreateHotspot(IHotSpotMgr iHotSpotMgr, Transform oParentT, string sNameHotspot, bool bEnableEditing, Vector3 vecPosLocalOffset = new Vector3(), float nScaleMult = 1.0f, int nLayer = CCursor.C_Layer_HotSpot) {
 		float nScale = CCursor.C_HotSpot_DefaultSize * nScaleMult;
-		Transform oHotSpotT = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_HotSpot);		// This plane will convert the rays from the camera to the mouse into a 3D position on the cutting plane.
+		Transform oHotspotTP = Resources.Load("Gizmo/Prefabs/CHotSpot",	typeof(Transform)) as Transform;
+		Transform oHotSpotT = (Transform)GameObject.Instantiate(oHotspotTP);
 		CHotSpot oHotSpot = oHotSpotT.GetComponent<CHotSpot>();			//###WEAK: Scale constants everwhere as absolute values?  Make relative to some well known size?
 		oHotSpot.Initialize(iHotSpotMgr, oParentT, sNameHotspot, bEnableEditing, vecPosLocalOffset, nScale, nLayer);
 		return oHotSpot;
@@ -37,7 +38,7 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 		_oParentT		= oParentT;
 		_sNameHotspot	= sNameHotspot;
 		transform.name = "Hotspot-" + sNameHotspot;
-		transform.parent = _oParentT;
+		transform.SetParent(_oParentT);
 		transform.localPosition = vecPosLocalOffset;
 		transform.localRotation = Quaternion.identity;
 		_bEnableEditing = bEnableEditing;

@@ -110,27 +110,18 @@ public class CActorArm : CActor {
 
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 	public override void OnStart_DefineLimb() {
-		_nDrivePos = 0.1f * C_DrivePos;				// Weaken the hand drive so hand doesn't fly from pin to pin		//###TUNE
+		_nDrivePinToBone = 0.1f * C_DrivePinToBone;				// Weaken the hand drive so hand doesn't fly from pin to pin		//###TUNE
 		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
 
 		//=== Init Bones and Joints ===
-        CBone oBoneChestUpper = _oBody._oActor_Chest._oBoneChestUpper;			//###DEV21:!!! Cleanup all the old crap!
-		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	    30, 2.5f, -010,  050,  030,  021, 1));		// X = Collar Up/Down OK, Z has 17 back and 25 forward (avg looks ok)
-		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",	    15, 2.0f, -085,  035,  000,  110, 1));		// X = Shoulder Up/Down OK, Z = Back goes to -40, Forward to 110!!!  (###IMPROVE: Another joint?)
-		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",	20, 1.5f, -000,  000,  080,  000, 1));		// Y = Shoulder twist goes from -95 to 80 so max.  ###PROBLEM: Shimmer in high rotation!
-		_aBones.Add(_oBoneForearmBend		= CBone.Connect(this, _oBoneShoulderTwist,	_chSidePrefixL+"ForearmBend",	10, 1.5f, -020,  135,  000,  000, 1));		// X = Elbow bend from -20 to 135. ok.
-		_aBones.Add(_oBoneForearmTwist		= CBone.Connect(this, _oBoneForearmBend,	_chSidePrefixL+"ForearmTwist",	20, 1.0f, -000,  000,  080,  000, 1));		// Y = Forearm twist from -90 to 80 so max.		###IMPROVE: Could rotate the axes on the twists so we use XL/XH
-		_aBones.Add(_oBoneExtremity			= CBone.Connect(this, _oBoneForearmTwist,	_chSidePrefixL+"Hand",			10, 0.5f, -070,  080,  010,  029, 1));		// X = Hand -down(-70) / +up (+80), Y = Hand twist +/-10, Z = Hand side-to-side -28 to +30
-		
-		//ConfigFingerRoot(1, "Index");			// Thumb is handled below		###DESIGN!!! Fingers in Unity PhysX is just a no-go because of extremely poor latency... what to do?????
-		//ConfigFingerRoot(2, "Mid");
-		//ConfigFingerRoot(3, "Ring");			//??? ###HACK!! Disabled man's carpal1&2 in 3dsMax so we can use same code as women's!
-		//ConfigFingerRoot(4, "Pinky");
-
-		//CJointDriver oJointFingerBoneParent = _oBoneExtremity;
-		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 0, "Thumb", 005f, -030f,  005f,  025f);
-		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 1, "Thumb", 010f, -015f,  000f,  000f);
-		//oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, 0, 2, "Thumb", 010f, -015f,  000f,  000f);
+        CBone oBoneChestUpper = _oBody._oActor_Chest._oBoneExtremity;           //###DEV21:!!! Cleanup all the old crap!
+		float n = 1f;		//###DEV22:???
+		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	   50, 2.5f));	//###NOTE: Requires a lot of stiffness to avoid sagging! ###TUNE
+		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",	    n, 2.0f));
+		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",    n, 1.5f));
+		_aBones.Add(_oBoneForearmBend		= CBone.Connect(this, _oBoneShoulderTwist,	_chSidePrefixL+"ForearmBend",   n, 1.5f));
+		_aBones.Add(_oBoneForearmTwist		= CBone.Connect(this, _oBoneForearmBend,	_chSidePrefixL+"ForearmTwist",  n, 1.0f));
+		_aBones.Add(_oBoneExtremity			= CBone.Connect(this, _oBoneForearmTwist,	_chSidePrefixL+"Hand",		    n, 0.5f));
 
 		//=== Init Hotspot ===
 		if (_eBodySide == EBodySide.Left)
@@ -142,7 +133,7 @@ public class CActorArm : CActor {
 		_oObj = new CObject(this, "Arm" + _chSidePrefixU, "Arm" + _chSidePrefixU);		//###PROBLEM19: Name for scripting and label name!
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorArm));
 		AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
-		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");
+		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");		//###OBS?
 		oPropGrp.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight", 0, -100, 100, "");
 		oPropGrp.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist", 0, -100, 100, "");
 		//oPropGrp.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Hide);		//###BROKEN
@@ -233,7 +224,8 @@ public class CActorArm : CActor {
 	}
 
 	//---------------------------------------------------------------------------	UPDATE
-	public void OnSimulatePre() {			// Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
+	public override void OnSimulatePre() {          // Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
+		base.OnSimulatePre();
         //###F ###BROKEN (Body col!)
 		//if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
 		//	Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!

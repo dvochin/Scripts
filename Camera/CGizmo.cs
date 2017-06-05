@@ -49,7 +49,7 @@ public class CGizmo : MonoBehaviour {
 		gameObject.name = "Gizmo-" + _eEditMode.ToString();
 
 		//=== Set the initializing gizmo the position and rotation of the hotspot.  We have to move/rotate both at every frame ===
-		transform.parent = null;								// Note that we are NOT a child of our owning hotspot...
+		transform.SetParent(null);								// Note that we are NOT a child of our owning hotspot...
 		transform.position = _oHotSpot.transform.position;
 		if (_eEditMode != EEditMode.Move)				// Only start at the object's current location if we're rotate or scale.  we always move with axis-aliged gizmo
 			transform.rotation = _oHotSpot.transform.rotation;
@@ -84,7 +84,7 @@ public class CGizmo : MonoBehaviour {
 		switch (_eModeGizmo) {
 
 			case EModeGizmo.S1_WaitingLeftClickGizmoPart:	// User has completed the left mouse up & down that resulted in hotspot being activated and gizmo shown.  We now wait until left mouse button on a gizmo part to begin gizmo moving/rotating/scaling the object
-				_oRayHit_LayerGizmo = CGame.INSTANCE._oCursor.GetHitOnLayerAtMousePos(CCursor.C_LayerMask_Gizmo);		// Obtain the user's hit on the gizmo collider layers
+				_oRayHit_LayerGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Gizmo);		// Obtain the user's hit on the gizmo collider layers
 				CGizmo oGizmo = FindGizmoFromCollider(_oRayHit_LayerGizmo.collider);		//... See if the user clicked on a part of our gizmo...
 				if (oGizmo != null) {
 					if (_oHighlightedGizmoCollider != _oRayHit_LayerGizmo.collider) {
@@ -136,7 +136,7 @@ public class CGizmo : MonoBehaviour {
 
 		_oPlaneCutter = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_GizmoPlaneCutter);		// This plane will convert the rays from the camera to the mouse into a 3D position on the cutting plane.
 		_oPlaneCutter.gameObject.SetActive(true);				// Prefab might have top object deactivated.  Make sure it is active.
-		_oPlaneCutter.parent = transform;						// Temporarily assign plane cutter parent to gizmo so we can rotate to the object's local rotation below...
+		_oPlaneCutter.SetParent(transform);						// Temporarily assign plane cutter parent to gizmo so we can rotate to the object's local rotation below...
 		_oPlaneCutter.localPosition = Vector3.zero;				// Zero our local position / rotation so we're coincident with hotspot / gizmo
 		_oPlaneCutter.localRotation = Quaternion.identity;
 
@@ -150,9 +150,9 @@ public class CGizmo : MonoBehaviour {
 		}
 
 		//=== Cutter plane is now correctly positioned & oriented.  We now decouple so cutting plane won't move as object moves/rotates ===
-		_oPlaneCutter.parent = null;
+		_oPlaneCutter.SetParent(null);
 
-		RaycastHit oRayHit_LayerCutter = CGame.INSTANCE._oCursor.GetHitOnLayerAtMousePos(CCursor.C_LayerMask_Cutter);		// Obtain the user's hit on the cutter to determine gizmo offset to mouse click
+		RaycastHit oRayHit_LayerCutter = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Cutter);		// Obtain the user's hit on the cutter to determine gizmo offset to mouse click
 
 		//=== Store important information at start of gizmo operation for our calculations in GizmoTransform_Update() ===
 		_vecGizmoPosAtStart = transform.position;									// Remember where the gizmo was at start.  (Needed for scaling)
@@ -184,7 +184,7 @@ public class CGizmo : MonoBehaviour {
 	
 	public void GizmoTransform_Update() {		// User is actively dragging one of the gizmo parts to move/rotate/scale our hotspot.  Read on collider plane where mouse cursor is and adjust object
 
-		RaycastHit oRayHit = CGame.INSTANCE._oCursor.GetHitOnLayerAtMousePos(CCursor.C_LayerMask_Cutter);		// We now only do hit test on cutter plane
+		RaycastHit oRayHit = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Cutter);		// We now only do hit test on cutter plane
 		if (_vecRayHitPoint_Last == oRayHit.point)			// If user hasn't move the mouse in the last frame don't do anything
 			return;
 		_vecRayHitPoint_Last = oRayHit.point;
@@ -218,7 +218,7 @@ public class CGizmo : MonoBehaviour {
 	public CGizmo FindGizmoFromCollider(Collider oCollider) {		// Utility function to safely find the gizmo object from the collider user clicked on.
 		if (oCollider == null)
 			return null;
-		if (oCollider.transform.parent == null) 
+		if (oCollider.transform.parent == null)
 			return null;
 		Transform oColParentParent = oCollider.transform.parent.parent;
 		if (oColParentParent == null) 

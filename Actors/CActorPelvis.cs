@@ -36,6 +36,8 @@ using UnityEngine;
 
 public class CActorPelvis : CActor {		// The important 'pelvis driver' that is extensively used by the user to manipulate & animate the woman and man's genitals area toward penetration and teasing animations
 
+	[HideInInspector]	public 	CBone 		_oBoneHip;
+
 	//---------------------------------------------------------------------------	ANIM RELATED
 	public EAnimMode	_eAnimMode = EAnimMode.Stopped;		//###DESIGN: Global??
 	AnimationCurve		_oCurveAnimY;
@@ -48,8 +50,9 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 
 	public override void OnStart_DefineLimb() {
-		//###CHECK _aJoints.Add(_oBoneExtremity = CBone.Connect(this, _oBody._oActor_Chest._oBoneHip, "sex", 1.0f, 1.0f, -0f, 0, -0f, 0f, -0f, 0f));
-		_aBones.Add(_oBoneExtremity = CBone.Connect(this, _oBody._oActor_Chest._oBoneExtremity,	"pelvis", 15, 8, -025,  025,  010,  015, 1));
+
+		_aBones.Add(_oBoneHip		= CBone.Connect(this, null,			"hip",		100,  8));		//###NOTE: While 'hip' is the root bone, it still has a non-kinematic rigid body like any other bone with D6 joints going into and out of it. (upperChest is our *real* root bone so pelvis can move easily)
+		_aBones.Add(_oBoneExtremity = CBone.Connect(this, _oBoneHip,	"pelvis",	100, 8));
 
 		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
 
@@ -57,7 +60,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Pelvis", typeof(EActorPelvis));
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
 		_oObj.FinishInitialization();
-		_oObj.PropSet(0, EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
+		//_oObj.PropSet(0, EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
 	}
 
 

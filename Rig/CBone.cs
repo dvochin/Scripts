@@ -94,7 +94,7 @@ public class CBone : MonoBehaviour {
 
 	
 
-	public static CBone Connect(CActor oActor, CBone oBoneParent, string sNameBone, float nDriveStrengthMult, float nMass, float XL, float XH, float YHL, float ZHL, int nFinalized=0) {
+	public static CBone Connect(CActor oActor, CBone oBoneParent, string sNameBone, float nDriveStrengthMult, float nMass) {
         Transform oBoneT;
         if (oBoneParent == null)
             oBoneT = CUtility.FindChild(oActor._oBody._oBodyBase._oBoneRootT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
@@ -136,14 +136,12 @@ public class CBone : MonoBehaviour {
 			}
 		}
 
-		_quatBoneRotationStartup = transform.localRotation;     // Remeber startup bone rotaton so we start all rotation changes from the startup point.
-
 		//=== Create an debug bone visualizer mesh (to visually show the axis rotations) ===
-		if (false) { 
+		if (true) {			//###DEBUG21: Add visual gizmos at bone positions to fully show position / orientation
 			GameObject oVisResGO	= Resources.Load("Gizmo/Gizmo-Rotate-Unity") as GameObject;
 			GameObject oVisGO = GameObject.Instantiate(oVisResGO) as GameObject;
 			oVisGO.name = gameObject.name + "-Vis";
-			oVisGO.transform.parent = transform;
+			oVisGO.transform.SetParent(transform);
 			oVisGO.transform.localRotation = new Quaternion();
 			oVisGO.transform.localPosition = new Vector3();
 			oVisGO.transform.localScale = new Vector3(1,1,1);
@@ -153,34 +151,27 @@ public class CBone : MonoBehaviour {
 		//=== Extract the DAZ-provided bone limits ===
         _vecStartingPos         = transform.localPosition;
         _quatBoneRotationStartup   = transform.localRotation;
-		if (CGame.INSTANCE.BoneDebugMode) {			// Set debug limits if in debug mode (so we can fully rotate along all axis for game-time tuning) unless bone is 'finalized' in which do apply the supplied limits
-			_XH = _YHL = _ZHL = 177f;				// Set limit angles to maximum value in bone debug mode (so runtime bone debugger can move all bones and all axis all the way)
-			_XL = -_XH;
-		} else {
-			_XL  = Util_GetLimit('X', true);		//###DESIGN21: Keep these variables?  Go straight to CBoneRot everytime??
-			_XH  = Util_GetLimit('X', false);		//###CHECK21: Some bones (hip) have 180 limits while D6 limit appears to be 177.  Problem??
-			_YHL = Util_GetLimit('Y', false);
-			_ZHL = Util_GetLimit('Z', false);
-		}
+		_XL  = Util_GetLimit('X', true);		//###DESIGN21: Keep these variables?  Go straight to CBoneRot everytime??
+		_XH  = Util_GetLimit('X', false);		//###CHECK21: Some bones (hip) have 180 limits while D6 limit appears to be 177.  Problem??
+		_YHL = Util_GetLimit('Y', false);
+		_ZHL = Util_GetLimit('Z', false);
 
 		//=== Create the rigid body for our bone ===
 		_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(gameObject, typeof(Rigidbody));     //###TODO: Add a "CRigidBodyWake"???
         _oRigidBody.mass = nMass;
         _oRigidBody.drag = 1.5f;                            //###TODO!! //###DESIGN: Which drag??		//###TUNE!!!!!	###IMPROVE: Different settings for arms & legs???
-        _oRigidBody.angularDrag = 1.5f;                     //###TUNE!!!!
+        _oRigidBody.angularDrag = 1.5f;                     //###DEV22: Test the shit of these params... ###TODO22:!!!! implement debug facility to group-set all bones
         _oRigidBody.sleepThreshold = 0;                     // Ensure the rigid body never sleeps!
+		_oRigidBody.isKinematic = false;					// We are NEVER kinematic.  EVERY bone is PhysX-driven!  (Including root bone 'hip')
 
 
         //=== Process special handling needed when we are root (we are kinematic and we have no joint to parent) ===
-        if (_oBoneParent == null) {             // If we have a null parent then we're the root and we're kinematic with no joint to anyone!
+        if (_oBoneParent == null) {
 
-            _oRigidBody.isKinematic = true;
+            //###NOTE: If we have no parent then we are the root bone (hip).  While we have no outgoing joint we will have two D6 joints pointing to us (pelvis and abdomenLower) forming an uninterupted PhysX bone chain).  So nothing to do...
 
-        }
-        else {
+        } else {
 
-            //=== If we have a parent then we are not kinematic and rotate by PhysX simulation ===
-            _oRigidBody.isKinematic = false;
 
             //=== Create the D6 configurable joint between our parent and us ===
 		    _oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
@@ -197,10 +188,8 @@ public class CBone : MonoBehaviour {
 		
             //=== Set the joint limits as per our arguments ===
 		    SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
-			//oJL.bounciness = 0.01f;								//###DEV21: Some value in these??
-			//oJL.contactDistance = 0.01f;
-			//oJL.damper = 0.01f;
-			//oJL.spring = 1;
+			oJL.bounciness = 0;					//###LEARN: "When the joint hits the limit, it can be made to bounce off it. Bounciness determines how much to bounce off an limit. range { 0, 1 }."
+			oJL.contactDistance = 10f;			//###IMPROVE: Make relative to angle! //###LEARN: "Determines how far ahead in space the solver can "see" the joint limit" (in degrees) See https://docs.unity3d.com/510/Documentation/ScriptReference/SoftJointLimit-contactDistance.html
 			bool bInvert = (_XL > _XH);			//###DEV21:!!! Check!!!
 		    oJL.limit = bInvert ? _XH : _XL;	_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
 		    oJL.limit = bInvert ? _XL : _XH;	_oConfJoint.highAngularXLimit = oJL;
@@ -211,14 +200,14 @@ public class CBone : MonoBehaviour {
 		    JointDrive oDrive = new JointDrive();
 		    oDrive.positionSpring = _nDriveStrengthMult * CGame.INSTANCE.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
             oDrive.positionDamper = 0;                          //###TODO!!!!! ###TUNE?
-			oDrive.maximumForce = 1000;		//###DEV21: Test!  float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
-		    _oConfJoint.slerpDrive = oDrive;
+			oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
 		    _oConfJoint.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
+		    _oConfJoint.slerpDrive = oDrive;
 
             //=== If we're a node on the right side, copy the collider defined on our twin node on the left side ===
             if (_oActor._eBodySide == EBodySide.Right) {
 			    Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(transform.gameObject);
-                //Debug.Log("Collider copy " + oNodeSrc.name);
+				gameObject.layer = oNodeSrc.gameObject.layer;				// Give this side of the body the same collider layer as the 'source side'
                 Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
                 if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
 				    CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
@@ -232,7 +221,11 @@ public class CBone : MonoBehaviour {
 				    BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
 				    oColDst.center 		= oColSrc.center;
 				    oColDst.size 		= oColSrc.size;
-                }
+                } else if (oColBaseSrc.GetType() == typeof(Collider)) {
+					//###CHECK:??? Collider type = No Collider???
+				} else { 
+					CUtility.ThrowExceptionF("###EXCEPTION: CBone.ctor() could not port collider of type '{0}' on bone '{1}'", oColBaseSrc.GetType().Name, gameObject.name);
+				}
             }
         }
     }

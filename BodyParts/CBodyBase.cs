@@ -81,7 +81,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 
 	public GameObject           _oBodyRootGO;           // The root game object of every Unity object for this body.  (Created from prefab)
 	public Transform            _oBoneRootT;            // The 'Root' bone node right off of our top-level node with the name of 'Bones' = The body's bone tree
-	public Transform            _oBaseT;                // The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
+	public Transform            _oGenitalsT;                // The 'Root' pin node right off of our top-level node with the name of 'Base' = The body's pins (controlling key bones through PhysX joints)
 
 
 
@@ -120,9 +120,12 @@ public class CBodyBase : uFlex.IFlexProcessor {
 
 		//=== Obtain references to needed sub-objects of our prefab ===
 		_oBoneRootT	= CUtility.FindChild(_oBodyRootGO.transform, "Bones");            // Set key nodes of Bones and Base we'll need quick access to over and over.
-		_oBaseT		= CUtility.FindChild(_oBodyRootGO.transform, "Base");
+		//_oGenitalsT	= new GameObject("Genitals").transform;						// Create root actor / pin Genitals
+		//_oGenitalsT.SetParent(_oBodyRootGO.transform);
 
 		//===== CREATE THE BODY PYTHON INSTANCE IN BLENDER =====		###DESIGN21: Reconsider argument passing here... would be better to have a 'mesh version' (e.g. A, B, C) of each sex and separate 'Shemale' to 'Woman'
+		if (_nBodyID == 1)
+				_sMeshSource += "-Dick";			//###HACK22:!!!!!!!
 		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + eBodySex.ToString() + "', '" + _sMeshSource + "','" + _sNameSrcGenitals_OBSOLETE + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
 		_sBlenderInstancePath_CBodyBase = "CBodyBase_GetBodyBase(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBodyBase instance
 
@@ -243,7 +246,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 	}
 
 	public void Disable() {
-		CUtility.ThrowException("TODO: Implement disable!");			//###TODO18:
+		//###BROKEN22: CUtility.ThrowException("TODO: Implement disable!");			//###TODO18:
 		_bIsDisabled = true;
 	}
 

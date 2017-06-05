@@ -119,12 +119,13 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	[HideInInspector]	public 	List<CBone>		_aBones = new List<CBone>();		// The array of bones defined for this actor.  Duplicated in there for easy enable/disable as we change game mode
 	[HideInInspector]	public 	ConfigurableJoint _oConfJoint_Extremity;			// The joint of our extremity.  Stored for faster pin/unpin
 	
-	[HideInInspector]	public	float			_nDrivePos = C_DrivePos;			// The strength of the spring force pulling actor to its pin position
+	[HideInInspector]	public	float			_nDrivePinToBone = C_DrivePinToBone;			// The strength of the spring force pulling actor to its pin position
 
-						public	const float		C_DrivePos = 200f;					// The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
+						public	const float		C_DrivePinToBone = 5000f;					//###DEV22 The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
 						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
 						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
 
+						CUICanvas _oCanvas_HACK;		//###DEV22
 						Quaternion _quatRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
 
 	//---------------------------------------------------------------------------	CREATE / DESTROY
@@ -144,14 +145,37 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			_chSidePrefixL = 'X';					//###CHECK21: What to do??
 		}
 		_chSidePrefixU = _chSidePrefixL.ToString().ToUpper()[0];
-		_oConfJoint_Extremity = GetComponent<ConfigurableJoint>();
+
+		//=== Create the configurable joint component and set it with values appropriate for a pin ===
+		if (_oConfJoint_Extremity != null) {		//###CHECK22:!! This check ok?  Keep?
+		//if (GetType() != typeof(CActorGenitals)) {		//###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
+			_oConfJoint_Extremity = CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint)) as ConfigurableJoint;
+			_oConfJoint_Extremity.xMotion = _oConfJoint_Extremity.yMotion = _oConfJoint_Extremity.zMotion = ConfigurableJointMotion.Limited;
+			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;
+
+			JointDrive oDrive = new JointDrive();
+			oDrive.positionSpring = 1000.0f;			//###DEV22:!!!!  ###TUNE!!!!!!!!!!
+			if (GetType() == typeof(CActorLeg)) { 
+				oDrive.positionSpring *= 100.0f;			//###DEV22: Make spring stiffness for leg pins much stiffer!
+				_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;		//###DEV22: Feet pins with no rotation limits??
+			}
+			oDrive.positionDamper = 0;                          //###TODO!!!!! ###TUNE?
+			oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
+			_oConfJoint_Extremity.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
+			_oConfJoint_Extremity.slerpDrive = oDrive;
+
+			//###DEV22:!!! Config rigidbody mass and drag?
+		}
 
 		GetComponent<Renderer>().enabled = false;					// Hidden by default.  CGame shows/hides us with call to OnBroadcast_HideOrShowHelperObjects
 		
 		OnStart_DefineLimb();
 
-		if (GetType() != typeof(CActorArm) && GetType() != typeof(CActorLeg))
-			_oObj.PropSet(0, EActorNode.Pinned, 1);            //###DEV21:!!!
+		_oObj.PropSet(0, EActorNode.Pinned, 1);			//###DEV22: Pin everything??
+		//if (GetType() != typeof(CActorArm) && GetType() != typeof(CActorLeg))
+		//	_oObj.PropSet(0, EActorNode.Pinned, 1);
+		//if (GetType() == typeof(CActorArm) || GetType() == typeof(CActorLeg))
+		//	_oObj.PropSet(0, EActorNode.Pinned, 1);
 
         SetActorPosToBonePos();         //###CHECK
 	}
@@ -199,11 +223,11 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			return;
 
 		if (_oConfJoint_Extremity == null)
-			CUtility.ThrowException("*Err: CActor.PinOrUnpin() called with no extremity joint set!");
+			CUtility.ThrowException("*Err: CActor.Pinned() called with no extremity joint set!");
 
 		bool bPinned = nValueNew == 1;
-        if (CGame.INSTANCE.BoneDebugMode && GetType() != typeof(CActorChest))           // Disable pinning in bone debug mode on extremities so we can test bone orientation
-            bPinned = false;
+        //if (CGame.INSTANCE.BoneDebugMode && GetType() != typeof(CActorChest))           // Disable pinning in bone debug mode on extremities so we can test bone orientation
+        //    bPinned = false;
 		if (bPinned) {		// How pinning init works: 1) Remember current location/rotation, 2) set to where extremity is now, 3) activate joint, 4) move back to old pos/rot = extremity's spring will gradually move & rotate toward current position of pin!  (just what we want!)
 			//###IMPROVE: When user pins make pin location where limb extremity is (ie. no movement)
 			Vector3 vecPosOld = transform.position;
@@ -218,7 +242,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime?? ###TUNE?
             oJointLimit.limit = 0.001f;				//###LEARN: If this is zero there is NO spring functionality!!
 			SoftJointLimitSpring oJointLimitSpring = new SoftJointLimitSpring();    //###WEAK: Do everytime??		//####MOD: To Unity5
-            oJointLimitSpring.spring = _nDrivePos;
+            oJointLimitSpring.spring = _nDrivePinToBone;
 			_oConfJoint_Extremity.linearLimit = oJointLimit;
 			_oConfJoint_Extremity.linearLimitSpring = oJointLimitSpring;
 			transform.position = vecPosOld;
@@ -264,8 +288,26 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.z = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
 
 
+	//---------------------------------------------------------------------------	MISC EVENTS
+
+	public void OnVrAction() {              // User has 'used' this item via a VR wand.  Invoke our context menu	//'
+		if (_oCanvas_HACK == null) {							//###DEV22: Can each actor own its own canvas?  ###TODO:!!!!! Destroy!!!
+			_oCanvas_HACK = CUICanvas.Create(transform);
+			_oCanvas_HACK.transform.SetParent(transform);
+			float nRatioToCam = 0.7f;		//###TUNE
+			_oCanvas_HACK.transform.position = (transform.position * nRatioToCam + Camera.main.transform.position * (1-nRatioToCam));
+			_oCanvas_HACK.transform.localRotation = Quaternion.identity;
+			_oCanvas_HACK.transform.rotation = Camera.main.transform.rotation;
+			//###DEV22:!!!! Figure out a better way to guarantee popup panel without occlusion from 3D objects without hacks making it closer to camera.  e.g. use raycast to find first collider
+			// then... find way to interact with widgets! (through wand or pointer beam?  see samples!)
+			//###IDEA22:!!! Use VR simple pointer code for raycast example with pointer!
+		}
+		CUtility.WndPopup_Create(_oCanvas_HACK, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, gameObject.name);	//###CHECK: Invoke through hotspot??
+		//_oHotSpot.WndPopup_Create(_oCanvas_HACK, new CObject[] { _oObj });
+	}
 
 	//---------------------------------------------------------------------------	HOTSPOT EVENTS
+
 
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		//_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.	###CHECK: Hotspot triggers throw this off??
@@ -299,6 +341,11 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 				_oObj.PropSet(0, EActorNode.RotW, quatRotL.w);
 				break;
 		}
+	}
+
+	public virtual void OnSimulatePre() {       //###DEV22: Rename?
+		//if (GetComponent<MeshRenderer>() != null)	
+		//	GetComponent<MeshRenderer>().enabled = true;		//###DEV22: Temp to circumvent VRTK hiding our pins!
 	}
 }
 

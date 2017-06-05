@@ -137,6 +137,28 @@ public enum EActorLeg {
 	Thigh_Rotate,
 };
 
+public enum EActorFootCenter {
+	Pinned,			// Note that the top properties on all actors must all have pins, pos, rot
+	PosX,
+	PosY,
+	PosZ,
+	RotX,
+	RotY,
+	RotZ,
+	RotW,
+};
+
+public enum EActorGenitals {
+	Pinned,			// Note that the top properties on all actors must all have pins, pos, rot
+	PosX,
+	PosY,
+	PosZ,
+	RotX,
+	RotY,
+	RotZ,
+	RotW,
+};
+
 
 
 
