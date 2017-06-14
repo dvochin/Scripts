@@ -115,7 +115,7 @@ public class CCursor : MonoBehaviour {
 		
 		SetEditMode(EEditMode.Move);		// At app-start we are in edit mode
 
-		_oTextMesh = transform.FindChild("Text").GetComponent<TextMesh>();		//###BUG: Cursor text size grow up / down with zoom
+		_oTextMesh = transform.Find("Text").GetComponent<TextMesh>();		//###BUG: Cursor text size grow up / down with zoom
 	}
 	
 

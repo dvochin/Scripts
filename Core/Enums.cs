@@ -59,12 +59,12 @@ public enum EPenisArg {
 
 
 public enum EGamePlay {
-	Pleasure,
+	Pleasure,				//###OBS:
 	Arousal,
-	PoseRootPos,				//###MOVE?
+	//PoseRootPos,				
 	PenisSize,
 	PenisErectionMax,		// Maximum amount of erection possible... multiplies the penis drive strength value for dual control.
-	FluidConfig,
+	//FluidConfig,
 };
 
 

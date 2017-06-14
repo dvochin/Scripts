@@ -72,7 +72,7 @@ public class COrificeRig : uFlex.IFlexProcessor {
 		_aBonesRing0 = new Transform[_nVertsPerRing];
 		for (ushort nBone = 0; nBone < _nVertsPerRing; nBone++) {
 			string sNameBone = "VaginaBone" + nBone.ToString("D2");			//###LEARN: How to zero pad in .net
-			_aBonesRing0[nBone] = _oBoneRootT.FindChild(sNameBone);
+			_aBonesRing0[nBone] = _oBoneRootT.Find(sNameBone);
 		}
 
 		//=== Obtain reference to the 'triangulation bones' that are responsible to hold the entire soft body rig at the proper 3D space in relation to our owning body's reference bone (e.g. pelvis)
@@ -80,7 +80,7 @@ public class COrificeRig : uFlex.IFlexProcessor {
 		for (ushort nPin = 0; nPin < C_nPinsTriangulation; nPin++) {
 			uFlex.Particle oParticle = new uFlex.Particle();
 			string sNamePin = "VaginaPin" + nPin.ToString();
-			Transform oPinT = _oBoneRootT.FindChild(sNamePin);
+			Transform oPinT = _oBoneRootT.Find(sNamePin);
 			oParticle.pos		= oPinT.position;
 			oParticle.invMass	= 0;							// Particle is a pin and therere moved manually at every frame
 			aParticles.Add(oParticle);							// The four pins start at 'nNumRigVerts' in aParticles[]

@@ -10,6 +10,10 @@
 	- Maybe a central generated code function is best / safest?
 
 === LATER ===
+- Why the heck does min/max interchange seem to work???
+- Check L/R works at every bone
+- Verify startup rotation when D6 really Unity quaternion?  no startup angle?
+- Revise the kinematic / simulated game modes.  Related to softbody teleport as well?
 
 === IMPROVE ===
 
@@ -137,7 +141,7 @@ public class CBone : MonoBehaviour {
 		}
 
 		//=== Create an debug bone visualizer mesh (to visually show the axis rotations) ===
-		if (true) {			//###DEBUG21: Add visual gizmos at bone positions to fully show position / orientation
+		if (false) {			//###DEBUG21: Add visual gizmos at bone positions to fully show position / orientation
 			GameObject oVisResGO	= Resources.Load("Gizmo/Gizmo-Rotate-Unity") as GameObject;
 			GameObject oVisGO = GameObject.Instantiate(oVisResGO) as GameObject;
 			oVisGO.name = gameObject.name + "-Vis";
@@ -209,22 +213,26 @@ public class CBone : MonoBehaviour {
 			    Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(transform.gameObject);
 				gameObject.layer = oNodeSrc.gameObject.layer;				// Give this side of the body the same collider layer as the 'source side'
                 Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
-                if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
-				    CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
-				    CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(transform, typeof(CapsuleCollider));
-				    oColDst.center 		= oColSrc.center;
-				    oColDst.radius 		= oColSrc.radius;
-				    oColDst.height 		= oColSrc.height;
-				    oColDst.direction 	= oColSrc.direction;
-                } else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
-				    BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
-				    BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
-				    oColDst.center 		= oColSrc.center;
-				    oColDst.size 		= oColSrc.size;
-                } else if (oColBaseSrc.GetType() == typeof(Collider)) {
-					//###CHECK:??? Collider type = No Collider???
-				} else { 
-					CUtility.ThrowExceptionF("###EXCEPTION: CBone.ctor() could not port collider of type '{0}' on bone '{1}'", oColBaseSrc.GetType().Name, gameObject.name);
+				if (oColBaseSrc != null) {
+					if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
+						CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
+						CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(transform, typeof(CapsuleCollider));
+						oColDst.center = oColSrc.center;
+						oColDst.radius = oColSrc.radius;
+						oColDst.height = oColSrc.height;
+						oColDst.direction = oColSrc.direction;
+					} else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
+						BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
+						BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
+						oColDst.center = oColSrc.center;
+						oColDst.size = oColSrc.size;
+					} else if (oColBaseSrc.GetType() == typeof(Collider)) {
+						//###CHECK:??? Collider type = No Collider???
+					} else {
+						CUtility.ThrowExceptionF("###EXCEPTION: CBone.ctor() could not port collider of type '{0}' on bone '{1}'", oColBaseSrc.GetType().Name, gameObject.name);
+					}
+				} else {
+					Debug.LogWarningFormat("#WARNING: CBone.Initialize() finds null collider on bone '{0}'", gameObject.name);		//###IMPROVE23: No collider on toe and metatarsals... fix
 				}
             }
         }

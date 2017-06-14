@@ -267,7 +267,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 			_oBody.HideShowMeshes();
 	}
 	public Transform FindBone(string sBonePath) {
-		Transform oBoneT = _oBoneRootT.FindChild(sBonePath);
+		Transform oBoneT = _oBoneRootT.Find(sBonePath);
 		if (oBoneT == null)
 			CUtility.ThrowExceptionF("ERROR: CBody.FindBone() cannot find bone '{0}'", sBonePath);
 		return oBoneT;

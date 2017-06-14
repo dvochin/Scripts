@@ -121,11 +121,11 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	
 	[HideInInspector]	public	float			_nDrivePinToBone = C_DrivePinToBone;			// The strength of the spring force pulling actor to its pin position
 
-						public	const float		C_DrivePinToBone = 5000f;					//###DEV22 The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
+						public	const float		C_DrivePinToBone = 5000f;					//###DEV22: The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
 						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
 						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
 
-						CUICanvas _oCanvas_HACK;		//###DEV22
+						CUICanvas _oCanvas_HACK;		//###DEV22:
 						Quaternion _quatRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
 
 	//---------------------------------------------------------------------------	CREATE / DESTROY
@@ -147,8 +147,8 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 		_chSidePrefixU = _chSidePrefixL.ToString().ToUpper()[0];
 
 		//=== Create the configurable joint component and set it with values appropriate for a pin ===
-		if (_oConfJoint_Extremity != null) {		//###CHECK22:!! This check ok?  Keep?
-		//if (GetType() != typeof(CActorGenitals)) {		//###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
+		//if (_oConfJoint_Extremity != null) {		//###CHECK22:!! This check ok?  Keep?
+		if (GetType() != typeof(CActorGenitals)) {		//###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
 			_oConfJoint_Extremity = CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint)) as ConfigurableJoint;
 			_oConfJoint_Extremity.xMotion = _oConfJoint_Extremity.yMotion = _oConfJoint_Extremity.zMotion = ConfigurableJointMotion.Limited;
 			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;
@@ -222,8 +222,10 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 		if (_oBoneExtremity == null)			//###CHECK
 			return;
 
-		if (_oConfJoint_Extremity == null)
-			CUtility.ThrowException("*Err: CActor.Pinned() called with no extremity joint set!");
+		if (_oConfJoint_Extremity == null) { 
+			Debug.LogErrorFormat("###ERROR: CActor.Pinned() called with no extremity joint set!");
+			return;	//CUtility.ThrowException("###EXCEPTION: CActor.Pinned() called with no extremity joint set!");
+		}
 
 		bool bPinned = nValueNew == 1;
         //if (CGame.INSTANCE.BoneDebugMode && GetType() != typeof(CActorChest))           // Disable pinning in bone debug mode on extremities so we can test bone orientation
@@ -233,7 +235,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			Vector3 vecPosOld = transform.position;
 			Quaternion quatRotOld = transform.rotation;
 			Transform oAnchorT = _oBoneExtremity.transform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
-			Transform oAnchorChildT = oAnchorT.FindChild("Anchor");
+			Transform oAnchorChildT = oAnchorT.Find("Anchor");
 			if (oAnchorChildT != null)
 				oAnchorT = oAnchorChildT;
 			transform.position = oAnchorT.position;			//? Doesn't matter as it gets calculated every frame anyway but just to be cleaner in 3D scene...

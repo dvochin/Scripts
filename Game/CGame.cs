@@ -1,23 +1,14 @@
 /*###DISCUSSION: TODO scratch pad
 
-=== CURRENT ===
-=== NEXT23: Early VR control ===
-- Need to create new canvas when user brings a wand close to headset: The four most important UI screens are there (triggered by trackpad 4 directions)
-	- Canvas UI interaction working!  Just cursor not working... something different with our panel?
-		- It creates a 'box collider' which looks good on static one but our dynamic one looks way off!  Trace into its creation!
-		- Only affects cursor tho... study why acting works but paint on screen fails!
-	- Touchpad touching / pressing works really well... but confusing the control between want and headset... dedicate touchpad to headset?  (Wand gets button a?)
-	- Panel creating pretty well... now make them short-lived and interact with them!
-		- would be nice to have a nice hand pointer like SteamVR instead of wands!
-
-
+=== DEV ===
 
 
 
 
 === SCRATCH TODO ===
-- What is doing the FUCKING FADE???  Possibly too slow on refresh rate?  See the other cams and 'pose updaters'
-- Pin hider SUCKS!  Find it!!
+- SpaceNavigator still stealing cycles? (check profiler)
+- Get blender to shut down!  how come it's shutting down all of a sudden??????
+- SpaceNavigator stealing 1ms!!!  WTF???
 - Set decent angle to shoulder so arms are down.  Entire body should be at 'rested state' (not T pose!)
 - Still lots of problems with bones... we'll need a GUI to fast-set important params accross all actors
 - Map 'reset view' to a central menu entry!
@@ -25,12 +16,13 @@
 - Test pose hierarchy: Penis root -> penis tip -> Vagina opening with 'roll'
 - Why the fuck can't I even have abdomenUpper with Default collision???  What does it interfere with???
 - Need to refine colliders: e.g. foot collider box being flat, new bones, etc
-- Remove the Oculus 3D model and replace with semi-transparent human hands like the nice ones in Oculus menu
+- Find semi-transparent human hands like the nice ones in Oculus menu
 - Lots of hacks in 22 to get two bodies in... screws up old clothing modes, hack for shemale and penis sb, hack in pseudo posing, etc
 - Cleanup old panel creation crap and go straight to class we need.  Hotspot and canvas needs cleanup too
 
 === SCRATCH TODO LATER ===
-- Old cursor implementation... Save for a future mouse-based build?
+?- Pin hider SUCKS!  Find it!!
+- Move Old cursor & hotspots implementation... Save for a future mouse-based build?
 - First person movement: cam moving head -> chest -> pelvis and hands working as they should
 	- Need to establish well-constructed chain of bones from head to chest!
 	- IDEA: User's camera rotation actually rotates chest pin... which eventually rotates head, pelvis, feet, etc!
@@ -44,47 +36,15 @@
 
 
 
-=== REMAINING22: Early VR control ===
-- Need to design VR panels that take the most space just behind bodies without being occluded by them
-- Would be nice to pin panel to the collider that invoked that action but without occluding body.  (e.g for nose to right/left of face, for breasts on body side, etc)
-	- If collider is too far then bring panel close to HMD?  Or... make panel bigger / smaller??
-- Improving PhysX on bones
-- Hip lower than Pelvis!  Can skip a bone?  How??
-- Quickly done colliders: Need an additional bone for foot anchor (so we can use box collider)
-- Incredible confusion between all the kinematic / dynamic modes / pinned or not pinned... SORT THIS OUT FIRST!!!!!!!... eg GUI at startup how can it work?  F4/F4???
-
-=== REMAINING21: Fixing bone driving ===
-- Why the heck does min/max interchange seem to work???
-- Check L/R works at every bone
-- Verify startup rotation when D6 really Unity quaternion?  no startup angle?
-- Revise the kinematic / simulated game modes.  Related to softbody teleport as well?
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+//###MOVE
 === LAST ===
-
 === NEXT ===
-
 === TODO ===
-
 === LATER ===
-
 === IMPROVE ===
-
 === DESIGN ===
 --- FUCKING DESIGN ---
 - Entire pose has its origin at the base of the man's penis
@@ -195,7 +155,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 						public 	int 		_TargetFrameRate = 25;
 						public float		_nAnimMult_Time = 1;
 						public float		_nAnimMult_Pos = 1;
-						//public AnimationCurve CurveEjaculateMan;	// Designer-adjustable curves to adjust per-frame fluid properties to simulate man/woman ejaculation
+						public AnimationCurve CurveEjaculateMan;	// Designer-adjustable curves to adjust per-frame fluid properties to simulate man/woman ejaculation
 						//public AnimationCurve CurveEjaculateWoman;
 						public	bool		_ShowSysInfo;			// When true shows the system info messages at upper left of screen
 						public	bool		_ShowFPS;				// When true shows the frame per second stats
@@ -288,17 +248,37 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	public bool bDrivenByVr_HACK = false;
 	public float _nVrObjectControlPos = 0.1f;
 	public float _nVrObjectControlRot = 0.03f;
+	public bool _bDisableExpensiveFluidCollisions_HACK = false;
+	[HideInInspector]	public CFlexFluid _oFlexFluid;
+	public bool _bShowFlexFluidColliders_HACK = false;
+	public bool _bDisableSomeShit_HACK = false;
+
+	public static Vector3 s_vecFaraway = new Vector3(0, 5, 0);					// Faraway vector.  Used to place things we don't want want to wee (but we can't hide) there. (e.g. culled fluid particles)  (Set to up 5 meters.  Camera rarely looks up)
+	[HideInInspector]	public int		_nLayer_BodyColliders;					//###MOVE23: Coalesce these globals into in class like G?
+	[HideInInspector]	public int		_nLayerMask_BodyColliders;
 
 
     #region === INIT
-    public void Start() {
+    void Start() {
+		Debug.Log("=== CGame.StartGame() ===");
+		INSTANCE = this;
+		_nTimeAtStart = Time.time;
+
+		_nLayer_BodyColliders		= LayerMask.NameToLayer("BodyColliders");          //###LEARN: How to set layers by name
+		_nLayerMask_BodyColliders	= 1 << _nLayer_BodyColliders;
+
+
 		//    StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
 		//}
 		//public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
 
-		Debug.Log("=== CGame.StartGame() ===");
-		INSTANCE = this;
-		_nTimeAtStart = Time.time;
+		
+		//_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
+
+		//return;
+
+
+
 
 		//=== Define the cardinal axis for faster angle-axis rotation ===
 		_aCardinalAxis = new Vector3[3];
@@ -322,15 +302,22 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         _oTextUC = GameObject.Find("/UI/CanvasScreen/UC/Text-UC").GetComponent<Text>();
         _oTextUR = GameObject.Find("/UI/CanvasScreen/UR/Text-UR").GetComponent<Text>();
 
+		//=== Set canvas to overlay if VR absent so we can see GUI ===
+		//GameObject oVrCameraRigGO = GameObject.Find("[CameraRig]");
+		//if (oVrCameraRigGO == null) { 
+		//	Canvas oCanvas = _oText_VRHACK.transform.parent.GetComponent<Canvas>();
+		//	oCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+		//}
+
 		//=== Create user-adjustable top-level game options ===
 		_oObj = new CObject(this, "EroticVR Options", "EroticVR Options");		//###PROBLEM19: Name for scripting and label name!
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "EroticVR Options", typeof(EGamePlay));
-		//_oObj.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
-		//_oObj.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
-		//_oObj.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)");
-		//_oObj.PropAdd(EGamePlay.PenisSize,			"Penis Size",	0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
-		//_oObj.PropAdd(EGamePlay.PenisErectionMax,	"Erection",		0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
-		//_oObj.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the EroticVR fluid simulator.  (Advanced)", CProp.AsButton);
+		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "EroticVR Options", typeof(EGamePlay));	//###TEMP:
+		oPropGrp.PropAdd(EGamePlay.Pleasure,			"Pleasure",		30,		-100,	100,	"Amount of pleasure experienced by game characters.  Influences 'Arousal' (NOTE: Temporary game mechanism)");	//###BUG with first setting
+		oPropGrp.PropAdd(EGamePlay.Arousal,			"Arousal",		0,		0,		100,	"Current state of arousal from game characters.  Currently influence penis size.  (NOTE: Temporary game mechanism)");
+		//oPropGrp.PropAdd(EGamePlay.PoseRootPos,		"Pose Root Position",typeof(EPoseRootPos), 0,	"Base location of pose root.  (e.g. on bed, by bedside, etc)");
+		oPropGrp.PropAdd(EGamePlay.PenisSize,			"Penis Size",	0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
+		oPropGrp.PropAdd(EGamePlay.PenisErectionMax,	"Erection",		0,		0,		100,	"", CProp.ReadOnly | CProp.Hide);
+		//oPropGrp.PropAdd(EGamePlay.FluidConfig,		"Fluid Configuration", 0, "Display the properties of the EroticVR fluid simulator.  (Advanced)", CProp.AsButton);
 		_oObj.FinishInitialization();
         _oHotSpot = CHotSpot.CreateHotspot(this, transform, "Game Options", false, new Vector3(0, 0.0f, 0.0f), 1.0f);
 
@@ -474,11 +461,21 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		SetForegroundWindow(_hWnd_Unity);           //###WEAK: Can get rid of??
 
 
+		//=== Configure Flex fluid solver ===
+		GameObject oFlexFluidGO = GameObject.Find("FlexFluid");
+		if (oFlexFluidGO != null) { 
+			_oFlexFluid = oFlexFluidGO.GetComponent<CFlexFluid>();
+			_oFlexFluid.OnStart();
+		}
+
+
+
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
 		if (_bQuickStart_HACK == false) { 
-			_aBodyBases = new CBodyBase[2];
+			_aBodyBases = new CBodyBase[1];
 			_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
-			_aBodyBases[1] = new CBodyBase(1, EBodySex.Woman);
+			if (_aBodyBases.Length >= 2)
+				_aBodyBases[1] = new CBodyBase(1, EBodySex.Woman);
 		} else {
 			_aBodyBases = new CBodyBase[0];
 		}
@@ -522,17 +519,19 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	}
 
 	public void DestroyGame() {
+		//###BROKEN23:???  Does the trick but our game still hangs... find a way to release our pointer?  (Maybe our dll??) CGame.gBL_SendCmd("Client", "bpy.ops.wm.quit_blender()");            // Tell blender to quit
+
 		Debug.Log("--- CGame.DestroyGame() ---");
 
 		_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
 
 		//=== Destroy Blender ===
         if (_oProcessBlender != null) {
-		    try {
-			    _oProcessBlender.Kill();				//###HACK!!
-		    } catch (Exception e) {
-			    Debug.LogException(e);
-		    }
+		    //try {
+			   // _oProcessBlender.Kill();				//###LEARN: Killing Blender this way frequently crashes Unity!!
+		    //} catch (Exception e) {
+			   // Debug.LogException(e);
+		    //}
 		    _oProcessBlender = null;		//###IMPROVE: Save Blender file before exit!  Tell blender to close itself intead of killing it!!!  Wait for its termination??
         }
 
@@ -544,7 +543,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
     #region === UPDATE
     public void Update() {
-        if (_GameIsRunning == false)                //###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
+		if (_GameIsRunning == false)                //###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
             return;
 
 		//=== Store global key modifiers & mouse buttons for this game frame for efficiency ===
@@ -579,10 +578,10 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//###TEMP22: Test first person control stuff.  Going 3rd person for now
 		if (Input.GetKeyDown(KeyCode.F5)) {				
 			Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
-			Transform oBoneEyeCenterT = oBoneHeadT.FindChild("CenterEye");
+			Transform oBoneEyeCenterT = oBoneHeadT.Find("CenterEye");
 			if (oBoneEyeCenterT == null) {			// Center Eye made-up bone not created yet... create it
-				Transform oBoneEyeLT = oBoneHeadT.FindChild("lEye");
-				Transform oBoneEyeRT = oBoneHeadT.FindChild("lEye");
+				Transform oBoneEyeLT = oBoneHeadT.Find("lEye");
+				Transform oBoneEyeRT = oBoneHeadT.Find("lEye");
 				Vector3 vecEyeCenterLocal = (oBoneEyeLT.localPosition + oBoneEyeRT.localPosition) / 2;
 				vecEyeCenterLocal.z += 0.018f;			// Bone position of eyes is given about eyeball center.  Bring forward toward pupil  ###CHECK22: Good idea?  Looks good on cam or 'too far forward'?  Can step back and increase 'near clipping plane'
 				oBoneEyeCenterT = new GameObject("CenterEye").transform;
@@ -593,7 +592,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			//Transform oBoneEyeCenterT = oBoneHeadT.FindChild("CenterEye");
 			Vector3 vecEyeCenter = oBoneEyeCenterT.position;
 			Transform oCameraRigT = GameObject.Find("[CameraRig]").transform;
-			Transform oCameraHeadT = oCameraRigT.FindChild("Camera (eye)");		//###CHECK21: Why do we have Camera (head) as child during design time and it dissapears
+			Transform oCameraHeadT = oCameraRigT.Find("Camera (eye)");		//###CHECK21: Why do we have Camera (head) as child during design time and it dissapears
 			Vector3 vecPosRig = vecEyeCenter - oCameraHeadT.localPosition;
 			oCameraRigT.position = vecPosRig;
 			//oCameraRigT.rotation = oEyeCenterT.rotation;		//###DESIGN22: Do we ever touch rotation?  (Or... user changes by invoking some button to rotate?)
@@ -752,8 +751,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         	// display two fractional digits (f2 sMsg)
         	float _nFps = _nFpsAccum / _nFpsFrames;
         	//string sMsg = System.string.Format("{0:F1} FPS"/*\nGC Collection Count: {1}"*/, _nFps/*, System.GC.CollectionCount(0) - _nFpsCollectionCount*/);
-        	//_sFPS = string.Format("FPS: {0:F1} ({1:F1}ms)  MIN: {2:F1} ({3:F1}ms)", _nFps, 1000 / _nFps, _nMinFpsPrevious, 1000 / _nMinFpsPrevious);//, System.GC.CollectionCount(0));
-        	_sFPS = string.Format("FPS: {0:F1} / {2:F1}", _nFps, _nMinFpsPrevious);//, System.GC.CollectionCount(0));
+        	_sFPS = string.Format("FPS: {0:F1} ({1:F1}ms)  MIN: {2:F1} ({3:F1}ms)", _nFps, 1000 / _nFps, _nMinFpsPrevious, 1000 / _nMinFpsPrevious);//, System.GC.CollectionCount(0));
+        	//_sFPS = string.Format("FPS: {0:F1} / {1:F1}", _nFps, _nMinFpsPrevious);//, System.GC.CollectionCount(0));
         	//oLabFPS.label.text = sMsg;
 
         	//if (_nFps < 24)		//####IMPROVE: Use rich text for colors!
@@ -778,8 +777,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 
     void DoFixedUpdate() {				//###F Update or FixedUpdate()??? // The 'heartbeat of the whole game... *Everything* that happens at every frame is directly called from this function in a deterministic manner.  Greatly simplifies the game code!
-		if (_GameIsRunning == false)				//###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
-			return;
+		//if (_GameIsRunning == false)				//###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
+		//	return;
 
 		//=== CGamePlay former OnUpdate ===  ####CLEANUP
 		float nTime = Time.time;
@@ -799,7 +798,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//=== Re-enable collision temporarily disabled in Pose_Load() if time has elapsed ===
 		if (_nTimeReenableCollisions != 0) {				//###IMPROVE: Do this by co-routine instead??
 			if (nTime > _nTimeReenableCollisions) {					//###IMPROVE: Use layer search name instead of 0
-				//Physics.IgnoreLayerCollision(0, 0, false);		//###DEV22
+				//Physics.IgnoreLayerCollision(0, 0, false);		//###DEV22:!!!!
 				_nTimeReenableCollisions = 0;
 			}
 		}
@@ -810,9 +809,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			oBodyBase.OnSimulatePre();
 
 		//=== Update Flex collision objects ===
-		if (_oFlexSolver.m_cntr != null)
+		if (_oFlexSolver != null && _oFlexSolver.m_cntr != null)
 			_oFlexSolver.DoFixedUpdate();
         
+		if (_oFlexFluid != null)
+			_oFlexFluid.DoFixedUpdate();
+
         CGame.INSTANCE._nFrameCount_MainUpdate++;	//###HACK! To stats!
     }
 
@@ -1436,6 +1438,8 @@ public enum EGameGuiMsg {		//###OBS??  ###TODO: Incomplete!
 	VrControl1,
 	VrControl2,
 	VrControlCam,
+	Fluid1,
+	Fluid2,
     CursorStat1,
     CursorStat2,
     CursorStat3,

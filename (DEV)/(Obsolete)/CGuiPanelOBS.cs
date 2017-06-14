@@ -31,8 +31,8 @@ public class iGUICode_RootPanelOBS : MonoBehaviour {			// Encapsulates a '3D sli
 		transform.parent = Camera.main.transform;
 		transform.localRotation = Quaternion.Euler(0, 180f, 0);				//###WEAK: Panel needs 180 degree rotation to show its right face toward the camera.  Is it right or do we change it?  (being attached to camera and all...)
 		
-		_oNodePanel = transform.FindChild("Panel");
-		_oTextMesh  = transform.FindChild("Text").GetComponent<TextMesh>();
+		_oNodePanel = transform.Find("Panel");
+		_oTextMesh  = transform.Find("Text").GetComponent<TextMesh>();
 		_oTextMesh.text = _oHotSpot.gameObject.name;			//###*NOW: 
 		_oNodePanel.gameObject.layer = CCursor.C_Layer_HotSpot;	//###CHECK
 

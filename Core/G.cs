@@ -1,4 +1,4 @@
-/*###TEMPLATE
+/*###DISCUSSION: June 2017
 === LAST ===
 
 === NEXT ===
@@ -16,6 +16,8 @@
 === LEARNED ===
 
 === PROBLEMS ===
+
+=== OPTIMIZATIONS ===
 
 === QUESTIONS ===
 

@@ -135,7 +135,7 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 	void ReadBone_RECURSIVE(ref CByteArray oBA, Transform oBoneParent) {                          // Precise opposite of gBlender.Stream_SendBone(): Reads a bone from Blender, finds (or create) equivalent Unity bone and updates position
 		string sBoneName = oBA.ReadString();
 
-		Transform oBoneT = oBoneParent.FindChild(sBoneName);
+		Transform oBoneT = oBoneParent.Find(sBoneName);
 		if (oBoneT == null) {
 			oBoneT = new GameObject(sBoneName).transform;
 			oBoneT.parent = oBoneParent;

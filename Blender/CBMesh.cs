@@ -158,6 +158,8 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 				//		Debug.LogError("ERROR: in CBMesh.ctor().  Could not find Unity resource path in texture path " + sCodedMaterial);
 				//	}
 				//}
+			} else {		// Blender gave us a 'NoTexture' -> Assign a default material
+				_aMats[nMat] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
 			}
 		}
 		

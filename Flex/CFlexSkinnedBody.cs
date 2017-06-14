@@ -1,9 +1,10 @@
 ﻿using UnityEngine;
 
 public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {       // CFlexSkinned: Renders most of the body as a collection of Flex particles (to repell softbodies, cloth, fluid away from body)
+	//###DESIGN23: Need tighter integration with Flex fluid stuff!!
 
     SkinnedMeshRenderer _oSMR;
-    Mesh _oMeshSkinBaked;
+    public Mesh _oMeshSkinBaked;
     int _nVerts;
 
     void Awake()			//###LEARN: Start() too late for Flex.  Awake is a must.
@@ -15,7 +16,7 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
         _oSMR.BakeMesh(_oMeshSkinBaked);                  //###OPT!!! Check how expensive this is.  Is there a way for us to move verts & normals straight from skinned mesh from Flex?  (Have not found a way so far)
 		_nVerts = _oMeshSkinBaked.vertexCount;
 
-        Vector3[] vertices = _oMeshSkinBaked.vertices;
+        Vector3[] aVertsBaked = _oMeshSkinBaked.vertices;
         int vertexCount = _nVerts;
 
         m_maxParticlesCount = m_particlesCount = vertexCount;                         //###IMPROVE15: Duplication of CreateFlexObjects(), because we're a subclass of FlexParticles... rethink this?
@@ -32,12 +33,12 @@ public class CFlexSkinnedBody : uFlex.FlexParticles, uFlex.IFlexProcessor {     
         Vector3 min = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
         Vector3 max = new Vector3(float.MinValue, float.MinValue, float.MinValue);
         for (int i = 0; i < vertexCount; i++) {
-            m_particles[i].pos = vertices[i];
+            m_particles[i].pos = aVertsBaked[i];
             m_restParticles[i].invMass = m_particles[i].invMass = 0;        // These are pinned particles.  They never move from the simulation (we move them to repel clothing, softbody and fluids)
             m_colours[i] = color;
             m_particlesActivity[i] = true;
-            min = uFlex.FlexUtils.Min(min, vertices[i]);
-            max = uFlex.FlexUtils.Max(max, vertices[i]);
+            min = uFlex.FlexUtils.Min(min, aVertsBaked[i]);
+            max = uFlex.FlexUtils.Max(max, aVertsBaked[i]);
         }
         m_bounds.SetMinMax(min, max);       //###IMPROVE: Use bounds of skinned mesh instead?  Updates itself??
 

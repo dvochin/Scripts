@@ -299,7 +299,7 @@
 
 
 using UnityEngine;
-using UnityEditor;
+//using UnityEditor;
 using System;
 using System.IO;
 //using System.Text;
@@ -336,7 +336,7 @@ public class CUtility {         // Collection of static utility functions
 	public static Component FindOrCreateNode(Transform oNodeParent, string sName, Type oType) {
 		if (oNodeParent == null)
 			CUtility.ThrowException("*E: FindOrCreateNode() called with no parent Transform!");
-		Transform oChildTran = oNodeParent.FindChild(sName);
+		Transform oChildTran = oNodeParent.Find(sName);
 		if (oChildTran == null) {
 			GameObject oChildGO = (oType != null) ? new GameObject(sName, oType) : new GameObject(sName);
 			oChildTran = oChildGO.transform;
@@ -427,7 +427,7 @@ public class CUtility {         // Collection of static utility functions
 	}
 
 	public static Transform FindChild(Transform oParentT, string sChildPath) {
-		Transform oChildT = oParentT.FindChild(sChildPath);
+		Transform oChildT = oParentT.Find(sChildPath);
 		if (oChildT == null)
 			CUtility.ThrowException(String.Format("FindChild(Parent='{0}', ChildPath='{1}'", oParentT.name, sChildPath));
 		return oChildT;
@@ -453,7 +453,7 @@ public class CUtility {         // Collection of static utility functions
 			oNodeIterator = oNodeIterator.parent;
 		}
 		sBonePath = sBonePath.TrimEnd('/');
-		Transform oBoneNew = oBoneNewRoot.FindChild(sBonePath);
+		Transform oBoneNew = oBoneNewRoot.Find(sBonePath);
 		if (oBoneNew == null)
 			CUtility.ThrowException("*Err: TransferBone could not transfer bone '" + sBonePath + "' to new root '" + oBoneNewRoot + "'");
 		return oBoneNew;
@@ -489,7 +489,7 @@ public class CUtility {         // Collection of static utility functions
 		}
 		if (sPathToBranchPoint.Length > 0)
 			sPathToBranchPoint = sPathToBranchPoint.Substring(0, sPathToBranchPoint.Length - 1);		// Remove trailing '/'
-		Transform oNodeDst = oNodeIterator.FindChild(sPathToBranchPoint);
+		Transform oNodeDst = oNodeIterator.Find(sPathToBranchPoint);
 		if (oNodeDst == null)
 			CUtility.ThrowException("**Err: FindSymmetricalBodyNode() could not find symmetry node for " + oNodeSrc.name);
 		return oNodeDst;
@@ -830,20 +830,20 @@ public class CUtility {         // Collection of static utility functions
 	#region === DEBUGGING ===
 	public static void ThrowException(string sMsg) {
 		Debug.LogError("[EXCEPTION] " + sMsg);
-		EditorApplication.isPaused = true;			//###LEARN: How to programatically pause game in Unity editor.  (Doesn't work in player)
+		//EditorApplication.isPaused = true;			//###LEARN: How to programatically pause game in Unity editor.  (Doesn't work in player)
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
 	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###LEARN: How to accept and process variable arguments!
 		sMsg = "[EXCEPTION] " + sMsg;
-		EditorApplication.isPaused = true;
+		//EditorApplication.isPaused = true;
 		Debug.LogErrorFormat(sMsg, aArgs);
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
 	public static void ThrowException(Exception e) {
 		Debug.LogException(e);
-		EditorApplication.isPaused = true;
+		//EditorApplication.isPaused = true;		//###IMPROVE: Wrap with ifdef!
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 	#endregion

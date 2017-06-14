@@ -36,8 +36,8 @@ public class iGUICode_RootSliderOBS : MonoBehaviour {			// Encapsulates a '3D sl
 		transform.parent = _oPanel.transform;
 		transform.localPosition = new Vector3(0.01f, -_nOrdinal*C_SliderHeight-iGUICode_RootPanelOBS.C_HeaderTextHeight, 0);
 		transform.localRotation = Quaternion.Euler(0, -90f, 0);						//**WEAK: Another annoying init rotation... fix this in 3dsMax??
-		_oNodeSlide = transform.FindChild("Slide");
-		_oTextMesh  = transform.FindChild("Text").GetComponent<TextMesh>();			//###WEAK: A bit of duplication with CCursor... create base class??
+		_oNodeSlide = transform.Find("Slide");
+		_oTextMesh  = transform.Find("Text").GetComponent<TextMesh>();			//###WEAK: A bit of duplication with CCursor... create base class??
 		gameObject.layer = CCursor.C_Layer_HotSpot;
 
 		BoxCollider oColBox = (BoxCollider)transform.GetComponent<Collider>();
