@@ -140,7 +140,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					//	}
 					//}
 					//if (oBodyOther != null && oBodyOther._oActor_Pelvis != null) {			// If another body with a sex actor exists...
-					//	if ((_nAnimClipLength <= oBodyOther._oActor_Pelvis._nAnimClipLength * 1.2f) && (_nAnimClipLength >= oBodyOther._oActor_Pelvis._nAnimClipLength * 0.8f)) {		//... and has nearly the same lenght as ours...	###TUNE
+					//	if ((_nAnimClipLength <= oBodyOther._oActor_Pelvis._nAnimClipLength * 1.2f) && (_nAnimClipLength >= oBodyOther._oActor_Pelvis._nAnimClipLength * 0.8f)) {		//... and has nearly the same length as ours...	###TUNE
 					//		oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody = oBodyOther._oActor_Pelvis._nAnimClipLength / _nAnimClipLength;	// We set the other body's time because we could be facing a long return to first position as inserted above
 					//		//Debug.Log("Anim: _nTimeRatioToMatchOtherBody = " + oBodyOther._oActor_Pelvis._nTimeRatioToMatchOtherBody);
 					//	}

@@ -58,7 +58,7 @@ using System.Collections.Generic;
 public class CBodyBase : uFlex.IFlexProcessor {
 	//---------------------------------------------------------------------------	MAIN MEMBERS
 	public CBody			_oBody;					// Our most important member: The gametime body object responsible for gameplay functionality (host for softbodies, dynamic clothes, etc)  Created / destroyed as we enter/leave morph or gameplay mode
-	public CBMesh           _oMeshStaticCollider;		// The non-skinned body morph-baked mesh we're morphing.  Constantly refreshed from equivalent body in Blender as user moves morphing sliders.
+	public CBMesh           _oMeshStaticCollider;		//###OBS: Is particle based!  Go for new tri mesh?  The non-skinned body morph-baked mesh we're morphing.  Constantly refreshed from equivalent body in Blender as user moves morphing sliders.
 	EBodyBaseModes          _eBodyBaseMode = EBodyBaseModes.Uninitialized;      // The current body base mode: (BodyMorph, CutCloth, Play mode)  Hugely important
 	bool					_bIsDisabled;			// Body has been 'disabled' (invisible and not colliding in the scene in any way).  Used when another body is being edited.  (Set by Disable())
 	List<ushort>			_aVertsFlexCollider;    // Collection of verts sent from Blender that determine which verts form a morphing-time Flex collider capable of repelling morph-time bodysuit master cloth.
@@ -92,28 +92,31 @@ public class CBodyBase : uFlex.IFlexProcessor {
 
 		//=== Create default values for important body parameters from the sex ===
 		if (_eBodySex == EBodySex.Man) {
-			_sMeshSource = "ManA";
 			_sHumanCharacterName = (_nBodyID == 0) ? "Karl" : "Brent";          //###IMPROVE: Database of names?  From user???
 		} else {
-			_sMeshSource = "WomanA";
+			//_sMeshSource = "WomanA";
 			_sHumanCharacterName = (_nBodyID == 0) ? "Emily" : "Eve";
 		}
 
 		switch (_eBodySex) {                                 //###CHECK	####TEMP ####DESIGN: Loaded from file or user top-level selection! ####DESIGN: Public properties?
 			case EBodySex.Man:
+				_sMeshSource = "Man";
 				_sNameSrcGenitals_OBSOLETE = "PenisM-EroticVR-A-Big";		//###TODO11: Cleanup?
 				break;
 			case EBodySex.Woman:
+				_sMeshSource = "Woman";
 				_sNameSrcGenitals_OBSOLETE = "Vagina-EroticVR-A";                  //###DESIGN??? Crotch and not vagina???
 				break;
 			case EBodySex.Shemale:
+				_sMeshSource = "Shemale";
 				_sNameSrcGenitals_OBSOLETE = "PenisW-EroticVR-A-Big";              //###TODO: Comes from GUI!
 				break;
 		}
+		_sMeshSource += "A";				// Eventually meshes will have different versions but for now we only have the "A" version in Blender.
 
 
 		//=== Instantiate the proper prefab for our body type (Man or Woman), which defines our bones and colliders ===
-		GameObject oBodyTemplateGO = Resources.Load("Prefabs/Prefab" + _sMeshSource, typeof(GameObject)) as GameObject;      //###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
+		GameObject oBodyTemplateGO = Resources.Load("Prefabs/PrefabWomanA", typeof(GameObject)) as GameObject;      //###TODO: Different gender / body types enum that matches Blender	//oBody._sMeshSource + 
 		_oBodyRootGO = GameObject.Instantiate(oBodyTemplateGO) as GameObject;
 		_oBodyRootGO.name = _sBodyPrefix;
 		_oBodyRootGO.SetActive(true);           // Prefab is stored with top object deactivated to ease development... activate it here...
@@ -124,8 +127,6 @@ public class CBodyBase : uFlex.IFlexProcessor {
 		//_oGenitalsT.SetParent(_oBodyRootGO.transform);
 
 		//===== CREATE THE BODY PYTHON INSTANCE IN BLENDER =====		###DESIGN21: Reconsider argument passing here... would be better to have a 'mesh version' (e.g. A, B, C) of each sex and separate 'Shemale' to 'Woman'
-		if (_nBodyID == 1)
-				_sMeshSource += "-Dick";			//###HACK22:!!!!!!!
 		CGame.gBL_SendCmd("CBody", "CBodyBase_Create(" + _nBodyID.ToString() + ", '" + eBodySex.ToString() + "', '" + _sMeshSource + "','" + _sNameSrcGenitals_OBSOLETE + "')");       // This new instance is an extension of this Unity CBody instance and contains most instance members
 		_sBlenderInstancePath_CBodyBase = "CBodyBase_GetBodyBase(" + _nBodyID.ToString() + ")";                 // Simplify access to Blender CBodyBase instance
 
@@ -177,7 +178,7 @@ public class CBodyBase : uFlex.IFlexProcessor {
 
 	void FlexObject_BodyStaticCollider_Disable() {
 		//=== Destroy all configure-time Flex objects for performance.  They will have to be re-created upon re-entry into configure mode ===
-		//GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexParticlesRenderer>());      //###LEARN: DestroyImmediate is needed to avoid CUDA errors with regular Destroy()!
+		//GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexParticlesRenderer>());      //###INFO: DestroyImmediate is needed to avoid CUDA errors with regular Destroy()!
 		//GameObject.DestroyImmediate(_oMeshMorphResult.gameObject.GetComponent<uFlex.FlexProcessor>());
 		//GameObject.DestroyImmediate(_oFlexParticles);
 		//_oFlexParticles = null;

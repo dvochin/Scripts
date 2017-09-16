@@ -3,41 +3,37 @@
 public class CVisualizeParticle : MonoBehaviour {      // CDebugSoftBodyParticle: Renders debug geometry for a soft body particles
     public int _ParticleID;								//###IMPROVE: Add particle grabbing to this class? (to get away from buggy Flex mouse grabber implementation!)
     public bool _Selected;
-    CVisualizeSoftBody _oVisSoftBody;
-	static Color32 s_oColor_Startup  = new Color32(0, 255, 255, 255);		// Startup = cyan
-	static Color32 s_oColor_Selected = new Color32(0, 0, 255, 255);			// Selected = blue
-	static Color32 s_oColor_Pinned   = new Color32(128, 128, 128, 255);		// Pinned (infinite mass) = grey
+    CSoftBody _oSoftBody;
 
 
-    public void Initialize(CVisualizeSoftBody oVisSoftBody, int nParticleID) {
-        _oVisSoftBody = oVisSoftBody;
+    public void Initialize(CSoftBody oSoftBody, int nParticleID) {
+        _oSoftBody = oSoftBody;
         _ParticleID = nParticleID;
         name = string.Format("Par{0}", _ParticleID);
-        transform.SetParent(_oVisSoftBody.transform);
-        transform.localScale = _oVisSoftBody._vecSizeParticles;
+        transform.SetParent(_oSoftBody.transform);
         gameObject.SetActive(true);
-		SetColorAndSize();
+		DoUpdate();
     }
 
-    public void ToggleSelect() {
+    public void Select_Set() {
         _Selected = !_Selected;
-        if (_Selected)
-            Debug.LogFormat("Debug Particle {0} selected", _ParticleID);			//###IMPROVE: Dump helpful stats about this particle?
-        else
-            Debug.LogFormat("Debug Particle {0} unselected", _ParticleID);
-		SetColorAndSize();
+		DoUpdate();
     }
 
-	void SetColorAndSize() {
+	public void DoUpdate() {
+        transform.position = _oSoftBody._oFlexParticles.m_particles[_ParticleID].pos + _oSoftBody._vecVisualiserOffset;
+        transform.localScale = _oSoftBody._vecSizeParticles;
+
 		if (_Selected) {
-			GetComponent<MeshRenderer>().material.color = CVisualizeParticle.s_oColor_Selected;
-            transform.localScale = 2.0f * _oVisSoftBody._vecSizeParticles;
-		} else if (_oVisSoftBody._oFlexParticles.m_particles[_ParticleID].invMass == 0) { 
-			GetComponent<MeshRenderer>().material.color = CVisualizeParticle.s_oColor_Pinned;
-            transform.localScale = 2.0f * _oVisSoftBody._vecSizeParticles;
+			GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ParticlesSelected;
+            transform.localScale = 2.0f * _oSoftBody._vecSizeParticles;
+		} else if (_oSoftBody._oFlexParticles.m_particles[_ParticleID].invMass == 0) { 
+			GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ParticlesPinned;
 		} else {
-			GetComponent<MeshRenderer>().material.color = CVisualizeParticle.s_oColor_Startup;
-            transform.localScale = _oVisSoftBody._vecSizeParticles;
+            transform.localScale = _oSoftBody._vecSizeParticles;
+			//if (_oSoftBody._oFlexParticles.m_colours[_ParticleID] == Color.black)
+			//GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ParticlesDefault;
+			GetComponent<MeshRenderer>().material.color = _oSoftBody._oFlexParticles.m_colours[_ParticleID];
 		}
 	}
 }

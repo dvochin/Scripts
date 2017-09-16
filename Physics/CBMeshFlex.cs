@@ -61,7 +61,7 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
 	public void FlexObject_ClothSrc_Enable() {          // Create the Flex functionality when becomning active in game.
 		if (_oFlexParticles == null) { 
-			CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
+			//###BROKEN: CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
 			_oFlexParticles = GetComponent<uFlex.FlexParticles>();
 			GetComponent<MeshRenderer>().enabled = true;				// Make sure the mesh is visible in the scene so player can interact with it.
 		} else { 

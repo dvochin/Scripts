@@ -1,9 +1,47 @@
-/*###DISCUSSION: TODO scratch pad
+/*###DOCS24: July 2017 - Soft Body rewrite - Unity side
 
 === DEV ===
 
+=== NEXT ===
+- Naming of +DynBone- to change for each SB?
 
+=== TODO ===
 
+=== LATER ===
+
+=== CHECKIN REMAINS ===
+--- 24: Major rewrite around full SoftBody creation in Blender and new Unity Softbody runtime ---
+- Auto foot placement disabled... need a GUI / body option for that
+- Body transparency done with full duplication of all mats!
+- Broken PhysX collision temp disable
+- Broke cloth because of CFlex static creation removal... do in Blender too?
+- Script record / playback has bad hacks
+- Softbodies don't have auto prop set like old CPenis
+- Leaving Flex iter count very high!  Need to tune params for softbody growth
+- Bad hack with left / right VR panels!
+- Disabled cam too low... enabled on debug builds?
+- Bad hacks of uFlex with fluid solver and its (dumb) component search
+- VRTK has a bad hack around its panel creation
+
+=== OPTIMIZATIONS ===
+
+=== REMINDERS ===
+
+=== IMPROVE ===
+
+=== NEEDS ===
+
+=== DESIGN ===
+
+=== QUESTIONS ===
+
+=== IDEAS ===
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+
+=== WISHLIST ===
 
 === SCRATCH TODO ===
 - SpaceNavigator still stealing cycles? (check profiler)
@@ -21,7 +59,6 @@
 - Cleanup old panel creation crap and go straight to class we need.  Hotspot and canvas needs cleanup too
 
 === SCRATCH TODO LATER ===
-?- Pin hider SUCKS!  Find it!!
 - Move Old cursor & hotspots implementation... Save for a future mouse-based build?
 - First person movement: cam moving head -> chest -> pelvis and hands working as they should
 	- Need to establish well-constructed chain of bones from head to chest!
@@ -29,75 +66,10 @@
 - Consider a 1st-person 'avatar body' made up of upper chest, breasts, shoulders and arms only (no head, lower torso or legs) with no colliders (just presentation mesh)
 - Improve foot center so it 'senses' rigid bodies between feet and spreads them further.
 - REDO: Game modes getting confused!
+*/
 
 
 
-
-
-
-
-
-
-
-//###MOVE
-=== LAST ===
-=== NEXT ===
-=== TODO ===
-=== LATER ===
-=== IMPROVE ===
-=== DESIGN ===
---- FUCKING DESIGN ---
-- Entire pose has its origin at the base of the man's penis
-- The 'penetration point' is mathematically computed from the base of penis with some X,Y angle and a 'roll' from the woman about penis tip axis
-	- Penetration can only occur when the softbody penis converges exactly at the penetration point.
-		- Soft body particle damping and eventual spring-into-position help make this occur quickly.
-	- Once the penis has stabilized (FSM checks), various animations between the man and woman can take place.
-		- Some animations are for fucking, other clit rub, rub on top of penis, under penis, etc.
-- Woman's legs are moved programmatically according to
-- Q: The above is male-centric... is there a need for female-centric animations?  how?
-
-=== IDEAS ===
-- You can use Application.RegisterLogCallback to get everything that goes into the unity log.   See http://answers.unity3d.com/questions/232589/is-there-a-way-to-catch-global-application-expceti.html
-- Read https://unity3d.com/learn/tutorials/temas/best-practices/assets-objects-and-serialization for ideas on object serialization
-- IDEA: Have colliders be defined in Blender and serialized during
-
-=== LEARNED ===
-###LEARN: How to disable FUCKING Chaperone system (Dumb cyan circle drawn on floor over every frame): https://www.reddit.com/r/oculus/comments/5jgg0w/how_to_disable_chaperone_in_steam_vr/  (Set 'CollisionBoundsColorGammaA' to 0 in 'Steam/config/steamvr.vrsettings')
-VRTK SAMPLES TO STUDY  ###SOURCE: https://github.com/thestonefox/VRTK/blob/master/EXAMPLES.md
-- 011_Camera_HeadSetCollisionFading could help figure out fading problem?
-- 015_Controller_TouchpadAxisControl has a cute car remotely controlled...
-- 016_Controller_HapticRumble for vibration feedback
-- 017_CameraRig_TouchpadWalking for joystick cam movement
-- 018_CameraRig_FramesPerSecondCounter has easy info on HMD, FPS and illustrates FPS needs
-- 019_Controller_InteractingWithPointer shows how to interact remotely via pointer
-- 025_Controls_Overview has various 3D widgets being controlled (not Unity GUI)
-- 029_Controller_Tooltips has button tooltips on controller... they appear/dissapear when in a certain cone of vision.  Cone calcs useful?
-+ 030_Controls_RadialTouchpadMenu: Very neat radial menu that fades in/out.  Can go on controllers or objects!  Fade is neat!
-+ 031_CameraRig_HeadsetGazePointer: Shows how to determine what headset is looking at.  Also has a remote-control sphere that gazes and teleports!
-+ 032_Controller_CustomControllerModel shows how to have own mesh for hands 
-++034_Controls_InteractingWithUnityUI: extensive sample with useful features: Drag from panel could be fun!  Also scrolly for 2D usage
-- 035_Controller_OpacityAndHighlighting has controller being transluscent with labels for buttons used
-+ 040_Controls_Panel_Menu: Shows a panel when grabbing but unclear how to use widgets!
-
-=== PROBLEMS ===
-- Problem with depth of cursor and GUI... when far we get greater depth... Is this a problem between the overlay cam and main one?  (Or just for VR / Space Navigator??)
-	- Add various 'cursor depth traps' around major body parts so cursor has a max depth?
-	- Or... use body PhysX colliders?  BETTER! -> map to cursors??
-
-=== OLD PROBLEMS??? ===
-- Mouse-build GUI / CURSORS... still relevant?
-	- Rethink anchor points now that we can clip a little bit.
-	- Can't select a widget without unselecting first one
-	- Move canvas center or owning pin?
-	   - Finalize pin
-	- Slider grabber bigger
-	- Mesh show / hide shows extra softbodies, rim, collider body, sb skinned, etc
-	- Why are pins so small now?
-	- Cursor hit buggy as shit... redo!
-
-=== WISHLIST ===
-- Would be nice to have SB auto-reset during teleports!
- */
 
 
 using UnityEngine;
@@ -123,27 +95,9 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     public bool ShowFlexParticles = false;
     public bool EnableIdlePoseMovement = true;          // Small adjustments applied to all poses (to promote a less robotic still appearance)
 
-    //public bool showFlexParticles = true;
-    public float particleSpacing = 0.02f;               // 20mm = thickness of a finger = smallest object we need to collide with.
-    public float volumeSampling = 1;                    // 1 = Volume spacing at particle spacing, 2 = rich inner volume defintion, 0.01 = very sparse inner definition.  Huge influence!
-    public float surfaceSampling = 1;                   // Not much effect on surface defintion.  .001 = 132 par 5 = 183 par
-    public float clusterSpacingMult = 1.6f;             // Hugely important and dictates # of bones.  Need to keep this yield desired bone numbers and adjust RadiusMult for desired effect  1=175 particles fall apart  1.3=93 Almost holds together  1.5 mostly holds together  2=41 Mostly together with some breaks  2.5 about right  3=12  5.0 looks stiff  8 crashes  (The spacing for shape-matching clusters, should be at least the particle spacing)
-    public float clusterRadiusMult = 2.0f;              // Hugely important.  Once SpacingMult set for # of bones we want we adjust this to keep things together!  Starts looking very good at 2.0  Stiffens as we increase and probably more expensive  (Controls the overall size of the clusters, this controls how much overlap the clusters have which affects how smooth the final deformation is, if parts of the body are detaching then it means the clusters are not overlapping sufficiently to form a fully connected set of clusters)
-    public float clusterStiffness = 0.10f;              // Hugely important.  0.1 = Very slow restitution  0.5 = Still too slow  0.75 = Stiff as possible no shimmer 0.8 = Minor shimmer  0.89 = Major shimmer 1.0 blows up
-    public float linkRadiusMult = 0;                    // Creates extra springs... they don't appear to do much and just add overhead! (Any particles below this distance will have additional distance constraints created between them)
-    public float linkStiffness = 0.0f;                  // (The stiffness of distance links)
-    public float skinFalloff = 1.0f;                    // (The speed at which the bone's influence on a vertex falls off with distance)
-    public float skinMaxDistMult = 6.0f;                // (The maximum distance a bone can be from a vertex before it will not influence it any more)
-    public float nDistSoftBodyParticlesFromBackmeshMult = 0.8f;		// Multiplier distance (from particle distance) where softbody particles are too close to the 'backmesh' and are 'pinned' (e.g. Breast plate for breasts, Pelvic bone for penis, etc)
-    public float nSoftBodyFlexColliderShrinkRatio = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
+    public float particleSpacing = 0.02f;				// 20mm = thickness of a finger = smallest object we need to collide with.
+    public float particleRadius = 0.01f;				// Half of spacing = how much we have to 'back up' particles off a mesh to provide the illusion of collision against mesh surface
 	public float nDistFlexColliderShrinkMult = 0.7f;	// Percentage of particle distance used to 'shrink' the Flex colliders (to account for Flex mandatory inter-particle distance)
-    public float nMassSoftBody = 2.0f;              //###TUNE
-    public float nMassCloth = 1.0f;
-
-    public float stretchStiffness = 1.0f;
-    public float bendStiffness = 1.0f;
-    public float tetherStiffness = 0.0f;
-    public float tetherGive = 0.0f;
 
     //public bool BoneDebugMode = true;                   // All joint drivers limits are set to be as big as possible when this is set.  Used for runtime bone angle tuning
     public float BoneDriveStrength = 0.1f;              // The default angular drive for all bones.  Multiplied by a per-bone multiplier.  Hugely important.  ###TUNE
@@ -155,8 +109,6 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 						public 	int 		_TargetFrameRate = 25;
 						public float		_nAnimMult_Time = 1;
 						public float		_nAnimMult_Pos = 1;
-						public AnimationCurve CurveEjaculateMan;	// Designer-adjustable curves to adjust per-frame fluid properties to simulate man/woman ejaculation
-						//public AnimationCurve CurveEjaculateWoman;
 						public	bool		_ShowSysInfo;			// When true shows the system info messages at upper left of screen
 						public	bool		_ShowFPS;				// When true shows the frame per second stats
 
@@ -167,15 +119,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	
 	[HideInInspector] 	public	CCursor			_oCursor;			// The one-and-only CCursor INSTANCE for the game.
 	[HideInInspector] 	public	List<WeakReference>	_aKeyHooks = new List<WeakReference>();		// The list of globally-registered keyboard hooks.  ###IMPROVE?  Change to a map by keycode so we can trap multiple assignemnts??
-	//[HideInInspector]	public	CFluid			_oFluid;			// The one and only Fluid object the app can have.  (Multiple fluids can't collide with one another)
 
 	[HideInInspector]	public	CCamTarget		_oCamTarget;					// The one global camera target focus point.  Camera position determined by PhysX through configurable CCamMagnet spring joints pulling toward configurable points of interest
 
 	[HideInInspector]	public 	CScriptRecord	_oScriptRecordUserActions;
 
 	[HideInInspector]	public 	CPoseRoot		_oPoseRoot;
-
-	///[HideInInspector]	public 	static CCollider_OBS[]	s_aColliders_Scene;		// List of CCollider components that are children of the 'SceneColliders' top node.  Pulled in at init
 
 	//---------------------------------------------------------------------------	CONFIGURATION
 	
@@ -189,9 +138,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	[HideInInspector]	public	bool			_bGameModeBasicInteractions;		// When in basic interaction mode game is not showing the hotspots and editing is limited (to be more 'play like' = normal play mode)
 
 	[HideInInspector]	public	int				_nSelectedBody;
-	[HideInInspector]	public	bool			_GameIsRunning = false;			// When true all FixedUpdate() functions of any object can / should update themselves with FastPhysics (e.g. kinematic colliders)  //###DESIGN: Can get rid of this flag and just test for CGame.enabled??
 	[HideInInspector]	public	uint			_nFrameCount_MainUpdate;		// Number of calls to 'FixedUpdate()'  Used to efficiently perform tasks that don't need to run every frame.  ###DESIGN: Keep???
-	[HideInInspector]	public 	System.Random _oRnd = new System.Random(1234);
+	[HideInInspector]	public 	System.Random	_oRnd = new System.Random(1234);
 	[HideInInspector]	public	float			_nTimeStartOfCumming;
 	[HideInInspector]	public	bool			_bKeyShift, _bKeyControl, _bKeyAlt;
 	[HideInInspector]	public	bool			_bMouseBtnRight;		//###IMPROVE: Other buttons?
@@ -199,6 +147,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	[HideInInspector]	public	bool			_bRunningInEditor;				//###HACK Game running in editor is configured for development
 	[HideInInspector]	public	GameObject		_oSceneMeshesGO;                // The 'game scene' that is the current 'eye candy' room purely for visuals.  Stored to hide / show
     [HideInInspector]	public	Text            _oTextUL, _oTextUC, _oTextUR, _oText_VRHACK;       // Access members to GUI text fields ###MOVE???
+	IntPtr _hWnd_Unity;                 // HWND window handle of the Unity window.  Used to restore activation back to it because of Blender window activation (without this user would have to alt-tab!)
     //---------------------------------------------------------------------------	FPS CALC
     const float         C_TimeBetweenMinCalc = 5.0f;
     float               _nFpsUpdateInterval = 0.5F;
@@ -210,19 +159,6 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     string              _sFPS;
 	[HideInInspector]	public 	CHotSpot	_oHotSpot;				// Hotspot at the head of the character.  Enables user to change the important body properties by right-clicking on the head
 
-    //---------------------------------------------------------------------------	CONSTANTS		###MOVE???
-	//###MOVE
-    [HideInInspector]	public const string		C_RelPath_Textures = "/Unity/Assets/Resources/";
-	[HideInInspector]	public const int		C_PropAutoUpdatePeriod	= 100;			// Number of _nFpsFrames between CObject property auto refresh.
-	[HideInInspector]	public const float		C_BodySeparationAtStart = 0.35f;		//###TUNE ####DISABLED ####DESIGN: Revisit this?
-	
-	[HideInInspector]	public static Quaternion s_quatRotOffset90degUp   = Quaternion.FromToRotation(Vector3.forward, Vector3.up);		// Used to rotate capsules as PhysX insists on receiving them with Y-axis their longer side ('height')
-	[HideInInspector]	public static Quaternion s_quatRotOffset90degDown = Quaternion.FromToRotation(Vector3.up, Vector3.forward);
-
-	[HideInInspector]	public static Bounds	_oBoundsInfinite = new Bounds(Vector3.zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue));	// Infinite bounds to prevent having to recalc bounds on dynamically updating meshes (such as softbodies and clothing)
-
-	IntPtr _hWnd_Unity;                 // HWND window handle of the Unity window.  Used to restore activation back to it because of Blender window activation (without this user would have to alt-tab!)
-
     //---------------------------------------------------------------------------	MOVED FROM CGamePlay.  ###MOVE
 	[HideInInspector]	public 	CObject			_oObj;							// The user-configurable object representing the game
 	[HideInInspector]	public	CBodyBase[]		_aBodyBases;	// Our collection of body bases.  Used to morph / configure bodies before CBody is created for gameplay
@@ -230,49 +166,61 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	[HideInInspector]	public string			_sNameScenePose;				// The currently loaded scene pose
 	[HideInInspector]	public bool				_bScenePoseFlipped;             // If set the scene pose is 'flipped' (i.e. Pose for body a loaded into body b and vice versa)
-    [HideInInspector]	public uFlex.FlexSolver _oFlexSolver;                //###MOD
     [HideInInspector]	public bool             _bBodiesAreKinematic;        // When set propert sets to pose nodes will also directly move the attached PhysX object (used during pose loading)
 
     [HideInInspector] public float _nTimeAtStart;           // Used to determine how much time it takes to init
-
-	[HideInInspector]	public uFlex.CFlex _oFlex = new uFlex.CFlex();
 
 	[HideInInspector]	public const string C_sNameBlenderFile = "EroticVR.blend";          // The name of the Blender file to open as 'main'
 
 	[HideInInspector]	public Vector3[] _aCardinalAxis;                        // Three vectors for each of the cardinal axis where X = 0, Y = 1, Z = 2
 
-    //---------------------------------------------------------------------------	HACKS!!!!
-	public bool _bQuickStart_HACK = true;
-	public Transform _oVrWandObjectL;
-	public Transform _oVrWandObjectR;
-	public bool bDrivenByVr_HACK = false;
-	public float _nVrObjectControlPos = 0.1f;
-	public float _nVrObjectControlRot = 0.03f;
-	public bool _bDisableExpensiveFluidCollisions_HACK = false;
-	[HideInInspector]	public CFlexFluid _oFlexFluid;
-	public bool _bShowFlexFluidColliders_HACK = false;
-	public bool _bDisableSomeShit_HACK = false;
+	//---------------------------------------------------------------------------	###MOVE
+	[HideInInspector]	public uFlex.FlexSolver _oFlexSolverMain;
+    [HideInInspector]	public uFlex.FlexSolver _oFlexSolverFluid;
+	[HideInInspector]	public CFlexParamsMain	_oFlexParamsMain;
+	[HideInInspector]	public CFlexParamsFluid _oFlexParamsFluid;
 
-	public static Vector3 s_vecFaraway = new Vector3(0, 5, 0);					// Faraway vector.  Used to place things we don't want want to wee (but we can't hide) there. (e.g. culled fluid particles)  (Set to up 5 meters.  Camera rarely looks up)
 	[HideInInspector]	public int		_nLayer_BodyColliders;					//###MOVE23: Coalesce these globals into in class like G?
 	[HideInInspector]	public int		_nLayerMask_BodyColliders;
 
+	public CVrObjControl _oVrWandLeft;			//###DESIGN: Change name to CVrWand?
+	public CVrObjControl _oVrWandRight;
+	public Transform _oVrWandObjectL;
+	public Transform _oVrWandObjectR;
+	public float _nVrObjectControlPos = 0.1f;
+	public float _nVrObjectControlRot = 0.03f;
 
-    #region === INIT
-    void Start() {
+	public bool D_CanPause;
+
+    //---------------------------------------------------------------------------	###HACKS!
+	public int _nNumBodies_HACK = 2;
+	public bool _bQuickStart_HACK = true;
+	public bool _bDisableSomeCodeInDevelopment_HACK = false;
+	public bool _bShowFlexFluidColliders_HACK = false;
+
+
+
+
+	#region === INIT
+	void Start() {
+		enabled = false;				// We start the game with this component disabled.  When everything is initialized ok we set enabled to true so all-important CGame.Update() can run to operate the whole game
+
+
 		Debug.Log("=== CGame.StartGame() ===");
 		INSTANCE = this;
 		_nTimeAtStart = Time.time;
 
-		_nLayer_BodyColliders		= LayerMask.NameToLayer("BodyColliders");          //###LEARN: How to set layers by name
+		_nLayer_BodyColliders		= LayerMask.NameToLayer("BodyColliders");          //###INFO: How to set layers by name
 		_nLayerMask_BodyColliders	= 1 << _nLayer_BodyColliders;
 
+		_oVrWandLeft	= GameObject.Find("[VRTK]/LeftController")	.GetComponent<CVrObjControl>();		//###WEAK: Find by name path
+		_oVrWandRight	= GameObject.Find("[VRTK]/RightController")	.GetComponent<CVrObjControl>();
 
 		//    StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
 		//}
 		//public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
 
-		
+
 		//_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
 
 		//return;
@@ -285,29 +233,42 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_aCardinalAxis[0] = new Vector3(1, 0, 0);
 		_aCardinalAxis[1] = new Vector3(0, 1, 0);
 		_aCardinalAxis[2] = new Vector3(0, 0, 1);
+		_aGuiMessages = new string[(int)EGameGuiMsg.COUNT];
 
 
-		_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
-        GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
+		//=== Find the Flex solvers ===
+		_oFlexSolverMain	= GameObject.Find("FlexMain") .GetComponent<uFlex.FlexSolver>();
+		_oFlexParamsMain = _oFlexSolverMain.GetComponent<CFlexParamsMain>();
+		GameObject oFlexParamsFluidGO = GameObject.Find("FlexFluid");
+		if (oFlexParamsFluidGO) { 
+			_oFlexSolverFluid	= oFlexParamsFluidGO.GetComponent<uFlex.FlexSolver>();
+			_oFlexParamsFluid	= oFlexParamsFluidGO.GetComponent<CFlexParamsFluid>();
+			_oFlexParamsFluid.OnStart();
+		}
 
+
+
+
+		GameObject oSceneGO = GameObject.Find("SCENE/SceneColliders");
         _bRunningInEditor = true;       //###HACK ####REVA Application.isEditor
-        //_DemoVersion = (_bRunningInEditor == false);		//###CHECK? If dev has Unity code they are non-demo
+		//_DemoVersion = (_bRunningInEditor == false);		//###CHECK? If dev has Unity code they are non-demo
 
-        //###BROKEN22:!!!!! _oCursor = CCursor.Cursor_Create();		// What to do with all the cursor functionality if we're going VR only?  (Revive later for a mouse-based build?)
-        Cursor.visible = Application.isEditor;      // _bRunningInEditor;
+		//###DISABLED:!!!!! Cursor...  Add ifdef for the non-VR build!
+		//_oCursor = CCursor.Cursor_Create();		// What to do with all the cursor functionality if we're going VR only?  (Revive later for a mouse-based build?)
+		//Cursor.visible = false;	// Application.isEditor;      // _bRunningInEditor;	###DESIGN: What to do with cursor in editor / player for different builds??
 
         //=== Set rapid-access members to text widgets so we can rapidly update them ===
-        _oText_VRHACK = GameObject.Find("/UI/CanvasScreen/Text-VRHACK").GetComponent<Text>();		//###DEV22:!!! ###HACK
+        _oText_VRHACK = GameObject.Find("/UI/CanvasScreen/Text-VRHACK").GetComponent<Text>();		//###DESIGN:!!! ###HACK
         _oTextUL = GameObject.Find("/UI/CanvasScreen/UL/Text-UL").GetComponent<Text>();		//###OBS22:???  Keep all the old UI crap if we're going VR only? (Was meant for big screens)
         _oTextUC = GameObject.Find("/UI/CanvasScreen/UC/Text-UC").GetComponent<Text>();
         _oTextUR = GameObject.Find("/UI/CanvasScreen/UR/Text-UR").GetComponent<Text>();
 
 		//=== Set canvas to overlay if VR absent so we can see GUI ===
-		//GameObject oVrCameraRigGO = GameObject.Find("[CameraRig]");
-		//if (oVrCameraRigGO == null) { 
-		//	Canvas oCanvas = _oText_VRHACK.transform.parent.GetComponent<Canvas>();
-		//	oCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-		//}
+		GameObject oVrCameraRigGO = GameObject.Find("OVRCameraRig");		//###IMPROVE:!!!! Add VR or no VR game configuration for this type of stuff!
+		if (oVrCameraRigGO == null) { 
+			Canvas oCanvas = _oText_VRHACK.transform.parent.GetComponent<Canvas>();
+			oCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+		}
 
 		//=== Create user-adjustable top-level game options ===
 		_oObj = new CObject(this, "EroticVR Options", "EroticVR Options");		//###PROBLEM19: Name for scripting and label name!
@@ -403,7 +364,6 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		Debug.Log("7. CGame globals.");  //###???  new WaitForSeconds(nDelayForGuiCatchup);
 		_oSceneMeshesGO = GameObject.Find("SceneMeshes");			// Remember our scene game object so we can hide/show
 
-		_aGuiMessages = new string[(int)EGameGuiMsg.COUNT];
 		_ShowFPS = _ShowSysInfo = _bRunningInEditor;
 		
 		//###IMPROVE: Disabled until we need to save CPU cycles...  Create upon user demand to record script!
@@ -433,9 +393,9 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//StartCoroutine(Coroutine_Update100ms());
 		StartCoroutine(Coroutine_Update500ms());
 
-		_GameIsRunning = true;
-		enabled = true;
-		Debug.Log("+++ GameIsRunning ++");
+		//_GameIsRunning = true;				//WTF was this doing up here??
+		//enabled = true;
+		//Debug.Log("+++ GameIsRunning ++");
 
 		Debug.Log("7. Scene settling time.");  //###???  new WaitForSeconds(2.0f);		//###DESIGN??  ###TUNE??
 		///_oGui.ShowSceneBlanker(false);
@@ -461,21 +421,16 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		SetForegroundWindow(_hWnd_Unity);           //###WEAK: Can get rid of??
 
 
-		//=== Configure Flex fluid solver ===
-		GameObject oFlexFluidGO = GameObject.Find("FlexFluid");
-		if (oFlexFluidGO != null) { 
-			_oFlexFluid = oFlexFluidGO.GetComponent<CFlexFluid>();
-			_oFlexFluid.OnStart();
-		}
-
 
 
 		//###NOTE: For simplification in pose files we always have two bodies in the scene with man/shemale being body 0 and woman body 1
 		if (_bQuickStart_HACK == false) { 
-			_aBodyBases = new CBodyBase[1];
-			_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
+			_aBodyBases = new CBodyBase[_nNumBodies_HACK];
+			_aBodyBases[0] = new CBodyBase(0, EBodySex.Shemale);
+			//_aBodyBases[0] = new CBodyBase(0, EBodySex.Woman);
 			if (_aBodyBases.Length >= 2)
 				_aBodyBases[1] = new CBodyBase(1, EBodySex.Woman);
+				//_aBodyBases[1] = new CBodyBase(1, EBodySex.Shemale);
 		} else {
 			_aBodyBases = new CBodyBase[0];
 		}
@@ -485,8 +440,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 		///SetPenisInVagina(false);		// We initialize the penis in vagina state to false so vagina track colliders don't kick in at scene init
 
-		if (CGame.INSTANCE._GameMode == EGameModes.Play)
-			ScenePose_Load("Standing", false);          // Load the default scene pose
+		//if (CGame.INSTANCE._GameMode == EGameModes.Play)
+		//	ScenePose_Load("Standing", false);          // Load the default scene pose
 
         //Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 
@@ -494,15 +449,18 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		ChangeGameMode(EGameModes.CutCloth);		//###HACK21:!!!!!!!
 		ChangeGameMode(EGameModes.Play);
 
-		//SetGameModeBasicInteractions(false);		//###DEV22:
+		//SetGameModeBasicInteractions(false);		//###DESIGN:!!!
 
 		//###HACK22:!!!!!!!
-		if (_oVrWandObjectL == null)
-			_oVrWandObjectL = _aBodyBases[1]._oBody._oActor_Genitals.transform;
 		if (_oVrWandObjectR == null)
-			_oVrWandObjectR = _aBodyBases[0]._oBody._oActor_Genitals.transform;
+			//_oVrWandObjectR = _aBodyBases[0]._oBody._oActor_ArmL.transform;
+			_oVrWandObjectR = (_aBodyBases.Length > 1) ? _aBodyBases[1]._oBody._oActor_Genitals.transform : null;
+		if (_oVrWandObjectL == null)
+			_oVrWandObjectL = _aBodyBases[0]._oBody._oActor_Genitals.transform;
 
         Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
+
+		enabled = true;				// Enable to Update() loop to run the game.
     }
 
 
@@ -523,12 +481,21 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 		Debug.Log("--- CGame.DestroyGame() ---");
 
-		_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
+		//_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
+		enabled = false;                                // Stop CGame component will prevent Update() from running and prevent anything from happening.
+
+		//###IMPROVE: Need to destroy Flex?
+		//if (_oFlexSolverFluid != null)
+		//	_oFlexSolverFluid.enabled = false;
+		//if (_oFlexSolverMain != null)
+		//	_oFlexSolverMain.enabled = false;
+		//GameObject.DestroyImmediate(_oFlexSolverFluid.gameObject);
+
 
 		//=== Destroy Blender ===
-        if (_oProcessBlender != null) {
+		if (_oProcessBlender != null) {
 		    //try {
-			   // _oProcessBlender.Kill();				//###LEARN: Killing Blender this way frequently crashes Unity!!
+			   // _oProcessBlender.Kill();				//###INFO: Killing Blender this way frequently crashes Unity!!
 		    //} catch (Exception e) {
 			   // Debug.LogException(e);
 		    //}
@@ -543,8 +510,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
     #region === UPDATE
     public void Update() {
-		if (_GameIsRunning == false)                //###OPT: Get check out of update call and run infrequently?	###IMPROVE: Can use enabled/disabled intead???
-            return;
+		if (enabled == false)
+			CUtility.ThrowException("###EXCEPTION: Update() without enabled???");
 
 		//=== Store global key modifiers & mouse buttons for this game frame for efficiency ===
 		_bKeyShift      = Input.GetKey(KeyCode.LeftShift)   || Input.GetKey(KeyCode.RightShift);
@@ -552,7 +519,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         _bKeyAlt        = Input.GetKey(KeyCode.LeftAlt)     || Input.GetKey(KeyCode.RightAlt);
         _bMouseBtnRight = Input.GetMouseButton(1);
 
-        //=== Process CKeyHook keys ===		//###WEAK!!: Switch to use input manager??			//###OPT: Possible to do one test before branching out for all keys??		//###LEARN: If in editor, game window *must* have focus for keys to be seen!!
+        //=== Process CKeyHook keys ===		//###WEAK!!: Switch to use input manager??			//###OPT: Possible to do one test before branching out for all keys??		//###INFO: If in editor, game window *must* have focus for keys to be seen!!
         for (int nKeyHook = _aKeyHooks.Count - 1; nKeyHook >= 0; nKeyHook--) {       // We iterate in reverse order to make it possible to remove while iterating.
             WeakReference oKeyHookRef = _aKeyHooks[nKeyHook];
             if (oKeyHookRef.IsAlive) {
@@ -572,56 +539,75 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		if (Input.GetKeyDown(KeyCode.F4)) {		
 			SetBodiesAsKinematic(!_bBodiesAreKinematic);
 		}
-
-
-		
-		//###TEMP22: Test first person control stuff.  Going 3rd person for now
-		if (Input.GetKeyDown(KeyCode.F5)) {				
-			Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
-			Transform oBoneEyeCenterT = oBoneHeadT.Find("CenterEye");
-			if (oBoneEyeCenterT == null) {			// Center Eye made-up bone not created yet... create it
-				Transform oBoneEyeLT = oBoneHeadT.Find("lEye");
-				Transform oBoneEyeRT = oBoneHeadT.Find("lEye");
-				Vector3 vecEyeCenterLocal = (oBoneEyeLT.localPosition + oBoneEyeRT.localPosition) / 2;
-				vecEyeCenterLocal.z += 0.018f;			// Bone position of eyes is given about eyeball center.  Bring forward toward pupil  ###CHECK22: Good idea?  Looks good on cam or 'too far forward'?  Can step back and increase 'near clipping plane'
-				oBoneEyeCenterT = new GameObject("CenterEye").transform;
-				oBoneEyeCenterT.SetParent(oBoneHeadT);
-				oBoneEyeCenterT.transform.localPosition = vecEyeCenterLocal;
-			}
-			//Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
-			//Transform oBoneEyeCenterT = oBoneHeadT.FindChild("CenterEye");
-			Vector3 vecEyeCenter = oBoneEyeCenterT.position;
-			Transform oCameraRigT = GameObject.Find("[CameraRig]").transform;
-			Transform oCameraHeadT = oCameraRigT.Find("Camera (eye)");		//###CHECK21: Why do we have Camera (head) as child during design time and it dissapears
-			Vector3 vecPosRig = vecEyeCenter - oCameraHeadT.localPosition;
-			oCameraRigT.position = vecPosRig;
-			//oCameraRigT.rotation = oEyeCenterT.rotation;		//###DESIGN22: Do we ever touch rotation?  (Or... user changes by invoking some button to rotate?)
+		if (Input.GetKeyDown(KeyCode.KeypadPlus)) {
+			_oFlexParamsFluid.D_DisableEmitters = false;
+			_nTimeStartOfCumming = Time.time;
 		}
+		if (Input.GetKeyDown(KeyCode.KeypadMinus))
+			_oFlexParamsFluid.D_FlagForCompleteFluidDestruction = true;
+
+
+		////###TEMP22: Test first person control stuff.  Going 3rd person for now
+		//if (Input.GetKeyDown(KeyCode.F5)) {				
+		//	Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
+		//	Transform oBoneEyeCenterT = oBoneHeadT.Find("CenterEye");
+		//	if (oBoneEyeCenterT == null) {			// Center Eye made-up bone not created yet... create it
+		//		Transform oBoneEyeLT = oBoneHeadT.Find("lEye");
+		//		Transform oBoneEyeRT = oBoneHeadT.Find("lEye");
+		//		Vector3 vecEyeCenterLocal = (oBoneEyeLT.localPosition + oBoneEyeRT.localPosition) / 2;
+		//		vecEyeCenterLocal.z += 0.018f;			// Bone position of eyes is given about eyeball center.  Bring forward toward pupil  ###CHECK22: Good idea?  Looks good on cam or 'too far forward'?  Can step back and increase 'near clipping plane'
+		//		oBoneEyeCenterT = new GameObject("CenterEye").transform;
+		//		oBoneEyeCenterT.SetParent(oBoneHeadT);
+		//		oBoneEyeCenterT.transform.localPosition = vecEyeCenterLocal;
+		//	}
+		//	//Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
+		//	//Transform oBoneEyeCenterT = oBoneHeadT.FindChild("CenterEye");
+		//	Vector3 vecEyeCenter = oBoneEyeCenterT.position;
+		//	Transform oCameraRigT = GameObject.Find("[CameraRig]").transform;
+		//	Transform oCameraHeadT = oCameraRigT.Find("Camera (eye)");		//###CHECK21: Why do we have Camera (head) as child during design time and it dissapears
+		//	Vector3 vecPosRig = vecEyeCenter - oCameraHeadT.localPosition;
+		//	oCameraRigT.position = vecPosRig;
+		//	//oCameraRigT.rotation = oEyeCenterT.rotation;		//###DESIGN22: Do we ever touch rotation?  (Or... user changes by invoking some button to rotate?)
+		//}
+		//if (Input.GetKeyDown(KeyCode.F6)) {
+		//	GameObject oWandLGO = GameObject.Find("[CameraRig]/Controller (left)");
+		//	if (oWandLGO != null) {
+		//		Transform oWandLT = oWandLGO.transform;
+		//		_aBodyBases[0]._oBody._oActor_ArmL.transform.position = oWandLT.position;		//###HACK21:!!!! Find bettter way to get to proper pin!!
+		//		_aBodyBases[0]._oBody._oActor_ArmL.transform.rotation = oWandLT.rotation;
+		//		_aBodyBases[0]._oBody._oActor_ArmL._oObj.PropSet(0, EActorNode.Pinned, 1);		//###MOVE?
+		//	}
+		//}
+		//if (Input.GetKeyDown(KeyCode.F7)) {
+		//	bDrivenByVr_HACK = !bDrivenByVr_HACK;
+		//}
+
+			//if (bDrivenByVr_HACK) {
+			//	GameObject oWandRGO = GameObject.Find("[CameraRig]/Controller (right)");
+			//	if (oWandRGO != null) {
+			//		Transform oWandRT = oWandRGO.transform;
+			//		_aBodyBases[0]._oBody._oActor_ArmR.transform.position = oWandRT.position;
+			//		_aBodyBases[0]._oBody._oActor_ArmR.transform.rotation = oWandRT.rotation;
+			//		_aBodyBases[0]._oBody._oActor_ArmR._oObj.PropSet(0, EActorNode.Pinned, 1);
+			//	}
+			//	//bDrivenByVr_HACK = false;
+			//}
+			//-------------------------------------
+
+
+		if (Input.GetKeyDown(KeyCode.F5)) {          //###TEMP:!!!!
+			_aBodyBases[0]._oBody.Pose_Save("Body0");
+			if (_aBodyBases.Length > 1)							//###HACK: While waiting for our fancy pose combination stuff...
+				_aBodyBases[1]._oBody.Pose_Save("Body1");
+		}
+			//ScenePose_Save("TEMP");
 		if (Input.GetKeyDown(KeyCode.F6)) {
-			GameObject oWandLGO = GameObject.Find("[CameraRig]/Controller (left)");
-			if (oWandLGO != null) {
-				Transform oWandLT = oWandLGO.transform;
-				_aBodyBases[0]._oBody._oActor_ArmL.transform.position = oWandLT.position;		//###HACK21:!!!! Find bettter way to get to proper pin!!
-				_aBodyBases[0]._oBody._oActor_ArmL.transform.rotation = oWandLT.rotation;
-				_aBodyBases[0]._oBody._oActor_ArmL._oObj.PropSet(0, EActorNode.Pinned, 1);		//###MOVE?
-			}
-		}
-		if (Input.GetKeyDown(KeyCode.F7)) {
-			bDrivenByVr_HACK = !bDrivenByVr_HACK;
+			_aBodyBases[0]._oBody.Pose_Load("Body0");
+			if (_aBodyBases.Length > 1)
+				_aBodyBases[1]._oBody.Pose_Load("Body1");
 		}
 
-		if (bDrivenByVr_HACK) {
-			GameObject oWandRGO = GameObject.Find("[CameraRig]/Controller (right)");
-			if (oWandRGO != null) {
-				Transform oWandRT = oWandRGO.transform;
-				_aBodyBases[0]._oBody._oActor_ArmR.transform.position = oWandRT.position;
-				_aBodyBases[0]._oBody._oActor_ArmR.transform.rotation = oWandRT.rotation;
-				_aBodyBases[0]._oBody._oActor_ArmR._oObj.PropSet(0, EActorNode.Pinned, 1);
-			}
-			//bDrivenByVr_HACK = false;
-		}
-		//-------------------------------------
-
+			//ScenePose_Load("TEMP", false);
 
 
 
@@ -676,7 +662,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
             sDateTime = sDateTime.Replace(':', '.');
             string sPathFileCapture = GetPathScreenCaptures() + _sNameScenePose + " - " + sDateTime;
             Debug.Log("Saved screen capture file to " + sPathFileCapture);  //###IMPROVE: Save a .jpg
-            Application.CaptureScreenshot(sPathFileCapture);
+            ScreenCapture.CaptureScreenshot(sPathFileCapture);
         }
 
         if (Input.GetKeyDown(KeyCode.H) && _bKeyControl) {
@@ -798,7 +784,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//=== Re-enable collision temporarily disabled in Pose_Load() if time has elapsed ===
 		if (_nTimeReenableCollisions != 0) {				//###IMPROVE: Do this by co-routine instead??
 			if (nTime > _nTimeReenableCollisions) {					//###IMPROVE: Use layer search name instead of 0
-				//Physics.IgnoreLayerCollision(0, 0, false);		//###DEV22:!!!!
+				//Physics.IgnoreLayerCollision(0, 0, false);		//###DESIGN:!!!
 				_nTimeReenableCollisions = 0;
 			}
 		}
@@ -808,12 +794,27 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         foreach (CBodyBase oBodyBase in _aBodyBases)
 			oBodyBase.OnSimulatePre();
 
-		//=== Update Flex collision objects ===
-		if (_oFlexSolver != null && _oFlexSolver.m_cntr != null)
-			_oFlexSolver.DoFixedUpdate();
-        
-		if (_oFlexFluid != null)
-			_oFlexFluid.DoFixedUpdate();
+		//=== Update Flex solvers and support objects ===
+		//if (_oFlexSolverMain != null && _oFlexSolverMain.m_cntr != null)
+		//	_oFlexSolverMain.DoFixedUpdate();
+		//if (_oFlexSolverFluid != null && _oFlexSolverFluid.m_cntr != null)
+		//	_oFlexSolverFluid.DoFixedUpdate();
+		//if (_oFlexParamsFluid != null)
+		//	_oFlexParamsFluid.DoFixedUpdate();
+
+		_oFlexSolverFluid.DoUpdate1();
+		_oFlexSolverMain .DoUpdate1();
+		_oFlexSolverFluid.DoUpdate2();
+		_oFlexSolverMain .DoUpdate2();
+		_oFlexSolverFluid.DoUpdate3();
+		_oFlexSolverMain .DoUpdate3();
+		_oFlexSolverFluid.DoUpdate4();
+		_oFlexSolverMain .DoUpdate4();
+		_oFlexSolverFluid.DoFixedUpdate();
+		_oFlexSolverMain .DoFixedUpdate();
+
+		if (_oFlexParamsFluid != null)
+			_oFlexParamsFluid.DoFixedUpdate();
 
         CGame.INSTANCE._nFrameCount_MainUpdate++;	//###HACK! To stats!
     }
@@ -830,7 +831,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//}
 	IEnumerator Coroutine_Update500ms() {			// Very slow update coroutine to update low-priority stuff.
 		for (; ; ) {								//###IMPROVE!!! Use these slow calls to update low-priority stuff app-wide!
-			if (_GameIsRunning) {					//####CHECK?
+			if (enabled) {					//####CHECK?
 				if (_ShowSysInfo) {
 				    string sMsgs = _sFPS + "\r\n";              //###IMPROVE: FPS in different text widget
                     //sMsgs += Marshal.PtrToStringAnsi(ErosEngine.Dev_GetDevString(0)) + "\r\n";      //###IMPROVE: Combine in C++?
@@ -862,7 +863,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	#region === Misc ===
 		
-	//###LEARN: Coroutine with timed yield.  Use this for update stuff that doesn't need to run everyframe! ###OPT!!!!!
+	//###INFO: Coroutine with timed yield.  Use this for update stuff that doesn't need to run everyframe! ###OPT!!!!!
 	//IEnumerator Coroutine_DoWindowsMessages() {		//			StartCoroutine(Coroutine_DoWindowsMessages());						//###OPT ###TODO: Many more of these coroutines for low frequency stuff..
 	//	while (true) {
 	//		yield return new WaitForSeconds(_UpdateGuiPhysX ? 0.04f : 1.0f);
@@ -1007,17 +1008,27 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     public static LineRenderer Line_Add(string sKey) {
         GameObject oTemplateGO = Resources.Load("Prefabs/LineRenderer", typeof(GameObject)) as GameObject;
         GameObject oLineGO = Instantiate(oTemplateGO);
-        oLineGO.name = sKey;
-        oLineGO.transform.SetParent(GameObject.Find("Resources/LineManager").transform);
+        oLineGO.name = sKey;                   //###IMPROVE: Add functionality where name is guaranteed unique (generated from static counter)
+		oLineGO.transform.SetParent(GameObject.Find("Resources/LineManager").transform);
         oLineGO.SetActive(true);
         LineRenderer oLR = oLineGO.GetComponent<LineRenderer>();
         return oLR;
     }
 
+	public static LineRenderer Line_Add(string sKey, Color colorLine, float nWidthParticleObserver, float nWidthParticleOther, int nNumVerts = 2) {
+		LineRenderer oLR = CGame.Line_Add(sKey);
+		oLR.positionCount = nNumVerts;
+		oLR.material.color = colorLine;
+		oLR.startWidth  = nWidthParticleObserver;
+		oLR.endWidth    = nWidthParticleOther;
+		return oLR;
+	}
 
-    //---------------------------------------------------------------------------	GAME MODES
 
-    public void ChangeGameMode(EGameModes eGameMode) {
+
+	//---------------------------------------------------------------------------	GAME MODES
+
+	public void ChangeGameMode(EGameModes eGameMode) {
 		if (_GameMode == eGameMode)
 			return;
 		//###BROKEN22: Game change limits
@@ -1037,12 +1048,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		switch (_GameMode) {
 			case EGameModes.MorphBody:
 				//_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
-				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DEV22:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
+				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.MorphBody);
 				break;
 			case EGameModes.CutCloth:
 				//_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
-				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DEV22:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
+				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.CutCloth);
 				break;
 			case EGameModes.Play:
@@ -1062,8 +1073,13 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         //        oBody.HoldSoftBodiesInReset(bSoftBodyInReset);
     }
 
-   	public void TemporarilyDisablePhysicsCollision(float nTimeInSec = 2.0f) {	//###TUNE		// Disable collisions on default layers so bones can go through each other for a small amount of time to avoid tangling.
-		Physics.IgnoreLayerCollision(0, 0, true);			//###IMPROVE: Consider a coroutine??
+   	public void TemporarilyDisablePhysicsCollision(float nTimeInSec = 200000.0f) {   //###TUNE		// Disable collisions on default layers so bones can go through each other for a small amount of time to avoid tangling.
+		return;		//###BROKEN:
+
+
+		for (int nLayer1 = 0; nLayer1 < 32; nLayer1++) 
+			for (int nLayer2 = 0; nLayer2 < 32; nLayer2++) 
+				Physics.IgnoreLayerCollision(nLayer1, nLayer2, true);			//###IMPROVE: Consider a coroutine?
 		_nTimeReenableCollisions = Time.time + nTimeInSec;
 	}
 		public void SetGameModeBasicInteractions(bool bGameModeBasicInteractions) {
@@ -1093,7 +1109,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
     public static string gBL_SendCmd(string sModule, string sCmd) {
 		string sCmdFull = "__import__('" + sModule + "')." + sCmd;
-		IntPtr hStringIntPtr = ErosEngine.gBL_Cmd(sCmdFull, false);		//###LEARN: Non-crash & non-leak way to obtain strings from C++ is at http://www.mono-project.com/Interop_with_Native_Libraries#Strings_as_Return_Values
+		IntPtr hStringIntPtr = ErosEngine.gBL_Cmd(sCmdFull, false);		//###INFO: Non-crash & non-leak way to obtain strings from C++ is at http://www.mono-project.com/Interop_with_Native_Libraries#Strings_as_Return_Values
 		string sResults = Marshal.PtrToStringAnsi(hStringIntPtr);
 		if (sResults.StartsWith("ERROR:"))		//###IMPROVE: Internal C code also has numeric error values not exported to Unity... Error strings enough?
 			Debug.LogError("ERROR: Cmd_Wrapper error results.  OUT='" + sCmdFull + "'  IN='" + sResults + "'");		//###WEAK: Assume all error strings start with this!  ####DEV!!!!
@@ -1145,10 +1161,10 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		oProc.StartInfo.FileName = sFileProcess;
 		oProc.StartInfo.Arguments = sArguments;
         //oProc.StartInfo.CreateNoWindow = true;		// Does anything useful??
-        oProc.StartInfo.UseShellExecute = false;        //###NEW: ShellExecute gives us a black blender window with splash!!	// Must be false to redirect below.			//###LEARN: Can't seem to get redirct working with Blender (Test with another app)  Could be that we cannot redirect Blender.  use Shell Execute so at least user can see damn console for errors!!!
+        oProc.StartInfo.UseShellExecute = false;        //###NEW: ShellExecute gives us a black blender window with splash!!	// Must be false to redirect below.			//###INFO: Can't seem to get redirct working with Blender (Test with another app)  Could be that we cannot redirect Blender.  use Shell Execute so at least user can see damn console for errors!!!
 		if (bRedirectOutput) {
 			oProc.StartInfo.RedirectStandardOutput = true;	//###IMPROVE!!!!: Redirect in/out/err and benefit from this to catch Blender errors! ###SOON
-			oProc.StartInfo.RedirectStandardError = true;	//###LEARN: Holy crap does .Net ever rule... you'd have to shoot me doing this in C++!
+			oProc.StartInfo.RedirectStandardError = true;	//###INFO: Holy crap does .Net ever rule... you'd have to shoot me doing this in C++!
 			//oProc.StartInfo.RedirectStandardInput = true;	//###IMPROVE!!!! Possibly to feed commands to Blender via its console-based Python console?  Would be ultra cool!!  ###RESEARCH!!!!!
 		}
 		oProc.StartInfo.WindowStyle = eWinStyle;
@@ -1208,9 +1224,10 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			if (oNic.NetworkInterfaceType == NetworkInterfaceType.Ethernet || oNic.NetworkInterfaceType == NetworkInterfaceType.GigabitEthernet || oNic.NetworkInterfaceType == NetworkInterfaceType.Ethernet3Megabit || oNic.NetworkInterfaceType == NetworkInterfaceType.FastEthernetFx || oNic.NetworkInterfaceType == NetworkInterfaceType.FastEthernetT) 
 				return oNic.GetPhysicalAddress().ToString();
 		}
-		foreach (NetworkInterface oNic in aNics) {			// Second return the first up adaptor (can change from wifi to ethernet, etc)
+		foreach (NetworkInterface oNic in aNics) {          // Second return the first up adaptor (can change from wifi to ethernet, etc)
 			if (oNic.OperationalStatus == OperationalStatus.Up)
 				return oNic.GetPhysicalAddress().ToString();
+
 		}
 		if (aNics.Length > 0)
 			return aNics[0].GetPhysicalAddress().ToString();	// Third return the first one
@@ -1255,7 +1272,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//	//	_aBodies[0]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[1]);
 	//	//	_aBodies[1]._oHeadLook.AddLookTargetsToOtherBody(_aBodies[0]);
 	//	//}
-	//	//CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = null;				//###BROKEN!!  How to display before lenghty blocking calls below??? CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = "Rebuilding Body.  Please Wait...";
+	//	//CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = null;				//###BROKEN!!  How to display before lengthy blocking calls below??? CGame.SetGuiMessage(EGameGuiMsg.GameStatus] = "Rebuilding Body.  Please Wait...";
 	//}
 
 	//public void SetPenisInVagina(bool bPenisInVagina) {		// When penis tip meets the vagina trigger collider (runs from entrance to deep inside), vagina guide track is activated, penis ceases to create dynamic colliders in CBodyCol and fluid only collides with vagina guide track
@@ -1287,9 +1304,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//--------------------------------------------------------------------------	SCENE LOAD / SAVE  ###MOVE??
 
 	public void ScenePose_Load(string sNameScenePose, bool bScenePoseFlipped) {		// Load a 'scene' = The pose & position of each character plus CPoseRoot position.  bInvert loads pose for body 2 into body 1 and vice versa
-		//###BROKEN11: Some of this in CBodyBase?
+		string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 
-		//string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		if (_aBodyBases.Length > 0)
+			_aBodyBases[0]._oBody.Pose_Load("Body0");			//###BROKEN:!!!! Pose loading direct to our bodies... bypassing old concept of 'scene pose'
+		if (_aBodyBases.Length > 1)
+			_aBodyBases[1]._oBody.Pose_Load("Body1");
 
 		//if (File.Exists(sPathScenePose)) {
 		//	_sNameScenePose = sNameScenePose;
@@ -1337,30 +1357,30 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
     }
 
     public void ScenePose_Save(string sNameScenePose) {
-		//###BROKEN11: Some of this in CBodyBase?
-		//_sNameScenePose = sNameScenePose;
-		//_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
+		_sNameScenePose = sNameScenePose;
+		_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
 
-		//Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
-		//string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
-		//Debug.Log("Scene_Save() saving scene " + sPathScenePose);
-		//StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
-		//EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
-		//oStreamWrite.WriteLine(ePoseRootPos.ToString());
+		Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
+		string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		Debug.Log("Scene_Save() saving scene " + sPathScenePose);
+		StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
+		/////////EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
+		////////oStreamWrite.WriteLine(ePoseRootPos.ToString());
+		oStreamWrite.WriteLine("POSE NAME ###HACK");
 
-		////Vector3 vecBase = CGame.INSTANCE._oPoseRoot.transform.position;
-		////Quaternion quatBase = CGame.INSTANCE._oPoseRoot.transform.rotation;
-		////string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6}", vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
-		////oStreamWrite.WriteLine(sLine);
+		//Vector3 vecBase = CGame.INSTANCE._oPoseRoot.transform.position;
+		//Quaternion quatBase = CGame.INSTANCE._oPoseRoot.transform.rotation;
+		//string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6}", vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
+		//oStreamWrite.WriteLine(sLine);
 	
-		//for (int nBody = 0; nBody < 2; nBody++) {			// Iterate through all bodies and save their currently loaded pose and their base position.
-		//	CBody oBody = _aBodyBases[nBody];
-		//	Vector3 vecBase = oBody._oActor_Genitals.transform.localPosition;
-		//	Quaternion quatBase = oBody._oActor_Genitals.transform.localRotation;
-		//	string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7}", oBody._sNamePose, vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
-		//	oStreamWrite.WriteLine(sLine);
-		//}
-		//oStreamWrite.Close();				//###IMPROVE: Save placeholder image?
+		foreach (CBodyBase oBodyBase in _aBodyBases) {  // Iterate through all bodies and save their currently loaded pose and their base position.
+			CBody oBody = oBodyBase._oBody;
+			Vector3 vecBase = oBody._oActor_Genitals.transform.localPosition;
+			Quaternion quatBase = oBody._oActor_Genitals.transform.localRotation;
+			string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7}", oBody._sNamePose, vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
+			oStreamWrite.WriteLine(sLine);
+		}
+		oStreamWrite.Close();				//###IMPROVE: Save placeholder image?
 	}
 
 	public void Scene_Reload() {
@@ -1438,11 +1458,14 @@ public enum EGameGuiMsg {		//###OBS??  ###TODO: Incomplete!
 	VrControl1,
 	VrControl2,
 	VrControlCam,
+	VrWandLeft,
+	VrWandRight,
 	Fluid1,
 	Fluid2,
     CursorStat1,
     CursorStat2,
     CursorStat3,
+	Penetration,
     COUNT						// Not an actual entry, just for sizing
 }
 	//SelectedBody,
@@ -1458,3 +1481,39 @@ public enum EPoseRootPos {		//###MOVE Scene 3D positions to act as 'root' for th
 	BedCorner,
 	BedTop,
 }
+
+//---------------------------------------------------------------------------	CONSTANTS		###MOVE???
+//###MOVE
+//[HideInInspector]	public const string		C_RelPath_Textures = "/Unity/Assets/Resources/";
+//[HideInInspector]	public const int		C_PropAutoUpdatePeriod	= 100;			// Number of _nFpsFrames between CObject property auto refresh.
+//[HideInInspector]	public const float		C_BodySeparationAtStart = 0.35f;		//###TUNE ####DISABLED ####DESIGN: Revisit this?
+
+//[HideInInspector]	public static Quaternion s_quatRotOffset90degUp   = Quaternion.FromToRotation(Vector3.forward, Vector3.up);		// Used to rotate capsules as PhysX insists on receiving them with Y-axis their longer side ('height')
+//[HideInInspector]	public static Quaternion s_quatRotOffset90degDown = Quaternion.FromToRotation(Vector3.up, Vector3.forward);
+
+//[HideInInspector]	public static Bounds	_oBoundsInfinite = new Bounds(Vector3.zero, new Vector3(float.MaxValue, float.MaxValue, float.MaxValue));	// Infinite bounds to prevent having to recalc bounds on dynamically updating meshes (such as softbodies and clothing)
+
+
+//public bool showFlexParticles = true;
+//public float volumeSampling = 1;                    //###OBS:!!!! 1 = Volume spacing at particle spacing, 2 = rich inner volume defintion, 0.01 = very sparse inner definition.  Huge influence!
+//public float surfaceSampling = 1;                   // Not much effect on surface defintion.  .001 = 132 par 5 = 183 par
+//public float clusterSpacingMult = 1.6f;             // Hugely important and dictates # of bones.  Need to keep this yield desired bone numbers and adjust RadiusMult for desired effect  1=175 particles fall apart  1.3=93 Almost holds together  1.5 mostly holds together  2=41 Mostly together with some breaks  2.5 about right  3=12  5.0 looks stiff  8 crashes  (The spacing for shape-matching clusters, should be at least the particle spacing)
+//public float clusterRadiusMult = 2.0f;              // Hugely important.  Once SpacingMult set for # of bones we want we adjust this to keep things together!  Starts looking very good at 2.0  Stiffens as we increase and probably more expensive  (Controls the overall size of the clusters, this controls how much overlap the clusters have which affects how smooth the final deformation is, if parts of the body are detaching then it means the clusters are not overlapping sufficiently to form a fully connected set of clusters)
+//public float clusterStiffness = 0.10f;              // Hugely important.  0.1 = Very slow restitution  0.5 = Still too slow  0.75 = Stiff as possible no shimmer 0.8 = Minor shimmer  0.89 = Major shimmer 1.0 blows up
+//public float linkRadiusMult = 0;                    // Creates extra springs... they don't appear to do much and just add overhead! (Any particles below this distance will have additional distance constraints created between them)
+//public float linkStiffness = 0.0f;                  // (The stiffness of distance links)
+//public float skinFalloff = 1.0f;                    // (The speed at which the bone's influence on a vertex falls off with distance)
+//public float skinMaxDistMult = 6.0f;                // (The maximum distance a bone can be from a vertex before it will not influence it any more)
+//public float nDistSoftBodyParticlesFromBackmeshMult = 0.8f;		// Multiplier distance (from particle distance) where softbody particles are too close to the 'backmesh' and are 'pinned' (e.g. Breast plate for breasts, Pelvic bone for penis, etc)
+//public float nSoftBodyFlexColliderShrinkRatio = 0.10f;    // Percentage of particle spacing that will 'shrink' softbody flex colliders so resultant appearance mesh appears to collide closer than technology allows.
+//public float nMassSoftBody = 2.0f;              //###TUNE
+//public float nMassCloth = 1.0f;
+//public float stretchStiffness = 1.0f;
+//public float bendStiffness = 1.0f;
+//public float tetherStiffness = 0.0f;
+//public float tetherGive = 0.0f;
+
+//public bool bDrivenByVr_HACK = false;
+//public bool _bDisableFlexOutputStage_HACK = false;
+//public bool _bShowPins = true;
+//public static Vector3 s_vecFaraway = new Vector3(0, 5, 0);					// Faraway vector.  Used to place things we don't want want to wee (but we can't hide) there. (e.g. culled fluid particles)  (Set to up 5 meters.  Camera rarely looks up)

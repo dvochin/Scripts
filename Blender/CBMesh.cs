@@ -10,7 +10,6 @@
 
 using UnityEngine;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 
 
@@ -22,7 +21,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	[HideInInspector]	public 	CBodyBase		_oBodyBase;						// Body base this mesh / skinned mesh is associated too.
 	[HideInInspector]	public  Mesh			_oMeshNow;	
 	[HideInInspector]	public	List<ushort>	_aMapSharedNormals;
-	[HideInInspector]	public	Material[]		_aMats;							// Array of materials deserialized from Blender
+	[HideInInspector]	public	Material[]		_aMatsCurrent;					// Array of materials currently applied to mesh (any slot can be from opaque or transparent lists below)
+	[HideInInspector]	public	Material[]		_aMatsOpaque;					// Array of opaque materials created from Blender info
+	[HideInInspector]	public	Material[]		_aMatsTransparent;				// Array of transparent materials created from Blender info.  Needed when we want to go transparent
 
 	[HideInInspector]	public	Boolean		    _bConnectedToBlenderMesh;		// Blender has a valid C++ connection to this Blender mesh.  (We can update its verts and get vert updates)
 	[HideInInspector]	public	Boolean		    _bKeepBlenderShare;             // Link to Blender mesh won't be closed once mesh is loaded (e.g. _bConnectedToBlenderMesh always remains true)
@@ -32,7 +33,6 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 	[HideInInspector]	public 	CMemAlloc<Vector3> 	_memVertsStart		= new CMemAlloc<Vector3>();	// The vertices at creation time.  Can be used to 'restore' mesh at start position (e.g. softbodies)
 	[HideInInspector]	public 	CMemAlloc<Vector3>	_memNormals 		= new CMemAlloc<Vector3>();	// The normals we send and receive to/from PhysX
 	[HideInInspector]	public 	CMemAlloc<int>		_memTris  			= new CMemAlloc<int>();		// The triangles we send to Phys
-	
 	
 	
 	//---------------------------------------------------------------------------	INIT
@@ -93,11 +93,13 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		//_oMeshNow.MarkDynamic();			//###CHECK: Use by default or case-by-case basis in subclasses??    ###OPT!
 
         if (GetComponent<Collider>() != null)
-            Destroy(GetComponent<Collider>());                      //###LEARN: Hugely expensive mesh collider created by the above lines... turn it off!
+            Destroy(GetComponent<Collider>());                      //###INFO: Hugely expensive mesh collider created by the above lines... turn it off!
 
 		//===== READ THE MATERIALS =====
 		//=== Read the material list from Blender and create the necessary materials linking to the provided texture images ===
-		_aMats = new Material[nMats];
+		_aMatsCurrent		= new Material[nMats];
+		_aMatsOpaque		= new Material[nMats];
+		_aMatsTransparent	= new Material[nMats];
 		for (byte nMat = 0; nMat < nMats; nMat++) {
 			string sCodedMaterial = oBA.ReadString();
 			sCodedMaterial = sCodedMaterial.Replace('\\', '/');						// Replace backslashes to the slash Unity requires.
@@ -108,14 +110,27 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 					sCodedMaterial = sCodedMaterial.Substring(0, nPosOfDot);        //###HACK19: To catch Blender's stupid automatic Material rename during imports!
 				//###TODO19:!!! Clean up all legacy textures and materials and make material and texture paths coherent!!
 				//string sPathMaterial = String.Format("Models/{0}/Materials/{1}", _oBodyBase._sMeshSource, sCodedMaterial);
-				string sPathMaterial = String.Format("Models/(Tests)/Ana4-Bones/Materials/{0}", sCodedMaterial);		//###HACK20:!!!
-				Material oMat = Resources.Load(sPathMaterial, typeof(Material)) as Material;	//###TODO19:!!!: Need to have Blender tell us which character it is so we look at right place??
-				if (oMat == null) { 
-					Debug.LogWarningFormat("CBMesh.Create() could not find material '{0}' on mesh '{1}'", sCodedMaterial, gameObject.name);
-					//CUtility.ThrowExceptionF("Could not find material '{0}'", sCodedMaterial);
-					oMat = new Material(Shader.Find("Standard"));				// Give a standard material with no texture (anything to avoid shadeless hot pink!)
+
+				//=== Obtain reference to previously-defined opaque material ===
+				string sPathMaterialO = String.Format("Models/(Tests)/Ana4-Bones/MaterialsO/{0}", sCodedMaterial);		//###HACK20:!!!!!! Redo this material shit when we go from Blender to Unity better
+				Material oMatO = Resources.Load(sPathMaterialO, typeof(Material)) as Material;	//###TODO19:!!!: Need to have Blender tell us which character it is so we look at right place??
+				if (oMatO == null) { 
+					Debug.LogWarningFormat("CBMesh.Create() could not find opaque material '{0}' on mesh '{1}'", sCodedMaterial, gameObject.name);
+					oMatO = new Material(Shader.Find("Standard"));				// Give a standard material with no texture (anything to avoid shadeless hot pink!)
 				}
-				_aMats[nMat] = oMat;
+				_aMatsCurrent[nMat] = _aMatsOpaque[nMat] = oMatO;
+				//###OBS:!!!  Transparency / opacity on demand very ineficient.  Can find a better way then to have duplicate material sets?
+				//=== Obtain reference to previously-defined transparent material ===			###INFO: Could never find a way to programmatically turn a given material to / from transparency.  Doing things properly at design time is safest / easiest and we get to tune the params in editor anyway.  //###INFO: Procedure at https://docs.unity3d.com/Manual/MaterialsAccessingViaScript.html might help.  Tried but no luck
+				string sPathMaterialT = String.Format("Models/(Tests)/Ana4-Bones/MaterialsT/{0}", sCodedMaterial);
+				Material oMatT = Resources.Load(sPathMaterialT, typeof(Material)) as Material;
+				oMatT.EnableKeyword("_ALPHAPREMULTIPLY_ON");             //###INFO: Standard shader actually has tens of thousands (!) of variants!  Unity needs to know which variant to pick in regards to transparency with this call  (See https://docs.unity3d.com/Manual/MaterialsAccessingViaScript.html)
+				oMatT.SetFloat("_Mode", 3);                              //###INFO: How to set standard shader transparency.  (0 = Opaque, 1 = Cutout, 3 = Fade, 4 = Transparent)
+				oMatT.color = new Color(1, 1, 1, 0.25f);
+				if (oMatT == null) { 
+					Debug.LogWarningFormat("CBMesh.Create() could not find transparent material '{0}' on mesh '{1}'", sCodedMaterial, gameObject.name);
+					oMatT = new Material(Shader.Find("Standard"));
+				}
+				_aMatsTransparent[nMat] = oMatT;
 
 				//if (sCodedMaterial.StartsWith("Material_")) {				 // Blender material that start with this string are processed differently: We attempt to find the same name material here and attach to this submesh.
 
@@ -159,14 +174,16 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 				//	}
 				//}
 			} else {		// Blender gave us a 'NoTexture' -> Assign a default material
-				_aMats[nMat] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
+				_aMatsCurrent[nMat] = new Material(Shader.Find("Standard"));		//###WEAK:!! Revise this default material crap
+				_aMatsOpaque[nMat] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
+				_aMatsTransparent[nMat] = new Material(Shader.Find("Standard"));	//###DESIGN: What to do??
 			}
 		}
 		
 		if (nMats == 0) {					// If Blender didn't have a material for this mesh we now create a dummy one as we need at least one 'submesh' for DLL to pass in triangles to us ===
 			nMats = 1;	
-			_aMats = new Material[nMats];
-			_aMats[0] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
+			_aMatsOpaque = new Material[nMats];			//###WEAK:!! Revise this default material crap
+			_aMatsTransparent[0] = _aMatsOpaque[0] = _aMatsCurrent[0] = new Material(Shader.Find("Standard"));	// Create a default material so we can see the material-less Blender mesh in Unity
 		}
 		_oMeshNow.subMeshCount = nMats;
 		oBA.CheckMagicNumber_End();                 // Check the 'end magic number' that always follows a stream.
@@ -209,7 +226,6 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		if (bCreatingSkinnedMesh == false) {		
 			UpdateNormals();									// Fix the normals with the just-serialized map of shared normals
 			_oMeshNow.RecalculateBounds();
-			oMeshRenderer.materials = _aMats;
 			oMeshFilter.mesh = _oMeshNow;
 		}
 
@@ -231,7 +247,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
     //	int nPosBA = 0;
 
     //	CheckMagicNumber(ref oBA, ref nPosBA, false);				// Read the 'beginning magic number' that always precedes a stream.
-    //	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// Unity_GetMeshArray always returns the byte-lenght of the serialized stream as the first 4 bytes
+    //	int nArrayElements = BitConverter.ToInt32(oBA, nPosBA) / 2; nPosBA+=4;				// Unity_GetMeshArray always returns the byte-length of the serialized stream as the first 4 bytes
     //	if (nArrayElements > 0) {
     //		aBlenderArray = new List<ushort>();
     //		for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {
@@ -288,7 +304,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
             _memVerts.L = (Vector3[])_memVertsStart.L.Clone();
             _oMeshNow.vertices = (Vector3[])_memVerts.L;	//_memVertsStart.L.Clone();
         }
-        //Array.Copy(_memVertsStart.L, _oMeshNow.vertices, GetNumVerts());        //###LEARN: This DOES NOT WORK!  Why???  Array.Copy obviously does not do a deep copy  (Clone() always works!... a reference problem?)
+        //Array.Copy(_memVertsStart.L, _oMeshNow.vertices, GetNumVerts());        //###INFO: This DOES NOT WORK!  Why???  Array.Copy obviously does not do a deep copy  (Clone() always works!... a reference problem?)
         //for (int nVert = 0; nVert < GetNumVerts(); nVert++)                       // Old slow way to deep copy ALWAYS WORKS
         //    _oMeshNow.vertices[nVert] = _memVertsStart.L[nVert];					// Set the 'startup verts' to what Blender just provided.  (Blender is always authoritative)
     }
@@ -323,8 +339,9 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 				aSharedNormals_CurrentGroup.Add(nSharedNormal);
 			} else {												// This 'invalid vertex ID' reprensents the 'end of shared normal group'. At this point we set the normals for this group to their average
 				Vector3 vecNormalShared = new Vector3();
-				foreach (ushort nSharedNormalNow in aSharedNormals_CurrentGroup)		// Iterate through our group a first time to add up the Unity-calculated normals.
+				foreach (ushort nSharedNormalNow in aSharedNormals_CurrentGroup) {      // Iterate through our group a first time to add up the Unity-calculated normals.
 					vecNormalShared += aNormals[nSharedNormalNow];
+				}
 				vecNormalShared.Normalize();											// Normalize the sum
 				foreach (ushort nSharedNormalNow in aSharedNormals_CurrentGroup)		// Iterate through our group a second time to stuff in the 'averaged normal' we just calculated
 					aNormals[nSharedNormalNow] = vecNormalShared;

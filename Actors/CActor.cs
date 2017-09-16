@@ -83,7 +83,7 @@
 
  * Pose for man includes penis curve and tip position
 --- QUESTIONS ---
- * Do we support variable-lenght penis?  (e.g. backing up chest pins on longer penis possible, but can't change heigh if penis pointing upward/downward!)
+ * Do we support variable-length penis?  (e.g. backing up chest pins on longer penis possible, but can't change heigh if penis pointing upward/downward!)
  * Do we force X=0 to central pins while saving?
  * Have 'heavy foot' that remain at 'ground level' = base pin height?
 
@@ -121,12 +121,12 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 	
 	[HideInInspector]	public	float			_nDrivePinToBone = C_DrivePinToBone;			// The strength of the spring force pulling actor to its pin position
 
-						public	const float		C_DrivePinToBone = 5000f;					//###DEV22: The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
+						public	const float		C_DrivePinToBone = 5000f;					//###CHECK: The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
 						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
 						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
 
-						CUICanvas _oCanvas_HACK;		//###DEV22:
-						Quaternion _quatRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
+						CUICanvas _oCanvas_HACK;		//###TEMP:
+						Vector3 _eulRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
 
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 
@@ -154,24 +154,24 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;
 
 			JointDrive oDrive = new JointDrive();
-			oDrive.positionSpring = 1000.0f;			//###DEV22:!!!!  ###TUNE!!!!!!!!!!
+			oDrive.positionSpring = 1000.0f;			//###DESIGN:!!!!  ###TUNE!!!!!!!!!!
 			if (GetType() == typeof(CActorLeg)) { 
-				oDrive.positionSpring *= 100.0f;			//###DEV22: Make spring stiffness for leg pins much stiffer!
-				_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;		//###DEV22: Feet pins with no rotation limits??
+				oDrive.positionSpring *= 100.0f;			//###DESIGN:!!! Make spring stiffness for leg pins much stiffer!
+				_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;		//###DESIGN:!!! Feet pins with no rotation limits??
 			}
 			oDrive.positionDamper = 0;                          //###TODO!!!!! ###TUNE?
 			oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
 			_oConfJoint_Extremity.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
 			_oConfJoint_Extremity.slerpDrive = oDrive;
 
-			//###DEV22:!!! Config rigidbody mass and drag?
+			//###DESIGN:!!! Config rigidbody mass and drag?
 		}
 
 		GetComponent<Renderer>().enabled = false;					// Hidden by default.  CGame shows/hides us with call to OnBroadcast_HideOrShowHelperObjects
 		
 		OnStart_DefineLimb();
 
-		_oObj.PropSet(0, EActorNode.Pinned, 1);			//###DEV22: Pin everything??
+		_oObj.PropSet(0, EActorNode.Pinned, 1);			//###DESIGN:!!! Pin everything??
 		//if (GetType() != typeof(CActorArm) && GetType() != typeof(CActorLeg))
 		//	_oObj.PropSet(0, EActorNode.Pinned, 1);
 		//if (GetType() == typeof(CActorArm) || GetType() == typeof(CActorLeg))
@@ -242,7 +242,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			transform.rotation = oAnchorT.rotation;			
 			_oConfJoint_Extremity.connectedBody = _oBoneExtremity._oRigidBody;
 			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime?? ###TUNE?
-            oJointLimit.limit = 0.001f;				//###LEARN: If this is zero there is NO spring functionality!!
+            oJointLimit.limit = 0.001f;				//###INFO: If this is zero there is NO spring functionality!!
 			SoftJointLimitSpring oJointLimitSpring = new SoftJointLimitSpring();    //###WEAK: Do everytime??		//####MOD: To Unity5
             oJointLimitSpring.spring = _nDrivePinToBone;
 			_oConfJoint_Extremity.linearLimit = oJointLimit;
@@ -265,7 +265,6 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 		_oObj.PropAdd(0, EActorNode.RotX,				"RotX",				"RotX",		0,	-9999,	9999,	"", CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
 		_oObj.PropAdd(0, EActorNode.RotY,				"RotY",				"RotY",		0,	-9999,	9999,	"", CProp.Hide);		//###DESIGN: Limits of quaternions
 		_oObj.PropAdd(0, EActorNode.RotZ,				"RotZ",				"RotZ",		0,	-9999,	9999,	"", CProp.Hide);
-		_oObj.PropAdd(0, EActorNode.RotW,				"RotW",				"RotW",		1,	-9999,	9999,	"", CProp.Hide);
 	}
 
     void TeleportLinkedPhysxBone() {                // Optionally teleport the attached PhysX bone of the node being moved / rotated.  (This enables pose loads to immediately snap the PhysX body at the right position without jarring PhysX spring problems dragging body parts all around the scene!
@@ -278,31 +277,34 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
         }
     }
 
+	public float OnPropGet_PosX() { return transform.localPosition.x; }
+	public float OnPropGet_PosY() { return transform.localPosition.y; }
+	public float OnPropGet_PosZ() { return transform.localPosition.z; }
+	public float OnPropGet_RotX() { return transform.localRotation.eulerAngles.x; }
+	public float OnPropGet_RotY() { return transform.localRotation.eulerAngles.y; }
+	public float OnPropGet_RotZ() { return transform.localRotation.eulerAngles.z; }
+
 	public void OnPropSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.x = nValueNew; transform.localPosition = vecPos; }
 	public void OnPropSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.y = nValueNew; transform.localPosition = vecPos; }
 	public void OnPropSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.z = nValueNew; transform.localPosition = vecPos; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
-    public void OnPropSet_RotX(float nValueOld, float nValueNew) { _quatRotChanged.x = nValueNew; }		//###HACK!!!!: To enable setting of a quaternion from orthogonal 4 properties we store properties in x,y,z and only really set result when w is set
-	public void OnPropSet_RotY(float nValueOld, float nValueNew) { _quatRotChanged.y = nValueNew; }		//###NOW### Do we really export quats?  Better with euler because of w?? ###SOON!!!
-	public void OnPropSet_RotZ(float nValueOld, float nValueNew) { _quatRotChanged.z = nValueNew; }
-	public void OnPropSet_RotW(float nValueOld, float nValueNew) { _quatRotChanged.w = nValueNew; transform.localRotation = _quatRotChanged; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
-	//public void OnPropSet_RotX(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.x = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
-	//public void OnPropSet_RotY(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.y = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
-	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Vector3 vecEuler = transform.localRotation.eulerAngles; vecEuler.z = nValueNew; transform.localRotation = Quaternion.Euler(vecEuler); }
+    public void OnPropSet_RotX(float nValueOld, float nValueNew) { _eulRotChanged.x = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
+	public void OnPropSet_RotY(float nValueOld, float nValueNew) { _eulRotChanged.y = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
+	public void OnPropSet_RotZ(float nValueOld, float nValueNew) { _eulRotChanged.z = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
 
 
 	//---------------------------------------------------------------------------	MISC EVENTS
 
-	public void OnVrAction() {              // User has 'used' this item via a VR wand.  Invoke our context menu	//'
-		if (_oCanvas_HACK == null) {							//###DEV22: Can each actor own its own canvas?  ###TODO:!!!!! Destroy!!!
+	public void OnVrAction() {              // User has 'used' this item via a VR wand.  Invoke our context menu
+		if (_oCanvas_HACK == null) {							//###DESIGN:!!! Can each actor own its own canvas?  ###TODO:!!!!! Destroy!!!
 			_oCanvas_HACK = CUICanvas.Create(transform);
 			_oCanvas_HACK.transform.SetParent(transform);
 			float nRatioToCam = 0.7f;		//###TUNE
 			_oCanvas_HACK.transform.position = (transform.position * nRatioToCam + Camera.main.transform.position * (1-nRatioToCam));
 			_oCanvas_HACK.transform.localRotation = Quaternion.identity;
 			_oCanvas_HACK.transform.rotation = Camera.main.transform.rotation;
-			//###DEV22:!!!! Figure out a better way to guarantee popup panel without occlusion from 3D objects without hacks making it closer to camera.  e.g. use raycast to find first collider
+			//###DESIGN:!!!! Figure out a better way to guarantee popup panel without occlusion from 3D objects without hacks making it closer to camera.  e.g. use raycast to find first collider
 			// then... find way to interact with widgets! (through wand or pointer beam?  see samples!)
-			//###IDEA22:!!! Use VR simple pointer code for raycast example with pointer!
+			//###DESIGN:!!! Use VR simple pointer code for raycast example with pointer!
 		}
 		CUtility.WndPopup_Create(_oCanvas_HACK, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, gameObject.name);	//###CHECK: Invoke through hotspot??
 		//_oHotSpot.WndPopup_Create(_oCanvas_HACK, new CObject[] { _oObj });
@@ -336,18 +338,17 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			case EEditMode.Rotate:
 				Quaternion quatRotG = oGizmo.transform.rotation;			//###DESIGN???: Problem with rotation?
 				transform.rotation = quatRotG;		//###WEAK!!  ###OPT!  Some work duplication with PropSet below setting our transform!
-				Quaternion quatRotL = transform.localRotation;
-				_oObj.PropSet(0, EActorNode.RotX, quatRotL.x);
-				_oObj.PropSet(0, EActorNode.RotY, quatRotL.y);
-				_oObj.PropSet(0, EActorNode.RotZ, quatRotL.z);
-				_oObj.PropSet(0, EActorNode.RotW, quatRotL.w);
+				Vector3 eulRotL = transform.localRotation.eulerAngles;
+				_oObj.PropSet(0, EActorNode.RotX, eulRotL.x);
+				_oObj.PropSet(0, EActorNode.RotY, eulRotL.y);
+				_oObj.PropSet(0, EActorNode.RotZ, eulRotL.z);
 				break;
 		}
 	}
 
-	public virtual void OnSimulatePre() {       //###DEV22: Rename?
+	public virtual void OnSimulatePre() {       //###DESIGN: Rename?
 		//if (GetComponent<MeshRenderer>() != null)	
-		//	GetComponent<MeshRenderer>().enabled = true;		//###DEV22: Temp to circumvent VRTK hiding our pins!
+		//	GetComponent<MeshRenderer>().enabled = true;		//###DESIGN: Temp to circumvent VRTK hiding our pins!
 	}
 }
 

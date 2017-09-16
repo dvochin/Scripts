@@ -114,7 +114,7 @@ public class CObject {				// Centrally-important base class (with matching imple
 
 	//---------------------------------------------------------------------------	EVENTS
 
-	public void Notify_PropertyValueChanged(CProp oProp, float nValueOld) {			//###LEARN: How to implement events
+	public void Notify_PropertyValueChanged(CProp oProp, float nValueOld) {			//###INFO: How to implement events
 		EventHandler<EventArgs_PropertyValueChanged> oHandler = Event_PropertyValueChanged;
 		if (oHandler != null) {
 			EventArgs_PropertyValueChanged oEventArgs = new EventArgs_PropertyValueChanged();

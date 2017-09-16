@@ -86,7 +86,7 @@
         ###RESUME17: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
 #- Points not deleted on back mesh!!
 #- Side curve bezier tedious to adjust as it is dependent on incident angle... make based on that angle??
-    #- Should have different lenght possible for each side of seam beziers?  (go for angle + length with diff lenght on each side??)
+    #- Should have different length possible for each side of seam beziers?  (go for angle + length with diff length on each side??)
 #- Need to triangulate final 3D mesh
 #- Scan through and remove old crap
 

@@ -39,6 +39,7 @@
 */
 
 using UnityEngine;
+using System.Collections.Generic;
 
 
 public class CBoneRot {				//###MOVE21:??
@@ -134,7 +135,7 @@ public class CBone : MonoBehaviour {
 		_aBoneRots = new CBoneRot[3];
 		for (int nRotation = 0; nRotation < _aBoneRots_Serialized.Length; nRotation++) {
 			string sRotationSerialization = _aBoneRots_Serialized[nRotation];
-			if (sRotationSerialization.Length > 0) { 
+			if (sRotationSerialization != null && sRotationSerialization.Length > 0) { 
 				CBoneRot oBoneRot = new CBoneRot(this, sRotationSerialization);
 				_aBoneRots[oBoneRot._nAxis] = oBoneRot;
 			}
@@ -164,7 +165,7 @@ public class CBone : MonoBehaviour {
 		_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(gameObject, typeof(Rigidbody));     //###TODO: Add a "CRigidBodyWake"???
         _oRigidBody.mass = nMass;
         _oRigidBody.drag = 1.5f;                            //###TODO!! //###DESIGN: Which drag??		//###TUNE!!!!!	###IMPROVE: Different settings for arms & legs???
-        _oRigidBody.angularDrag = 1.5f;                     //###DEV22: Test the shit of these params... ###TODO22:!!!! implement debug facility to group-set all bones
+        _oRigidBody.angularDrag = 1.5f;                     //###DESIGN:!!! Test the shit of these params... ###TODO22:!!!! implement debug facility to group-set all bones
         _oRigidBody.sleepThreshold = 0;                     // Ensure the rigid body never sleeps!
 		_oRigidBody.isKinematic = false;					// We are NEVER kinematic.  EVERY bone is PhysX-driven!  (Including root bone 'hip')
 
@@ -192,8 +193,8 @@ public class CBone : MonoBehaviour {
 		
             //=== Set the joint limits as per our arguments ===
 		    SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
-			oJL.bounciness = 0;					//###LEARN: "When the joint hits the limit, it can be made to bounce off it. Bounciness determines how much to bounce off an limit. range { 0, 1 }."
-			oJL.contactDistance = 10f;			//###IMPROVE: Make relative to angle! //###LEARN: "Determines how far ahead in space the solver can "see" the joint limit" (in degrees) See https://docs.unity3d.com/510/Documentation/ScriptReference/SoftJointLimit-contactDistance.html
+			oJL.bounciness = 0;					//###INFO: "When the joint hits the limit, it can be made to bounce off it. Bounciness determines how much to bounce off an limit. range { 0, 1 }."
+			oJL.contactDistance = 10f;			//###IMPROVE: Make relative to angle! //###INFO: "Determines how far ahead in space the solver can "see" the joint limit" (in degrees) See https://docs.unity3d.com/510/Documentation/ScriptReference/SoftJointLimit-contactDistance.html
 			bool bInvert = (_XL > _XH);			//###DEV21:!!! Check!!!
 		    oJL.limit = bInvert ? _XH : _XL;	_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
 		    oJL.limit = bInvert ? _XL : _XH;	_oConfJoint.highAngularXLimit = oJL;
@@ -276,7 +277,7 @@ public class CBone : MonoBehaviour {
 
 	void UpdateRotation() {     // Update X, Y, Z rotation			//###TODO21:!!!!!
         if (_oConfJoint != null)
-		    _oConfJoint.targetRotation = Quaternion.Euler(_X, _Y, _Z);      //###LEARN: Unity's Eulers *always* rotate in z, x, y in that order  (Blender can have all 6 possible Euler permutations)
+		    _oConfJoint.targetRotation = Quaternion.Euler(_X, _Y, _Z);      //###INFO: Unity's Eulers *always* rotate in z, x, y in that order  (Blender can have all 6 possible Euler permutations)
     }
 
 
@@ -290,7 +291,7 @@ public class CBone : MonoBehaviour {
 		Quaternion quatBone = Quaternion.AngleAxis(nRotAngle * 180.0f / Mathf.PI, vecRotAxis);	// Blender sends radians and Unity needs degrees!
 		Quaternion quatBoneUnity = quatBone * C_quatRotBlender2Unity;							//###NOTE: Apply the Blender-to-Unity global rotation right off the top so we have our usual Y+ up, Z- Forward from Blender's Z+ up, Y- forward
 
-        Debug.LogFormat("CBone created bone '{0}' under '{1}' with rot:{2:F3},{3:F3},{4:F3},{5:F3} / pos:{6:F3},{7:F3},{8:F3}", gameObject.name, transform.parent.name, quatBoneUnity.x, quatBoneUnity.y, quatBoneUnity.z, quatBoneUnity.w, vecBone.x, vecBone.y, vecBone.z);
+        //Debug.LogFormat("CBone created bone '{0}' under '{1}' with rot:{2:F3},{3:F3},{4:F3},{5:F3} / pos:{6:F3},{7:F3},{8:F3}", gameObject.name, transform.parent.name, quatBoneUnity.x, quatBoneUnity.y, quatBoneUnity.z, quatBoneUnity.w, vecBone.x, vecBone.y, vecBone.z);
         transform.position = vecBone;
         transform.rotation = quatBoneUnity;
 
@@ -304,5 +305,51 @@ public class CBone : MonoBehaviour {
 			string sRotationSerialization = oBA.ReadString();
 			_aBoneRots_Serialized[nRotation] = sRotationSerialization;
 		}
+	}
+
+
+
+	//======================================================================	STATIC BONE UPDATERS
+
+	public static void BoneUpdate_UpdateFromBlender(string sSex) {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
+        //StartBlender();
+        GameObject oResourcesGO = GameObject.Find("Resources");
+        GameObject oPrefabGO = CUtility.FindObject(oResourcesGO, "Prefab" + sSex + "A");
+        oPrefabGO.SetActive(true);
+		Transform oBoneRootT = CUtility.FindNodeByName(oPrefabGO.transform, "Bones");
+		Dictionary<string, CBone> mapBonesFlattened = new Dictionary<string, CBone>();		// Flattened collection of bones extracted from Blender.  Includes dynamic bones.
+        string sNameBodySrc = sSex + "A";        // Remove 'Prefab' to obtain Blender body source name (a bit weak)
+		CBone.BoneUpdate_UpdateFromBlender(sNameBodySrc, oBoneRootT, ref mapBonesFlattened);
+	}
+
+	public static void BoneUpdate_UpdateFromBlender(string sNameBodySrc, Transform oBoneRootT, ref Dictionary<string, CBone> mapBonesFlattened) {
+		// Called during CBody creation to de-serialize *all* Blender bones on a body (including dynamic ones) and to set / update their position / orientation
+
+		CByteArray oBA = new CByteArray("'Client'", "gBL_GetBones('" + sNameBodySrc + "')");
+
+		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
+		CBone.BoneUpdate_ReadBone_RECURSIVE(ref oBA, oBoneRootT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)
+
+		oBA.CheckMagicNumber_End();				// Read the 'end magic number' that always follows a stream.
+
+		Debug.Log("+++ BoneUpdate_UpdateFromBlender() OK +++");
+	}
+
+	public static void BoneUpdate_ReadBone_RECURSIVE(ref CByteArray oBA, Transform oBoneParent) {                          // Precise opposite of gBlender.Stream_SendBone(): Reads a bone from Blender, finds (or create) equivalent Unity bone and updates position
+		string sBoneName = oBA.ReadString();
+
+		Transform oBoneT = oBoneParent.Find(sBoneName);
+		if (oBoneT == null) {
+			//Debug.LogFormat("- BoneUpdate_ReadBone() creating new bone '{0}' on parent '{1}'", sBoneName, oBoneParent.name);
+			oBoneT = new GameObject(sBoneName).transform;
+			oBoneT.parent = oBoneParent;
+		}
+
+		CBone oBone = CUtility.FindOrCreateComponent(oBoneT.gameObject, typeof(CBone)) as CBone;
+		oBone.DeserializeFromBlenderStaticBoneImportProcedure(ref oBA);
+
+		int nBoneChildren = oBA.ReadUShort();
+		for (int nBoneChild = 0; nBoneChild < nBoneChildren; nBoneChild++)
+			CBone.BoneUpdate_ReadBone_RECURSIVE(ref oBA, oBoneT);
 	}
 }

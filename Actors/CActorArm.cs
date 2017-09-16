@@ -115,7 +115,7 @@ public class CActorArm : CActor {
 
 		//=== Init Bones and Joints ===
         CBone oBoneChestUpper = _oBody._oActor_Chest._oBoneExtremity;           //###DEV21:!!! Cleanup all the old crap!
-		float n = 1f;		//###DEV22:???
+		float n = 1f;		//###DESIGN:!!!
 		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	   50, 2.5f));	//###NOTE: Requires a lot of stiffness to avoid sagging! ###TUNE
 		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",	    n, 2.0f));
 		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",    n, 1.5f));
@@ -229,7 +229,7 @@ public class CActorArm : CActor {
         //###F ###BROKEN (Body col!)
 		//if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
 		//	Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!
-		//	float nPercentSlerp = (Time.time - _nTimeStartPinSet) / C_TimeToMoveToNewPinPos;		//###LEARN: How to setup Vector.Slerp correctly... see E:\EG\Unity\Data\Documentation\Documentation\ScriptReference\Vector3.Slerp.html
+		//	float nPercentSlerp = (Time.time - _nTimeStartPinSet) / C_TimeToMoveToNewPinPos;		//###INFO: How to setup Vector.Slerp correctly... see E:\EG\Unity\Data\Documentation\Documentation\ScriptReference\Vector3.Slerp.html
 		//	_oHandTarget.transform.position = Vector3.Slerp(_oHandTarget.transform.position, vecPinPos, nPercentSlerp);	// Constantly set our pin position to the body collider vertex  found during ArmRaycastPin_Update()
 		//}
 

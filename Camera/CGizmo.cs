@@ -198,7 +198,7 @@ public class CGizmo : MonoBehaviour {
 				float nAngleCutterSpace_Now = -Mathf.Rad2Deg*Mathf.Atan2(vecDiffGizmoPt2Obj_NowL.z, vecDiffGizmoPt2Obj_NowL.x);	// Calculate the angle from x and z with atan2
 				float nAngleDelta = nAngleCutterSpace_Now-_nAngleCutterSpace_Start;				// When the user first click a x,y,z collider he/she had an original angle around the wheel (probably din't click at angle=0)... subtract this angle here to determine how much the wheel moved
 				transform.rotation = _quatRotStart_Gizmo;										// Assign at every frame the staring state...
-				transform.Rotate(_vecRotAxisJoint, nAngleDelta);		// And then rotate the starting point around the cutting plane by the delta angle about the rotation axis globally-aligned vector (Not too sure why it needed globally oriented, only one that works!)  ###LEARN: Rotate accepts degrees
+				transform.Rotate(_vecRotAxisJoint, nAngleDelta);		// And then rotate the starting point around the cutting plane by the delta angle about the rotation axis globally-aligned vector (Not too sure why it needed globally oriented, only one that works!)  ###INFO: Rotate accepts degrees
 
 				break;
 			case EEditMode.Scale:

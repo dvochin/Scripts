@@ -46,6 +46,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	public int			_nPropFlags;
 	public Type			_oEnumChoices;			// The type of the enum that displays the combo-box choices for this property.  Parsed by GUI to display / choose  the proper enum
 	public string[]		_aStringChoices;		// The possible choices for this property.  _nValue is set to the index in this string list.
+	public MethodInfo	_oMethodInfo_OnPropGet; // The field info of a function on owning object that receives notification when this property requires an update
 	public MethodInfo	_oMethodInfo_OnPropSet; // The field info of a function on owning object that receives notification when this property changes.
 	public object       _oObjectExtraFunctionality;		// Properties can have reference to extra class instances that extend their functionality.  This is currently used for morph channel caching
 
@@ -67,6 +68,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 	public const int AsButton			= 1 << 5;	// Property is drawn as a button and does not show a value (e.g. always zero)
 	//###IMPROVE: Deactivate bounds if needed with a flag?)
 
+	public const string C_Prefix_OnPropGet	= "OnPropGet_";			// Prefix name of functions of owning object that (if defined) automatically receive notification when this property changes)
 	public const string C_Prefix_OnPropSet	= "OnPropSet_";			// Prefix name of functions of owning object that (if defined) automatically receive notification when this property changes)
 
 	//---------------------------------------------------------------------------	
@@ -88,7 +90,7 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		_oEnumChoices		= oChoices as Type;			// Choices will either be from reflection as a Type...
 		_aStringChoices		= oChoices as string[];     // Or a string array.
 
-		ConnectPropCallback();
+		ConnectPropCallbacks();
 		//Debug.Log(string.Format("{0} prop #{1} = '{2}'", _oObject._sNameFull, _nPropOrdinal, _sNameProp));
 	}
 	public void OnDestroy() {
@@ -100,8 +102,12 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 			CPropGrpBlender oObjectBlender = _oPropGrp as CPropGrpBlender;       // Blender property means that we must be owned by a CObjectBlender
 			_nValueLocal = float.Parse(CGame.gBL_SendCmd("CBody", oObjectBlender._sBlenderAccessString + ".PropGetString('" + _sNameProp + "')"));
 			return _nValueLocal;
+		} else if (_oPropGrp._oObj._bInitialized && _oMethodInfo_OnPropGet != null) {		//=== OnPropSet_ notifications can only be sent when object is fully operational (e.g. not during init) ===
+			object[] aArgs = new object[] { };
+			object oReturn = _oMethodInfo_OnPropGet.Invoke(_oPropGrp._oObj._iObjOwner, aArgs);       // If property has a preconfigured 'OnPropGet_' function call it now to notify parent of change
+			return (float)oReturn;
 		} else {
-			return _nValueLocal - _nRndVal;         // Remove random value off the very top.  Pushed in  / pulled in at last minute ###CHECK: Assumes we use PropGet() everywhere!  (Not true!!) ###BUG??
+			return _nValueLocal - _nRndVal;         // If all else fail return local value  ###DESIGN: Keep random?  // Remove random value off the very top.  Pushed in  / pulled in at last minute ###CHECK: Assumes we use PropGet() everywhere!  (Not true!!) ###BUG??
 		}
 	}
 
@@ -109,8 +115,8 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 		nValueNew += _nRndVal;					// Apply separated random value at the very top		###OBS? Random value still used??
 
 		//=== Avoid doing again if we're setting to the same value ===
-		if (_nValueLocal == nValueNew)			//###CHECK11: Really safe?  Could some use cases be affected?
-			return _nValueLocal;
+		//if (_nValueLocal == nValueNew)					//###DESIGN:!!! Need a way to disable this optimization in some cases... e.g. pose load.
+		//	return _nValueLocal;
 
 		//=== Cap the value to pre-set bounds ===
 		if (nValueNew < _nMin)
@@ -237,11 +243,11 @@ public class CProp {							// Important class that abstracts the concept of a 'p
 
 	//---------------------------------------------------------------------------	UTILITY
 
-	public void ConnectPropCallback() {	// Attempt to find 'OnPropSet_' function for this property to optionally configure automatic notification of property changes.  Provided as a public function as code occasionally has to transfer 'this' ownership
-		string sNameFnOnPropSet = C_Prefix_OnPropSet + _sNameProp;				// The precise name function must have to enable automatic notification
+	public void ConnectPropCallbacks() {	// Attempt to find 'OnPropGet_' and/or 'OnPropSet_' functions for this property to optionally configure automatic notification of property changes.  Provided as a public function as code occasionally has to transfer 'this' ownership		//###IMPROVE: Would be better with events??
 		if (_oPropGrp._oObj._iObjOwner != null) { 
-			Type oTypeFields = _oPropGrp._oObj._iObjOwner.GetType();		// Object's owner has the OnPropSet_ events we need, not CObject INSTANCE!
-			_oMethodInfo_OnPropSet = oTypeFields.GetMethod(sNameFnOnPropSet);
+			Type oTypeFields = _oPropGrp._oObj._iObjOwner.GetType();			// Object's owner has the OnPropSet_ events we need, not CObject INSTANCE!
+			_oMethodInfo_OnPropGet = oTypeFields.GetMethod(C_Prefix_OnPropGet + _sNameProp);
+			_oMethodInfo_OnPropSet = oTypeFields.GetMethod(C_Prefix_OnPropSet + _sNameProp);		// The precise name function must have to enable automatic notification
 		}
 	}
 }

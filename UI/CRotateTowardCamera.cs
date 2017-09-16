@@ -6,7 +6,7 @@ public class CRotateTowardCamera : MonoBehaviour {      // CRotateTowardCamera: 
         //transform.rotation = Camera.main.transform.rotation;
 
         //Vector3 vecRotCam = Camera.main.transform.rotation.eulerAngles;     // Orient toward the camera (but ditch the 'camera roll' component (head tilting left / right)
-        //vecRotCam.z = 0;        //###LEARN: How to ditch the camera roll.
+        //vecRotCam.z = 0;        //###INFO: How to ditch the camera roll.
         //transform.rotation = Quaternion.Euler(vecRotCam);
 
         transform.LookAt(Camera.main.transform);        // Simply orient toward the camera.  Works great! :)

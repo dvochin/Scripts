@@ -22,7 +22,7 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 		return _GameIsRunning;
 	}
 	
-	void OnSceneGUI() {			//###LEARN: This runs a *lot* (e.g. every mouse move!)
+	void OnSceneGUI() {			//###INFO: This runs a *lot* (e.g. every mouse move!)
 		if (_GameIsRunning == false)
 			if (Initialize() == false)
 				return;
@@ -35,9 +35,9 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 		if (GUILayout.Button("Start Blender"))
 			StartBlender();
         if (GUILayout.Button("Update Woman"))
-            UpdateBonesFromBlender("Woman");
+			CBone.BoneUpdate_UpdateFromBlender("Woman");
         if (GUILayout.Button("Update Man"))
-            UpdateBonesFromBlender("Man");
+            CBone.BoneUpdate_UpdateFromBlender("Man");
         GUILayout.EndHorizontal();
 		GUILayout.EndArea();
 		Handles.EndGUI();
@@ -102,50 +102,4 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
 	//	Debug.LogWarning("=== FixBone starting ===");
 	//	CGameEd self = this;            // For convenience adapting to Blender scripts
 	//}
-
-
-
-
-
-
-
-
-
-
-
-
-	public void UpdateBonesFromBlender(string sSex) {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
-        //StartBlender();
-        GameObject oResourcesGO = GameObject.Find("Resources");
-        GameObject oPrefabGO = CUtility.FindObject(oResourcesGO, "Prefab" + sSex + "A");
-        oPrefabGO.SetActive(true);
-		Transform oBoneRootT = CUtility.FindNodeByName(oPrefabGO.transform, "Bones");
-
-        string sNameBodySrc = sSex + "A";        // Remove 'Prefab' to obtain Blender body source name (a bit weak)
-		CByteArray oBA = new CByteArray("'Client'", "gBL_GetBones('" + sNameBodySrc + "')");
-
-		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
-		ReadBone_RECURSIVE(ref oBA, oBoneRootT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)
-
-		oBA.CheckMagicNumber_End();				// Read the 'end magic number' that always follows a stream.
-
-		Debug.Log("+++ UpdateBonesFromBlender() OK +++");
-	}
-
-	void ReadBone_RECURSIVE(ref CByteArray oBA, Transform oBoneParent) {                          // Precise opposite of gBlender.Stream_SendBone(): Reads a bone from Blender, finds (or create) equivalent Unity bone and updates position
-		string sBoneName = oBA.ReadString();
-
-		Transform oBoneT = oBoneParent.Find(sBoneName);
-		if (oBoneT == null) {
-			oBoneT = new GameObject(sBoneName).transform;
-			oBoneT.parent = oBoneParent;
-		}
-
-		CBone oBone = CUtility.FindOrCreateComponent(oBoneT.gameObject, typeof(CBone)) as CBone;
-		oBone.DeserializeFromBlenderStaticBoneImportProcedure(ref oBA);
-
-		int nBoneChildren = oBA.ReadByte();
-		for (int nBoneChild = 0; nBoneChild < nBoneChildren; nBoneChild++)
-			ReadBone_RECURSIVE(ref oBA, oBoneT);
-	}
 }

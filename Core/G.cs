@@ -1,30 +1,6 @@
-/*###DISCUSSION: June 2017
-=== LAST ===
-
-=== NEXT ===
-
-=== TODO ===
-
-=== LATER ===
-
-=== IMPROVE ===
-
-=== DESIGN ===
-
-=== IDEAS ===
-
-=== LEARNED ===
-
-=== PROBLEMS ===
-
-=== OPTIMIZATIONS ===
-
-=== QUESTIONS ===
-
-=== WISHLIST ===
-
-*/
 using UnityEngine;
+
+
 
 public class G : MonoBehaviour {					// Global static class to store global constants
 	//---------------------------------------------------------------------------	Constants to represent GUI choices for now...

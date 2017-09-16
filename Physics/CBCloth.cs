@@ -89,7 +89,7 @@
         ###RESUME17: Need angles and dist for the beziers, need to define and update in same function (called everytime user changes anything)
 #- Points not deleted on back mesh!!
 #- Side curve bezier tedious to adjust as it is dependent on incident angle... make based on that angle??
-    #- Should have different lenght possible for each side of seam beziers?  (go for angle + length with diff lenght on each side??)
+    #- Should have different length possible for each side of seam beziers?  (go for angle + length with diff length on each side??)
 #- Need to triangulate final 3D mesh
 #- Scan through and remove old crap
 
@@ -207,7 +207,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		//_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
 
         //=== Create the Flex object for our simulated part ===
-		CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
+		//###BROKEN: Move out of CFlex! CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
         uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
         oFlexProc._oFlexProcessor = this;
         _oFlexParticles = GetComponent<uFlex.FlexParticles>();

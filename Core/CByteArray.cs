@@ -28,7 +28,7 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 	public static List<ushort> GetArray_USHORT(string sNameBlenderModule, string sBlenderAccessString) {        // Deserialize a Blender mesh's previously-created array
 		CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);
 		int nArrayElements = oByteArray.GetLengthPayload() / sizeof(ushort);
-		List<ushort> aBlenderArray = new List<ushort>(nArrayElements);
+		List<ushort> aBlenderArray = new List<ushort>(nArrayElements);									//###WEAK:!!!! Entire codebase allocates and we allocate here...  one or the other... go through code!!
 		if (nArrayElements > 0) {
 			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++)
 				aBlenderArray.Add(oByteArray.ReadUShort());
@@ -64,6 +64,19 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 		return aBlenderArray;
 	}
 
+	public static List<Vector3> GetArray_VECTOR3(string sNameBlenderModule, string sBlenderAccessString) {
+		CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);
+		int nArrayElements = oByteArray.GetLengthPayload() / (sizeof(float) * 3);
+		List<Vector3> aBlenderArray = new List<Vector3>(nArrayElements);
+		if (nArrayElements > 0) {
+			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++)
+				aBlenderArray.Add(oByteArray.ReadVector());
+		} else {
+			Debug.LogWarningFormat("###WARNING: CByteArray.GetArray() gets zero-sided array on '{0}'", oByteArray._sBlenderAccessString);
+		}
+		return aBlenderArray;
+	}
+
 
 
 	//---------------------------------------------------------------------------	PRIMITIVES
@@ -78,14 +91,16 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 
 
 	//---------------------------------------------------------------------------	COMPOSITES
-	public string ReadString() {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string lenght)
+	public string ReadString() {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
 		byte nLen = ReadByte();
 		StringBuilder strBuilder = new StringBuilder();
 		for (byte nChar = 0; nChar < nLen; nChar++)
 			strBuilder.Append(ReadChar());			//###IMPROVE: All in one go
 		return strBuilder.ToString();
 	}
-	public Vector3 ReadVector() {
+	public Vector3 ReadVector() {			//###IMPORTANT: Blender *must* send its CONVERTED coordinates to traverse between Left Hand Rule and Right Hand Rule.  Its VectorB2U() functions *MUST* be used to feed us vectors!
+		//##NOTE: A vert of x=1, y=2, z=3 in Blender has that vert one meter to the left of the character, two meters behind and three meters above.
+		//##NOTE: In Unity this needs to be x=-1, y=3, z=-2   so xU=-xB, yU=zB, zU=-yB
 		Vector3 vec;
 		vec.x = ReadFloat();
 		vec.y = ReadFloat();
@@ -122,7 +137,7 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 //###OBS: Abandoned as it's too slow to have to test type every loop iteration
 //public List<T> GetTypedArray<T>() {
 //	Type oTypeTemplate = typeof(T);
-//	int nArrayElements = ReadInt() / System.Runtime.InteropServices.Marshal.SizeOf(oTypeTemplate);      //###LEARN: How to get the sizeof of primitive type!
+//	int nArrayElements = ReadInt() / System.Runtime.InteropServices.Marshal.SizeOf(oTypeTemplate);      //###INFO: How to get the sizeof of primitive type!
 //	List<T> aBlenderArray = new List<T>(nArrayElements);
 //	if (nArrayElements > 0) {
 //		for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++) {

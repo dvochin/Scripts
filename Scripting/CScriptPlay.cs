@@ -98,11 +98,11 @@ public class CScriptPlay : MonoBehaviour {		// CScriptPlay: Responsible for load
 		}
 	}
 
-	public void ExecuteAll() {
+	public void ExecuteAll() {				
 		int nLine = 0;
 		if (_aScriptLines == null)
 			return;
 		foreach (string sScriptLine in _aScriptLines)
-			_oEvalProxy.EvaluateScript(sScriptLine, nLine++);
+			_oEvalProxy.EvaluateScript(sScriptLine, nLine++);		//###IMPROVE:!! Keep going even when errors?  No logging / returning of results??? WTF??
 	}
 }

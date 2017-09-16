@@ -1,303 +1,3 @@
-/*###DISCUSSION: CGame
-=== New 64 bit efforts ===
-- Fix Blender material paths
-- Fix Unity mat paths!
-- Sys now functional enough... test stuff for softbody on flex! ;)
-
-
-- Hanshake mechanism super crappy!  Blender will crash if sending twice!  Can peek?
-- Hacked blender path string... needed??
-- SoftBody now crap because of NxTetra!!  Really remove and go for Flex?
-- Could revisit PhysX3 samples to clean up only what we need.
-- Deactivated cuda for fluid... put back in?
-- Blender lost path to textures!
-
-
-
-
-
-
-
-
-
-
-
-=== STRATEGY ===
-- Play a bit with breast col density
-- Add more breast sliders
-- Add full body morph capacity for breasts up/down
-- Apply SlaveMesh functionality to cloth collider (half, separate, pair, fix after morph, etc)
-- Idea about source body storing its original verts in a layer of any use??
-
-- Work to have the two game modes go seamlessly from one to other
-	- Rethink the game mode enums and the flag in CBody
-	- Once fully working do we remove the old mode crap?
-
-=== REVIVE ===
-- Why are bones below hip copied twice at runtime??
-- Sleep of bones reoccuring?
-- Can enhance cloth reset with delta pos/rot
-
-
-
-
-
-
-
-
-=== TODO ===
- * OpenCL out of resources after a while...  FUCK!!
-   * Looks like a complete re-init needed FUCK!!
- * Stop fluid when loading pose
- * ++ Have to implement event notification for client... with color codes for common errors such as overstretch, opencl error, low perf, etc
-   * ADD TOOLTIPS to explain
- * Change in hand keys???
- * Multiple panels!
- * Redo hand implementation
- * Reset pins not really working!  Torso == Chest??
- * Need stronger pins when pinning arms?
- * +++ Pose should store arm target!  (Pinned currently a nightmare!)
- * Arms damped too much (undamp during load only?)
- * New hand keys?
- * Stop cum when init body
- * Place hands on head would be really nice
- * Save blender when a body is created? (or before closing game??)
- * Get rid of penis tip menu and reroute to sex?  (same with vagina?)
- * Tooltips on all properties
- * ++ Properties don't change for man/woman
- * Have split bone tree... right decision?  Trim extra junk, revisit colliders 
- * Color and shape code hotpots soon!
- * New combo box settings for CProp GUI
- *? Have early blender float properties... convert to string for the clothing?
-   * Better would be an enum for the clothes from directory.
- * Improve female ejaculation... set set properties like gravity, emitter size?
- * PhysX33
- * Should we move torso hotspot to neck??  (hard to pick)
- * Auto number precision from bounds
- * Have single property change from holding key
- * Need to square up the many panels!  Dock or keys!
- * Breast collision with arms and rough colliders
- * Blend in fixed animations with slerp
-   * Need limiting angles for fixed pins and not for raycast?
- * Will need hand on head, hand brace on bed
-   * Raycast on PhysX3 scene?
-
-=== PROBLEMS ===
- * Cum collider still to be disabled if penis in vagina??
- * Two dicks in scene all influenced by keys!
- * Problem with dick init if pleasure event never occurs
- * Scene reload during body init forgets 'inverted'
- * WTF log file in Unity folder????
- * HandleD3DDeviceLost upon cum and game crash in built game!
- * Sex bone super low now!
- * Problem with hand pins loading a new pose if hands were pinned 
- *???? Hand position corrupted on load!!
- * Gizmo hard to select on 2nd time an issue
- * Hand default position way off: Init?
- * Face deleted during body init!
- * Pose loader can be 180 rotated and appear confusing... store rotation in char pose??? (Disabled button)
- * Reload body can cause hotspot exception... last hovered one?
- * Penis tip poke through!
- * Crash entering PhysX2, improve logging
-   * Add regular flushes to logging
- * //###BUG: Cursor text size grow up / down with zoom
- * //###BUG!!!!! Problem with CActor and rotation. Euler conversion can't take all angles!!
- * +++ Dlg action click through a big problem!
- * PoseLoad and Save: Watch out for man / woman diff!!
- * Why offset when reset pins???
- * PenisScaleDampCenter off
- * During rebuild hovering hotspots cause trouble.
- *+++ Why is Woman_Face or Woman top node getting deleted???
- * Vagina SB not destroying during rebuild!!
- * ERROR PhysX2: CUDA not available   File(D:\sw\physx\PhysXSDK\2.8.4\trunk\SDKs\Core\Device\RegistryHardwareSelection.cpp) Line(71)
- * BUG: pin cube shows an orientation different than hotspot!
- * Have seen bug not being able to right click on a hotspot... lost in some mode in pose mode??
- * Extra hotspots for obsolete hand targets annoying... remove or fix??
- * Penis softbody appears out of sync with penis... tip goes into body?
- * Single intances of windows!!!
- * Stats dont go to zero when not used over time
- * GUI message will not all show in some res
- * Missing stats
- * PhysX complains about shape set to invalid geometry... Body colliders when idle??
- * Top of breasts for softbody getting an issue... adjust sphere??
- *++++ Penis shake on close to self body a showstopper
- * 888-771-5803 Catherine
-
-=== PROBLEMS: ASSETS ===
- * Man texture too 'yellow'
- * Improve penis texture blend on man
- * Man head texture problem?
- * Chest up/down on man flawed!
- * Problems with man colliders running into each other... really need layers!
- * Improve room with black roof
- * Man and women bone trees have chest collider colliding against arms... need to set to own layer?
-
-=== PROBLEMS??? ===
- * Test sex change with blender init.  that flag still of use???
- * Blender script protection a problem for install??
- * Vagina track not hidden at start?
- * Guide catching cum?
-
-=== IDEAS ===
- * Add pose categories and ordering??
- * Add 'flip' hotkey!
- * A 'special mode' to move some hard-to-get-at hotspots (with them drawn in x-ray)
-   * Hide them most of the time (in non pose mode?)
- * Add frame stamp to log entries
- * Hand pose load position... should be remembered so user can load it back!
- * F1-F4 for hand control, F5-F12 for poses
- * Save log files in diff folder?
- * Screen capture feature with output folder... with contest!
- * When cumming in pussy cap cum near entrance!
- * Map mouse button 4-5??
- * sw = Stopwatch.StartNew();
- * Do some body bends with a hotkey pressed!
- * Add additional keys for 1st person cameras!
- * iGUI supports tooltips per combo box entry!
- * Move torso with a quick key?? (Or raise hotspot of chest?
- * ++++ Add extra props from scene options!  And move them with hotspots!!
- * Have Shift+F spread all thighs??
- * Have a 'randomizer' key to enable user to dicate how 'free' character is
- * Feet separation key?
- * Cum guide in vagina & vagina cum?
- * A 'pleasure indicator' when caressing like in the meet & fuck games
- * 'Skip frame' functionality for cum!!
- * Vagina should have 'inverse cum funnel' to guide cum out of opening (doesn't collide with penis) Also put cap
- * Adjust separation between the bodies with one easy value (like penis angle?)
- * Reset pin positions to current with a hotkey (to solve 'stretching problem')
- * Move both legs in one go in 2D (pinned to floor?)
-
-=== INVESTIGATE FEATURES ===
- * Usage for Mesh.Optimize()?
- * Usage for Mesh.Clear()? http://docs.unity3d.com/Documentation/ScriptReference/Mesh.html
- * Mesh.Topology has quads, lines, linestrip, points!
- * Mesh.MarkDynamic http://docs.unity3d.com/Documentation/ScriptReference/Mesh.MarkDynamic.html
-+++ http://www.starscenesoftware.com/vectrosity.html for drawing lines!  Has awesome beziers!!
-
-=== WISHLIST ===
- * User lighting control multiplier?
- * Cum in vagina!
- *? Usable full menu for both hands / both bodies, avoid trapping pins, smooth?
- *
-=== NexT: Body Col ===
- * Breast collider oriented 90 degrees out???
- * Fluid grid size out of wack critical issue???  (Why stiffness all broken now??)
- * Good stats will become critical going forward... create a new super class on top of CProp & new GUI with link to profiler
- * 
-=== PROBLEMS ===
- * FPS appears at start in player
- * WTF is fucking size of box in PhysX2/3!!!
- * When cum falls on penis base colliders make penis shake!
- * Exit when Blender is not there!
- * Gizmo mostly broken: Move will move toward camera!  (Bad rotation at init?)
- * Penis collision exposions... 
-
- * === TODO ===
- * Very quickly set colliders owned by cloth for faster OnUpdate... check again!!
- * Breasts not skinned!
- * Can't anim at start because cloth flies off!!  Reposition root higher??
- * Bad latency problem... gone with reposition of colliders???
- * 
- * 
- * === JUNK? ===
- * POSING FAST TRACK 
-	 * DETERMINE IF WE GROUP PINS!!!
-	 * How about this idea with anim curves????  Should it save our info???
-	-URGENT!: Now having to photonize CBody but can't have multiple base classes!  what to do?
-
- * Posing load and save...
-	 * Do we have any hierarchy with the pins??  (like ArmL/R belonging to Arm and it to torso...) so we save relative positions... important!!  TEST
-	 * We'll need the ability to load a single character... takes quite a bit of time to do one right!
-	 * OR... do we store poses as individuals and rely on the pose designer posing the couple / threesome / quad to load and place posed individuals??  BETTER!!
-		 * Then the 'point of insertion (3d position where genital goes (
- * Raising body so feet are on the ground...
-	 * Is that even an issue?  Do we just snap to pins and everything ok like our pose?
- * Revise decisions on posing:
-	 * For first demo, do we create anims from Unity editor or with our gizmos???
-	 * Collision groups ok?
-	 * Weight of feet?
-	 * Soften drive of pins... appear stiff
-	 * Drive on thigh open not enough
-	 * Knee folding?  Is that to autocrouch?
-	 * Need to allow arms to drop...
- * Finger bones might cause more trouble than worth for now...  Just drive finger bones directly?
-	 * Or do we abstract all four fingers as two boxes and thumb as one capsule?
-	 * 'doing cool things with hands' is going to be difficult... pick first poses where they are tied up.
- * Arm behind head can be achieved with existing hand driving!!
- * Bad bending around the thighs might make cool poses impossible for now!
-	 * Possible to iterate through those verts to smooth them out?
-		 * Or is it better to add a bone to push them out?
- * Add show/hide pins again.
-
-=== TODO ===
- * Have to harmonize PhysX properties for SoftBody & cloth soon...
-	 * Gravity should be applied to some and not others...
-	 * Reconnect a GUI to send these properties via reflection like before??
-		 * Use our previous GUI slider or adopt iGUI?
-
-=== LATER ===
- * Morphing now much simpler and more powerful with the rewrite for breast needed...
-
-=== CURRENT PLAN TO REVENUE ===
- * Quick load and save of poses: in files through photon or anim curves???
- * Design a few ultra-hot poses by placing pins in Unity editor and saving them.
- * Implement hot animations from them... in anim curves???
- * PENETRATION!!!!
-
-=== DESIGN ===
- * Max allowed time changed to 0.04 from .3333!!!
-
-=== IDEAS ===
- * blendShapes and http://www.faceshift.com/unity/  Better then our solution??  How to import tho? (http://answers.unity3d.com/questions/574775/how-do-i-get-started-with-blend-shapes.html)
- * Properties really working well with client/server, GUI and scripting... worth enhancing with randomization, smooth adjust, animation, GUI control, etc.
- * Reducing density of penis softbody might make it stay in its cage more...
-+++ Autofit of what pose is compatible with what other: have pose designer identify vagina angle at idle and range of motion and height...
-	+ When user places a dick somewhere, code attempts to find woman poses made for that angle!  Like placing two a capsule in a sort of cone
-		+ What to do about the feet tho... place invisible body first and see what collides?
- * Profiler can output to log file and accept external data (hint: C++ timing stats!)
- * IDEA: Constantly sending verts, tris and counts from different contexts... create a 'CMesh' in c++??
- * //Profiler.BeginSample("StatName");		//###LEARN: Custom stats!
- * ++++ Placing all our important objects as 'Update When Offscreen' prevents having to recalc bounds!!
-
-=== LEARNED ===
- * Setting Unity time setting to .01 from .04 makes strobing effect of Fluid much less noticeable!  (But really slows down system!)
-	 * However... setting corresponding number in C++ dll had terrible effects... what gives??
-
-=== PROBLEMS ===
-+++++ WTF body disapearing after 20 sec sometimes?? (PhysX window frozen when it happens)
-	 * Log says CBSkinBaked lost its skinned mesh, but entire body node is gone!!
-	 * Probably related to fluid crash... (was with SPH @ 10K)
-	 * Seems to happen after 30 sec always!
-	 * Could trap on destroy!
-+ PhysX screwed up when we exit game and restart: Game doesn't cleanup!!
-+++ Remember hack in PhotonHandler!!
- * Weird bug now with right breast more resistant to gravity???
-++++ TRY to not scale penis at all frame... what happens?  Can do once in a while??
-++++ Bones were all fucked...  reset sex to be less shitty but not exact...  rethink its 15 deg-off ownership of rest of bones!!
- * WTF happened with breasts & vagina being so soft now??
- * BodyA/BodyB getting a bit of pain in the ass in args everywhere... see if we can simplify?
- * Non-full game init missing meshes!
-+ Unity needs to know what meshes Blender creates!  (Like panties, etc) for body to build with proper meshes!
-
-=== PROBLEMS: ASSETS ===
- * Seam appears between breasts and armpits now
-
-=== PROBLEMS??? ===
- * Once I saw performance drop to 23fps while the camera movement looked more like 5fps.   Checking profiler, things like CPinSkinned started taking 14ms and skin rim baked 11ms!
-	 * After much testing I did a full rebuild all of the C++ dll and performance got back to 84fps?  WTF??  Why would a bad compile of DLL make C# code run much slower????
- * I think physx clock is ticking while game initializes... verify!
- * Massive rename / reorg around "BodyA' has broken tons of stuff... Many gBL calls now require full qualification!
- * Note that PhysX PVD viewer has X inverted!!!
-
-=== WISHLIST ===
- *-- Disable gravity on some softbodies (to increase performance??)
-=== WISHLIST ===
- * Desirability of a 'coarse body collider' concept (with legs, arms, etc being approximated with large capsules...
-	 * Implications for accurate breasts & penis collisions
-	 * 700 capsule collider limit... on any machine??  (Test on laptop)
-*/
-
-
 using UnityEngine;
 //using UnityEditor;
 using System;
@@ -399,11 +99,11 @@ public class CUtility {         // Collection of static utility functions
         oFlexParticles.m_collisionGroup = -1;								// Flex runtime will allocate to its own collision group to collide with everything
         oFlexParticles.m_bounds.SetMinMax(new Vector3(-1,-1,-1), new Vector3(1,1,1));        //###CHECK: Better with some reasonable values than zero?
 
-        //=== Add particle renderer component for debug visualization ===
-        uFlex.FlexParticlesRenderer oFlexPartRend = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        oFlexPartRend.m_size = CGame.INSTANCE.particleSpacing;
-        oFlexPartRend.m_radius = oFlexPartRend.m_size / 2.0f;
-        oFlexPartRend.enabled = false;           // Hidden by default
+        ////=== Add particle renderer component for debug visualization ===
+        //uFlex.FlexParticlesRenderer oFlexPartRend = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
+        //oFlexPartRend.m_size = CGame.INSTANCE.particleSpacing;
+        //oFlexPartRend.m_radius = oFlexPartRend.m_size / 2.0f;
+        //oFlexPartRend.enabled = false;           // Hidden by default
 
 		//=== Create Flex Processor so we can update particles ===
 		if (iFlexProcessor != null) {
@@ -433,10 +133,10 @@ public class CUtility {         // Collection of static utility functions
 		return oChildT;
 	}
 
-	 public static GameObject FindObject(/*this*/ GameObject oParentGO, string sNameNode) {     //###LEARN: 'this' in function parameter is a 'extension method'!  See http://stackoverflow.com/questions/3045242/this-in-function-parameter
+	 public static GameObject FindObject(/*this*/ GameObject oParentGO, string sNameNode) {     //###INFO: 'this' in function parameter is a 'extension method'!  See http://stackoverflow.com/questions/3045242/this-in-function-parameter
 		// Finds the node 'sNameNode' in the descendents of 'oParentGO'.  Can find inactive nodes!!
 		//object o = oParentGO.GetComponentsInChildren(typeof(Transform), true);		
-		object[] aNodesT = oParentGO.GetComponentsInChildren(typeof(Transform), true);		//###LEARN: last argument = include inactive!
+		object[] aNodesT = oParentGO.GetComponentsInChildren(typeof(Transform), true);		//###INFO: last argument = include inactive!
 		 foreach(Transform oNodeT in aNodesT)
 			 if(oNodeT.name == sNameNode)
 				  return oNodeT.gameObject;
@@ -528,14 +228,14 @@ public class CUtility {         // Collection of static utility functions
 	//	CUtility.ThrowException("FindMaterialIndexByMaterialName() could not find material " + sMaterialName + " on skinned mesh " + oSkinMeshRend.transform.name);
 	//}
 	//public static void CopyMaterial(Material oMatSrc, ref Material oMatDst) {
-	//	oMatDst.CopyPropertiesFromMaterial(oMatSrc);		//###LEARN: How to copy a material	//###WEAK: Not transfering material names!
+	//	oMatDst.CopyPropertiesFromMaterial(oMatSrc);		//###INFO: How to copy a material	//###WEAK: Not transfering material names!
 	//	oMatDst.name = oMatSrc.name;
 	//}
 	#endregion
 
 	#region === Debug Rendering ===
 	//public static void BakeSkinnedMeshAndShow(Transform oNodeParent, string sNodeName, ref Mesh oMesh, Material oMat, bool bMakeVisible) {		//###OBS?
-	//	//###LEARN: This will draw what is baked...  Useful for debugging!	
+	//	//###INFO: This will draw what is baked...  Useful for debugging!	
 	//	GameObject oMeshBakedDumpGO = new GameObject(sNodeName, typeof(MeshFilter), typeof(MeshRenderer));
 	//	oMeshBakedDumpGO.transform.SetParent(oNodeParent);
 	//	oMeshBakedDumpGO.GetComponent<MeshFilter>().mesh = oMesh;
@@ -574,7 +274,7 @@ public class CUtility {         // Collection of static utility functions
 	#region === Normals ===
 	//public static Vector3 CalculateNormal(ref Vector3 vec0, ref Vector3 vec1, ref Vector3 vec2) {
 	//	Vector3 vecNormal = Vector3.Cross(vec1 - vec0, vec2 - vec0);
-	//	vecNormal *= 1000;						//###LEARN: Normalize the vector when too small!!! (A bug?)   LookAt() needs a large enough vector to 'look' so we multiply then normalize
+	//	vecNormal *= 1000;						//###INFO: Normalize the vector when too small!!! (A bug?)   LookAt() needs a large enough vector to 'look' so we multiply then normalize
 	//	vecNormal.Normalize();
 	//	return vecNormal;
 	//}
@@ -639,7 +339,7 @@ public class CUtility {         // Collection of static utility functions
 	#endregion
 
 	#region === Serialize Actors ByteArrays (Blender <-> Unity) ###OBS ===
-	//public static string BlenderStream_ReadStringPascal(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string lenght)
+	//public static string BlenderStream_ReadStringPascal(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
 	//	byte nLen = aBytes[nOffset]; nOffset++;
 	//	StringBuilder strBuilder = new StringBuilder();
 	//	for (byte nChar = 0; nChar < nLen; nChar++) {
@@ -648,14 +348,14 @@ public class CUtility {         // Collection of static utility functions
 	//	}
 	//	return strBuilder.ToString();
 	//}
-	//public static Vector3 ByteArray_ReadVector(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string lenght)
+	//public static Vector3 ByteArray_ReadVector(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
 	//	Vector3 vec;
 	//	vec.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
 	//	vec.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
 	//	vec.z = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
 	//	return vec;
 	//}
-	//public static Quaternion ByteArray_ReadQuaternion(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string lenght)
+	//public static Quaternion ByteArray_ReadQuaternion(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
 	//	Quaternion quat;
 	//	quat.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
 	//	quat.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
@@ -694,7 +394,7 @@ public class CUtility {         // Collection of static utility functions
 	//Color col1F = CUtility.Color_HSVtoRGB(135, 20, 213); Color32 col1 = new Color32((byte)(255 * col1F.r), (byte)(255 * col1F.g), (byte)(255 * col1F.b), 0);		//###BUG Conversion not working... negative numbers, WTF???
 	//Color col2F = CUtility.Color_HSVtoRGB(02, 20, 213); Color32 col2 = new Color32((byte)(255 * col2F.r), (byte)(255 * col2F.g), (byte)(255 * col2F.b), 0);
 
-   // public static Color Color_HSVtoRGB(float h, float s, float v) {		//###LEARN: From http://www.cs.rit.edu/~ncs/color/t_convert.html		
+   // public static Color Color_HSVtoRGB(float h, float s, float v) {		//###INFO: From http://www.cs.rit.edu/~ncs/color/t_convert.html		
    //     Color calcColour = new Color( 1, 1, 1, 1 );
        
    //     int i = 0;
@@ -830,21 +530,29 @@ public class CUtility {         // Collection of static utility functions
 	#region === DEBUGGING ===
 	public static void ThrowException(string sMsg) {
 		Debug.LogError("[EXCEPTION] " + sMsg);
-		//EditorApplication.isPaused = true;			//###LEARN: How to programatically pause game in Unity editor.  (Doesn't work in player)
+		//EditorApplication.isPaused = true;			//###INFO: How to programatically pause game in Unity editor.  (Doesn't work in player)
+		Debug.Break();
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
-	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###LEARN: How to accept and process variable arguments!
+	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###INFO: How to accept and process variable arguments!
 		sMsg = "[EXCEPTION] " + sMsg;
 		//EditorApplication.isPaused = true;
 		Debug.LogErrorFormat(sMsg, aArgs);
+		Debug.Break();
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}
 
 	public static void ThrowException(Exception e) {
 		Debug.LogException(e);
 		//EditorApplication.isPaused = true;		//###IMPROVE: Wrap with ifdef!
+		Debug.Break();
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
+	}
+
+	public static void PauseGame() {
+		if (CGame.INSTANCE.D_CanPause)
+			Debug.Break();
 	}
 	#endregion
 }
@@ -883,7 +591,7 @@ public class CUtility {         // Collection of static utility functions
 //	}
 
 //public class Prop : Attribute {					//###OBS???
-//	//public string Description { get; set; }			//###LEARN: From technique at http://stackoverflow.com/questions/4879521/creating-custom-attribute-in-c-sharp
+//	//public string Description { get; set; }			//###INFO: From technique at http://stackoverflow.com/questions/4879521/creating-custom-attribute-in-c-sharp
 //	public string Description;
 //	public float Min;
 //	public float Max;

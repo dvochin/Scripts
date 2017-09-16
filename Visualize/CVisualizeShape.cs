@@ -2,134 +2,103 @@
 using System.Collections.Generic;
 
 public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders debug geometry for a SoftBody shape / bone
-    public int _ShapeID;
-    public bool _Selected;
-    public Color _Color;
-    CVisualizeSoftBody _oVisSoftBody;
+    public bool			_Selected;
+    public int			_ShapeID;
+    public Color		_Color;
+    CSoftBody	_oSoftBody;
     Dictionary<int, LineRenderer> _mapLines;
 
-	static Color32 s_oColor_Unselected	= new Color32(0, 255, 0, 255);			// Unselected	= Green
 
-    public void Initialize(CVisualizeSoftBody oVisSoftBody, int nShapeID) {
-        _oVisSoftBody = oVisSoftBody;
+    public void Initialize(CSoftBody oSoftBody, int nShapeID) {
+        _oSoftBody = oSoftBody;
         _ShapeID = nShapeID;
-        transform.localScale = _oVisSoftBody._vecSizeShapes;
-        _Color = Color.gray;            // Placeholder color until requested the first time.
+        _Color = CUtility.GetRandomColor();
         gameObject.SetActive(true);
         name = string.Format("Shape{0}", _ShapeID);
-        transform.SetParent(_oVisSoftBody.transform);
+		GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ShapeDefault;
+        transform.SetParent(_oSoftBody.transform);
     }
 
-    public void ToggleSelect() {
-        _Selected = !_Selected;
-        if (_Selected) {
+	public void Select_Toggle() {
+		if (_Selected)
+			Select_Clear();
+		else
+			Select_Set();
+	}
+
+	public void Select_Set() { 
+        if (_Selected == false) {
             Debug.LogFormat("Debug Shape {0} selected", _ShapeID);
-            transform.localScale *= 2.0f;
-            if (_Color == Color.gray)                       // Get a real color on the first activation (that we will keep)
-                _Color = CUtility.GetRandomColor();
             GetComponent<MeshRenderer>().material.color = _Color;
 
-            if (_mapLines == null)
-                _mapLines = new Dictionary<int, LineRenderer>();
+			_mapLines = new Dictionary<int, LineRenderer>();
 
             //=== Obtain the beginning and end of where the particle IDs are stored for this shape ===
-            int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oVisSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
-            int nShapeParticleLookupEnd    = _oVisSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID];
+            int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
+            int nShapeParticleLookupEnd    = _oSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID];
 
             //=== Iterate through all the particles associated with this shape to draw them ===
             for (int nShapeParticleLookup = nShapeParticleLookupBegin; nShapeParticleLookup < nShapeParticleLookupEnd; nShapeParticleLookup++) {
-                int nParticle = _oVisSoftBody._oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
+                int nParticle = _oSoftBody._oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
                 string sLineKey = "S" + _ShapeID.ToString() + "-P" + nParticle.ToString();      //###IDEA: Make globally unique with bodyID & soft body id?
                 LineRenderer oLR = CGame.Line_Add(sLineKey);
-                oLR.material.color = _Color;
-                oLR.SetWidth(_oVisSoftBody._SizeParticles/10, _oVisSoftBody._SizeParticles/10);
-                _mapLines.Add(nParticle, oLR);          // Line position update every frame in Update()
+				if (nShapeParticleLookup == nShapeParticleLookupBegin)
+					oLR.material.color = Color.white;							// Always color the first particle in a shape (usually the 'master particle' that created the shape) as white
+				else
+					oLR.material.color = _Color;
+                oLR.startWidth	= .0050f;							//###TUNE
+                oLR.endWidth	= .0001f;                           // Give tiny end size so we can infer direction
+				Debug.LogFormat("Shape {0} - Particle {1}", _ShapeID, nParticle);
+				if (_mapLines.ContainsKey(nParticle) == false)
+					_mapLines.Add(nParticle, oLR);          // Line position update every frame in Update()
+				else
+					Debug.LogErrorFormat("###ERROR: CVisualizeShape() on shape {0} already had particle {1}", _ShapeID, nParticle);
             }
+			_Selected = true;
+        }
+	}
 
-        } else {
+	public void Select_Clear() { 
+        if (_Selected) {
             Debug.LogFormat("Debug Shape {0} unselected", _ShapeID);
-            transform.localScale = _oVisSoftBody._vecSizeShapes;
-			GetComponent<MeshRenderer>().material.color = CVisualizeShape.s_oColor_Unselected;
+			GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ShapeDefault;
 
             if (_mapLines != null) {
                 foreach (LineRenderer oLR in _mapLines.Values)
                     GameObject.Destroy(oLR.gameObject);
                 _mapLines = null;
             }
+			_Selected = false;
         }
     }
 
-    void Update() {
+    public void DoUpdate() {
+		transform.position = _oSoftBody._oFlexShapeMatching.m_shapeTranslations[_ShapeID] + _oSoftBody._vecVisualiserOffset;
+		transform.rotation = _oSoftBody._oFlexShapeMatching.m_shapeRotations   [_ShapeID];
+        transform.localScale = _oSoftBody._vecSizeShapes;
+
         if (_mapLines != null) {                // Update the position of all lines we have defined.
             foreach (int nParticle in _mapLines.Keys) {         //###IDEA: Pass the two transforms for each line to CGame and have it update (and auto-destroy) the lines at each frame.
                 LineRenderer oLR = _mapLines[nParticle];
                 oLR.transform.position = transform.position;
                 oLR.SetPosition(0, transform.position);
-                oLR.SetPosition(1, _oVisSoftBody._oFlexParticles.m_particles[nParticle].pos);
+                oLR.SetPosition(1, _oSoftBody._oFlexParticles.m_particles[nParticle].pos + _oSoftBody._vecVisualiserOffset);
             }
         }
     }
 
     void OnDestroy() {
-        //GetComponent<MeshRenderer>().enabled = false;           // Leave object standing?
-        if (_mapLines != null) {
-            foreach (LineRenderer oLR in _mapLines.Values)      // Destroy the lines we created
-                GameObject.Destroy(oLR.gameObject);
-        }
+		Select_Clear();
     }
 
-    //public virtual void OnDrawGizmos() {
-    //    if (_Selected) { 
-    //        Gizmos.color = Color.grey;
-
-    //        //=== Obtain the beginning and end of where the particle IDs are stored for this shape ===
-    //        int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oVisSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
-    //        int nShapeParticleLookupEnd    = _oVisSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID];
-
-    //        //=== Iterate through all the particles associated with this shape to draw them ===
-    //        for (int nShapeParticleLookup = nShapeParticleLookupBegin; nShapeParticleLookup < nShapeParticleLookupEnd; nShapeParticleLookup++) {
-    //            int nParticle = _oVisSoftBody._oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
-    //            //Vector3 vecPosParticleLocal     = _oFlexShapeMatching.m_shapeRestPositions[nParticle];
-    //            //Vector3 vecPosParticleGlobal    = transform.localToWorldMatrix.MultiplyPoint(vecPosParticleLocal);    // How to draw shape rest pos instead of current particle position.
-    //            Vector3 vecPosParticleGlobal    = _oVisSoftBody._oFlexParticles.m_particles[nParticle].pos;
-    //            //Gizmos.DrawSphere(vecPosParticleGlobal, _SizeParticle);
-    //            Gizmos.DrawLine(transform.position, vecPosParticleGlobal);
-    //        }
-    //    }
-    //}
-
-    //uFlex.FlexShapeMatching _oFlexShapeMatching;        // Our parent soft body.  Always has shape matching component
-    //uFlex.FlexParticles _oFlexParticles;
-    //public int _ShapeID;                               // Our shape ID
-    //public Color _Color;                                // The color we use for our debug shapes
-    //public float _SizeParticle = 0.00025f;  // CGame.INSTANCE.particleSpacing / 2;
-    //public float _SizeShape = 0.001f;
-    //public bool _DrawLine = true;
-
-    //void Start () {
-    //    _oFlexShapeMatching     = transform.parent.GetComponent<uFlex.FlexShapeMatching>();
-    //    _oFlexParticles         = transform.parent.GetComponent<uFlex.FlexParticles>();
-    //    _ShapeID = int.Parse(name.Substring(10));      // Node is called something like "FlexShape_12".  Get the ID at the end
-    //}
-
-    //public virtual void OnDrawGizmos() {
-    //    //Vector3 vecSizeParticles = new Vector3(_SizeGizmo/10, _SizeGizmo/10 _SizeGizmo/10);
-    //    Gizmos.color = _Color;
-    //    Gizmos.DrawSphere(transform.position, _SizeShape);
-
-    //    //=== Obtain the beginning and end of where the particle IDs are stored for this shape ===
-    //    int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
-    //    int nShapeParticleLookupEnd    = _oFlexShapeMatching.m_shapeOffsets[_ShapeID];
-
-    //    //=== Iterate through all the particles associated with this shape to draw them ===
-    //    for (int nShapeParticleLookup = nShapeParticleLookupBegin; nShapeParticleLookup < nShapeParticleLookupEnd; nShapeParticleLookup++) {
-    //        int nParticle = _oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
-    //        //Vector3 vecPosParticleLocal     = _oFlexShapeMatching.m_shapeRestPositions[nParticle];
-    //        //Vector3 vecPosParticleGlobal    = transform.localToWorldMatrix.MultiplyPoint(vecPosParticleLocal);    // How to draw shape rest pos instead of current particle position.
-    //        Vector3 vecPosParticleGlobal    = _oFlexParticles.m_particles[nParticle].pos;
-    //        Gizmos.DrawSphere(vecPosParticleGlobal, _SizeParticle);
-    //        if (_DrawLine)
-    //            Gizmos.DrawLine(transform.position, vecPosParticleGlobal);
-    //    }
-    //}
+	private void OnTriggerEnter(Collider other) {
+		if (other.gameObject.name == "VrWand-Left") {                       //###WEAK: Test of triggers by their node name.  (Them having a custom object would be more robust)
+			Select_Set();
+		}
+	}
+	private void OnTriggerExit(Collider other) {				
+		if (other.gameObject.name == "VrWand-Left") {
+			Select_Clear();
+		}
+	}
 }

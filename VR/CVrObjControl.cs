@@ -1,4 +1,4 @@
-﻿/*###DISCUSSION: Wand object / camera control - May 2017 - ###DOCS22:
+﻿/*###DOCS22: May 2017 - Wand object / camera control
 === DEV ===
 
 === NEXT ===
@@ -39,6 +39,7 @@
 
 === IDEAS ===
 - Oculus build of the game can use the 'Start Menu' botton on left wand for some debug thing!
+- Drive the camera position through a very week PhysX joint and have it have a collider?  (Could push bodies out of the way?)
 
 === LEARNED ===
 
@@ -79,8 +80,16 @@ public class CVrObjControl : MonoBehaviour {
 	CVrPanelWand		_oVrPanelWand;					// The (optional) wand GUI.  Capable of rendering most of the game's UI.  Shown my user bringing wand close to front of headset.
 	VRTK.VRTK_ControllerEvents _oVrControlEvents;		// The VRTK object we use to get our information from
 	uint				_nControllerIndex;				// Our 'controller index'.   Needed to access low-level functions like get grip axis value
+	bool				_bIsLeft;
+	public CProp		_oPropDebugJoystickHor_HACK;	// Debug property that is pushed in by various code-in-development for easy debug property editing by the up/down & right/left axis of this wand's joystick
+	public CProp        _oPropDebugJoystickVer_HACK;
+	CProp               _oPropEditedByJoystick_HACK;    // Debug property actively being edited by this wand's joystick.  Either _oPropDebugJoystickHor_HACK, _oPropDebugJoystickVer_HACK or null when no joystick editing
 
+	public string       _sNameWand;                     // "Left" or "Right"
+	EGameGuiMsg         _eGameGuiMsg;                   // VrWandLeft or VrWandRight
 
+	const float C_JoystickPropEdit_SizeDeadzone = 0.15f;				// How wide the deadzone is during debug joystick property editing
+	const float C_JoystickPropEdit_PropertyModifyStrength = 0.01f;      // How strong the joystick property editing is per frame as a percentage of its range
 
 	//======================================================================	INIT
 	void Start () {
@@ -90,16 +99,33 @@ public class CVrObjControl : MonoBehaviour {
         if (_oVrControlEvents == null)
             CUtility.ThrowExceptionF("###EXCEPTION: CVrObjControl() could not find VRTK_ControllerEvents component for wand '{0}'", gameObject.name);
 
-        //=== Setup controller event listeners to trap wand trigger pressed and released to move / rotate controlled object with six degrees of freedom! ===
-        _oVrControlEvents.GripPressed			+= new VRTK.ControllerInteractionEventHandler(OnVrWandGrip_Pressed);		//###PROBLEM: VRTK broken around grip functionality. (Axis always returns 0 and hairline and touch events are never called!)
-        _oVrControlEvents.TriggerHairlineStart	+= new VRTK.ControllerInteractionEventHandler(OnVrWandTrigger_Pressed);		//###LEARN: We trap hairline on way down (about 25% button press) but we end when user leaves button altogether (so that we can use entire axis for 'strength')
+		_bIsLeft = gameObject.name.Contains("Left");            // A bit of a weak way to know if this wand is left or right... There must be a better way
+		if (_bIsLeft) {
+			_sNameWand = "Left";
+			_eGameGuiMsg = EGameGuiMsg.VrWandLeft;
+		} else {
+			_sNameWand = "Right";
+			_eGameGuiMsg = EGameGuiMsg.VrWandRight;
+		}
+
+		//=== Setup controller event listeners to trap wand trigger pressed and released to move / rotate controlled object with six degrees of freedom! ===
+		_oVrControlEvents.GripPressed			+= new VRTK.ControllerInteractionEventHandler(OnVrWandGrip_Pressed);		//###PROBLEM: VRTK broken around grip functionality. (Axis always returns 0 and hairline and touch events are never called!)
+        _oVrControlEvents.TriggerHairlineStart	+= new VRTK.ControllerInteractionEventHandler(OnVrWandTrigger_Pressed);		//###INFO: We trap hairline on way down (about 25% button press) but we end when user leaves button altogether (so that we can use entire axis for 'strength')
         _oVrControlEvents.ButtonTwoPressed		+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton2_Pressed);
-        //_oVrControlEvents.GripReleased		+= new VRTK.ControllerInteractionEventHandler(OnVrWandGrip_Released);
-        //_oVrControlEvents.TriggerTouchEnd		+= new VRTK.ControllerInteractionEventHandler(OnVrWandTrigger_Released);
-        //_oVrControlEvents.ButtonOnePressed	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton1_Pressed);
-        //_oVrControlEvents.ButtonOneReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton1_Released);
-        //_oVrControlEvents.ButtonTwoReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton2_Released);
-        //_oVrControlEvents.StartMenuPressed	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButtonPressedStartMenu);	//###IMPROVE: How to trap the damn 'third button' for ourselves!!
+		_oVrControlEvents.TouchpadAxisChanged   += new VRTK.ControllerInteractionEventHandler(OnVrWandTouchpadAxisChanged);
+		//_oVrControlEvents.GripReleased		+= new VRTK.ControllerInteractionEventHandler(OnVrWandGrip_Released);
+		//_oVrControlEvents.TriggerTouchEnd		+= new VRTK.ControllerInteractionEventHandler(OnVrWandTrigger_Released);
+		//_oVrControlEvents.ButtonOnePressed	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton1_Pressed);
+		//_oVrControlEvents.ButtonOneReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton1_Released);
+		//_oVrControlEvents.ButtonTwoReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton2_Released);
+		//_oVrControlEvents.StartMenuPressed	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButtonPressedStartMenu);	//###IMPROVE: How to trap the damn 'third button' for ourselves!!
+
+		//=== Create the wand GUI panel ===
+		Transform oModelAttachParentT = transform;		//###IMPROVE: When on SteamVR we had a nice 3D model of wand with useful anchors we could use.  Oculus doesn't have that so we're stuck with our plain old transform node.  _oWandSteamT.Find("Model/handgrip/attach").transform;
+		if (_bIsLeft == false) {			//###HACK:!!!!  Bad hack with left / right VR panels!
+			_oVrPanelWand = new CVrPanelWand(this, oModelAttachParentT);
+			_oVrPanelWand._oCanvas.gameObject.SetActive(false);			// Panel hidden until brought close to headset
+		}
 	}
 
 	void LateInitialization() {					// Late initialization is needed because VRTK reparents itself to SteamVR wand somewhere in initialization
@@ -113,21 +139,17 @@ public class CVrObjControl : MonoBehaviour {
 			_oCameraRigT = _oWandSteamT.transform.parent;
 			//if (_oCameraRigT.GetComponent<SteamVR_ControllerManager>() == null)     // Make sure we really have the steam wand VR object (VRTK object gets reparented to it and we might get called too early)
 			//	CUtility.ThrowExceptionF("###EXCEPTION: CVrObjControl() could not find SteamVR_ControllerManager in camera rig for wand '{0}'", gameObject.name);
-			_oHeadsetT = VRTK.VRTK_DeviceFinder.DeviceTransform(VRTK.VRTK_DeviceFinder.Devices.Headset);       //###LEARN: How to globally get the objects we need!
+			_oHeadsetT = VRTK.VRTK_DeviceFinder.DeviceTransform(VRTK.VRTK_DeviceFinder.Devices.Headset);       //###INFO: How to globally get the objects we need!
 
 			//=== Obtain references to the needed parts of the 3D wand model ===
 			_oWandTipT = transform;// _oWandSteamT.Find("Model/tip/attach").transform;		// Obtain access to the transform in our model's nodes that reveals the position / orientation of the wand tip ===//###IMPROVE: Can obtain tip position / orientation in a better way through API??  Also would be nicer to have this in Start() but because of VRTK reparenting this is too early
-			//###BROKEN23: _oWandGripT = _oWandSteamT.Find("Model/grip").transform;           // Obtain access to the transform in our model's nodes that reveals the orientation of the grip.  This is the easiest way we can extrac the grip position as VRTK is currently broken returning grip axis pos.
-
-			//=== Create the wand GUI panel ===
-			//Transform oModelAttachParentT = transform;		//###BROKEN23: _oWandSteamT.Find("Model/handgrip/attach").transform;
-			//_oVrPanelWand = new CVrPanelWand(this, oModelAttachParentT);
+			//###IMPROVE23: No longer have access to SteamVR anchors on 3D model!  _oWandGripT = _oWandSteamT.Find("Model/grip").transform;           // Obtain access to the transform in our model's nodes that reveals the orientation of the grip.  This is the easiest way we can extrac the grip position as VRTK is currently broken returning grip axis pos.
 
 			// CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrMode] = string.Format("VrMode: {0}", _eVrControlMode);      // Weak: duplication
 			_bLateInitialized = true;
 		}
 	}
-	
+
 
 	//======================================================================	UTIL
 	Vector3 Util_GetWandLocalPosition() {						// Returns the wand position local to its owning camera rig.  Used to control camera
@@ -164,22 +186,41 @@ public class CVrObjControl : MonoBehaviour {
 		// CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrMode] = string.Format("VrMode: {0}",  _eVrControlMode);
 	}
 	//private void OnVrWandButton2_Released(object sender, VRTK.ControllerInteractionEventArgs e) { }
+	private void OnVrWandTouchpadAxisChanged(object sender, VRTK.ControllerInteractionEventArgs e) {    //###IMPROVE: Only changes properties when joystick moves?  Change to constant change until return within deadzone?
+		float nX_abs = Mathf.Abs(e.touchpadAxis.x);					//###IMPROVE: Add some screen visualization to show user how property is being changed
+		float nY_abs = Mathf.Abs(e.touchpadAxis.y);
+		float nValMax_abs = Mathf.Max(nX_abs, nY_abs);
 
+		if (_oPropEditedByJoystick_HACK == null) {										// Start joystick debug property editing if not currently editing anything and joystick out of deadzone
+			if (nValMax_abs > C_JoystickPropEdit_SizeDeadzone) {						// Ignore joystick movements within our 'deadzone'
+				if (nX_abs > nY_abs)                                                    // X movement larger = start horizontal edit
+					_oPropEditedByJoystick_HACK = _oPropDebugJoystickHor_HACK;          // Enables update to update this property
+				else																	// Y movement larger = start vertical edit
+					_oPropEditedByJoystick_HACK = _oPropDebugJoystickVer_HACK;          // Enables update to update this property
+			}
+		} else {																		// End joystick debug property editing if editing something and joystick entered deadzone
+			if (nValMax_abs <= C_JoystickPropEdit_SizeDeadzone) {
+				_oPropEditedByJoystick_HACK = null;         // Stops update from editing any property
+				CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = string.Format("{0} Wand:", _sNameWand);
+			}
+		}
+	}
 
-	
+		
+
 	//======================================================================	OBJECT CONTROL
 
-    private void OnVrWandTrigger_Pressed(object sender, VRTK.ControllerInteractionEventArgs e) {
+	private void OnVrWandTrigger_Pressed(object sender, VRTK.ControllerInteractionEventArgs e) {
 		if (_eVrControlObject != EVrControlObject.None)		// Only start an operation if we're at idle state (old op has to complete)
 			return;
 
 		//=== User pressed down on grip.  Obtain reference to the transform we're set to move / rotate ===
 		LateInitialization();
-		if (gameObject.name.Contains("Left")) {			// A bit of a weak way to know if this wand is left or right... There must be a better way
+		if (_bIsLeft)
 			_oVrWandObject = CGame.INSTANCE._oVrWandObjectL;
-		} else { 
+		else
 			_oVrWandObject = CGame.INSTANCE._oVrWandObjectR;
-		}
+
         if (_oVrWandObject == null)
             CUtility.ThrowException("###EXCEPTION: CVrObjControl() could not obtain a valid object to move / rotate!");
 
@@ -218,14 +259,29 @@ public class CVrObjControl : MonoBehaviour {
 	}
 	//private void OnVrWandGrip_Released(object sender, VRTK.ControllerInteractionEventArgs e) { }
 
+	private void OnTriggerEnter(Collider other) {
+		if (other.gameObject.name == "Trigger-Panel-Show") {				//###WEAK: Test of triggers by their node name.  (Them having a custom object would be more robust)
+			if (_oVrPanelWand != null && _oVrPanelWand._oCanvas != null)
+				_oVrPanelWand._oCanvas.gameObject.SetActive(true);
+			//CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrControlCam] = string.Format("VrCol: {0}", other.gameObject.name);
+		}
+	}
+	private void OnTriggerExit(Collider other) {
+		if (other.gameObject.name == "Trigger-Panel-Hide") {				//###WEAK: Test of triggers by their node name.  (Them having a custom object would be more robust)
+			if (_oVrPanelWand != null && _oVrPanelWand._oCanvas != null)
+				_oVrPanelWand._oCanvas.gameObject.SetActive(false);
+			//CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrControlCam] = string.Format("VrCol: none");		
+		}
+	}
+
 
 	//======================================================================	UPDATE
 	private void Update() {
 		switch (_eVrControlObject) {
 			case EVrControlObject.Camera:
-				float nButtonStrengthGrip = VRTK.VRTK_SDK_Bridge.GetGripAxisOnIndex(_nControllerIndex).x;		//###LEARN: How to get grip axis info!  VRTK BROKEN!!!: GetGripAxis() returns zero at source level so have to get it from 3D model!!!  VRTK fundamentally broken at source level... but openvr gets value as it populates wand model properly! (Call             if (!renderModels.GetComponentState(renderModelName, name, ref controllerState, ref controllerModeState, ref componentState))  ###CHECK: Will this work on SteamVR?
+				float nButtonStrengthGrip = VRTK.VRTK_SDK_Bridge.GetGripAxisOnIndex(_nControllerIndex).x;		//###INFO: How to get grip axis info!  VRTK BROKEN!!!: GetGripAxis() returns zero at source level so have to get it from 3D model!!!  VRTK fundamentally broken at source level... but openvr gets value as it populates wand model properly! (Call             if (!renderModels.GetComponentState(renderModelName, name, ref controllerState, ref controllerModeState, ref componentState))  ###CHECK: Will this work on SteamVR?
 
-				if (nButtonStrengthGrip > 0.05f) {              //###LEARN: GetTriggerAxis() can still return very small values when user has finger completely off!
+				if (nButtonStrengthGrip > 0.05f) {              //###INFO: GetTriggerAxis() can still return very small values when user has finger completely off!
 
 					//=== Obtain camera rig position / rotation (so we can modify more easily) ===
 					Vector3		vecCameraRigPos		= _oCameraRigT.position;
@@ -237,20 +293,20 @@ public class CVrObjControl : MonoBehaviour {
 
 					//=== Obtain the delta position / rotation of the wand tip since the start of this control operation ===
 					Vector3		vecPosNowDelta_Wand		= vecPosNow_Wand - _vecPosStart_Wand;
-					Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand;     //###LEARN: How to determine quaternion difference -> With Quaternion.Inverse()!
+					Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand;     //###INFO: How to determine quaternion difference -> With Quaternion.Inverse()!
 
 					//=== Rotate the delta position about the camera position.  (We need to keep camera rig rotation out of Util_GetWandLocalPosition() so time is not a factor) ===
-					vecPosNowDelta_Wand = _oCameraRigT.rotation * vecPosNowDelta_Wand;		//###LEARN  vecOut = Quaternion.Inverse(quatRot) * vecIn; // same as vecIn * quatRot
+					vecPosNowDelta_Wand = _oCameraRigT.rotation * vecPosNowDelta_Wand;		//###INFO  vecOut = Quaternion.Inverse(quatRot) * vecIn; // same as vecIn * quatRot
 
 					Quaternion quatRotNowDelta_Wand_ScaledDown = Util_ScaleQuaternion(quatRotNowDelta_Wand, CGame.INSTANCE._nVrObjectControlRot * nButtonStrengthGrip);
 					quatRotNowDelta_Wand_ScaledDown.x = quatRotNowDelta_Wand_ScaledDown.z = 0;
 			
 					//--- Apply the scaled-down delta position and rotation ---
 					vecCameraRigPos += vecPosNowDelta_Wand * CGame.INSTANCE._nVrObjectControlPos * nButtonStrengthGrip;	// Apply a scaled-down delta vector
-					quatCameraRigRot = quatRotNowDelta_Wand_ScaledDown * quatCameraRigRot;			//###LEARN: How to apply an angle... Not commutative!!
+					quatCameraRigRot = quatRotNowDelta_Wand_ScaledDown * quatCameraRigRot;			//###INFO: How to apply an angle... Not commutative!!
 
 					//=== Make sure we are not trying to go too far up or down ===
-					vecCameraRigPos.y = Mathf.Clamp(vecCameraRigPos.y, -0.8f, 1.0f);        //###TUNE		###IMPROVE: Camera rig CAN go underneath y=0 but camera itself should not!  Clamp camera pos instead of rig!
+					//###BROKEN:!!! vecCameraRigPos.y = Mathf.Clamp(vecCameraRigPos.y, -0.8f, 1.0f);        //###TUNE		###IMPROVE: Camera rig CAN go underneath y=0 but camera itself should not!  Clamp camera pos instead of rig!
 
 					//=== Adjust the camera rig position / rotation ===
 					_oCameraRigT.position = vecCameraRigPos;
@@ -267,7 +323,7 @@ public class CVrObjControl : MonoBehaviour {
 			case EVrControlObject.Object:
 				float nButtonStrengthTrigger	= _oVrControlEvents.GetTriggerAxis();
 
-				if (nButtonStrengthTrigger > 0.05) {		//###LEARN: GetTriggerAxis() can still return very small values when user has finger completely off!
+				if (nButtonStrengthTrigger > 0.05) {		//###INFO: GetTriggerAxis() can still return very small values when user has finger completely off!
 					
 					//=== Obtain the fresh position and rotation of the wand tip relative to the camera rig ===
 					Vector3		vecPosNow_Wand	= Util_GetWandTipLocalPosition();
@@ -275,7 +331,7 @@ public class CVrObjControl : MonoBehaviour {
 
 					//=== Obtain the delta position / rotation of the wand tip since the start of this control operation ===
 					Vector3		vecPosNowDelta_Wand		= vecPosNow_Wand - _vecPosStart_Wand;
-					Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand ;		//###LEARN: How to determine quaternion difference -> With Quaternion.Inverse()!
+					Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand ;		//###INFO: How to determine quaternion difference -> With Quaternion.Inverse()!
 
 					//=== Move / rotate the object being controlled either relatively or absolutely ===
 					if (_eVrControlMode == EVrControlMode.Relative) {
@@ -283,7 +339,7 @@ public class CVrObjControl : MonoBehaviour {
 						Quaternion quatRotNowDelta_Wand_ScaledDown = Util_ScaleQuaternion(quatRotNowDelta_Wand, CGame.INSTANCE._nVrObjectControlRot * nButtonStrengthTrigger);
 						//--- Apply the scaled-down delta position and rotation ---
 						_oVrWandObject.position += vecPosNowDelta_Wand * CGame.INSTANCE._nVrObjectControlPos * nButtonStrengthTrigger;	// Apply a scaled-down delta vector
-						_oVrWandObject.rotation = quatRotNowDelta_Wand_ScaledDown * _oVrWandObject.rotation;			//###LEARN: How to apply an angle... Not commutative!!
+						_oVrWandObject.rotation = quatRotNowDelta_Wand_ScaledDown * _oVrWandObject.rotation;			//###INFO: How to apply an angle... Not commutative!!
 					} else {
 						_oVrWandObject.position = _vecPosStart_Object	+ vecPosNowDelta_Wand;
 						_oVrWandObject.rotation = quatRotNowDelta_Wand	* _quatRotStart_Object;
@@ -300,6 +356,20 @@ public class CVrObjControl : MonoBehaviour {
 
 			default:
 				break;
+		}
+
+		//=== Perform joystick editing of assigned debug properties if set ===
+		if (_oPropEditedByJoystick_HACK != null) {
+			Vector2 vecTouchpadAxis = _oVrControlEvents.GetTouchpadAxis();
+			float nValJoystickAxis = (_oPropEditedByJoystick_HACK == _oPropDebugJoystickHor_HACK) ? vecTouchpadAxis.x : vecTouchpadAxis.y;
+			float nValJoystickAxis_Abs = Mathf.Abs(nValJoystickAxis);
+			float nJoystickRatioLessDeadzone = (nValJoystickAxis_Abs - C_JoystickPropEdit_SizeDeadzone) / (1 - C_JoystickPropEdit_SizeDeadzone);
+			if (nValJoystickAxis < 0)
+				nJoystickRatioLessDeadzone *= -1;
+			float nValue = _oPropEditedByJoystick_HACK._nValueLocal;
+			nValue += nJoystickRatioLessDeadzone * _oPropEditedByJoystick_HACK._nMinMaxRange * C_JoystickPropEdit_PropertyModifyStrength;
+			_oPropEditedByJoystick_HACK.PropSet(nValue);
+			CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = string.Format("{0} Wand: {1} = {2}", _sNameWand, _oPropEditedByJoystick_HACK._sNameProp, _oPropEditedByJoystick_HACK.PropGet());
 		}
 	}
 }
@@ -381,7 +451,7 @@ public enum EVrControlObject {
 
 //			//=== Obtain the delta position / rotation of the wand tip since the start of this control operation ===
 //			Vector3		vecPosNowDelta_Wand		= vecPosNow_Wand - _vecPosStart_Wand;
-//			Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand ;		//###LEARN: How to determine quaternion difference -> With Quaternion.Inverse()!
+//			Quaternion	quatRotNowDelta_Wand	= quatRotNow_Wand * _quatRotStartInv_Wand ;		//###INFO: How to determine quaternion difference -> With Quaternion.Inverse()!
 
 //			//=== Move / rotate the object being controlled either relatively or absolutely ===
 //			if (_eVrControlMode == EVrControlMode.Relative) {
@@ -389,7 +459,7 @@ public enum EVrControlObject {
 //				Quaternion quatRotNowDelta_Wand_ScaledDown = Util_ScaleQuaternion(quatRotNowDelta_Wand, CGame.INSTANCE._nVrObjectControlRot * nButtonStrengthTrigger);
 //				//--- Apply the scaled-down delta position and rotation ---
 //				_oVrWandObject.position += vecPosNowDelta_Wand * CGame.INSTANCE._nVrObjectControlPos * nButtonStrengthTrigger;	// Apply a scaled-down delta vector
-//				_oVrWandObject.rotation = quatRotNowDelta_Wand_ScaledDown * _oVrWandObject.rotation;			//###LEARN: How to apply an angle... Not commutative!!
+//				_oVrWandObject.rotation = quatRotNowDelta_Wand_ScaledDown * _oVrWandObject.rotation;			//###INFO: How to apply an angle... Not commutative!!
 //			} else {
 //				_oVrWandObject.position = _vecPosStart_Object	+ vecPosNowDelta_Wand;
 //				_oVrWandObject.rotation = quatRotNowDelta_Wand	* _quatRotStart_Object;

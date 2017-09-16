@@ -9,8 +9,8 @@ public class CActorGenitals : CActor {
 	public override void OnStart_DefineLimb() {
 		//=== Init Bones and Joints ===
 
-		//=== Initialize position of our pin to the startup position / orientation of our basis bone in body ===
-		Transform oGenitalsT = CUtility.FindChild(_oBody._oBodyBase._oBoneRootT, "hip/pelvis/VaginaOpening");		// Because we're first to be created we must fetch our reference bone directly
+		//=== Initialize position of our pin to the startup position / orientation of our basis bone in body ===		//###BROKEN:???
+		Transform oGenitalsT = CUtility.FindChild(_oBody._oBodyBase._oBoneRootT, "hip/pelvis/Genitals");		// Because we're first to be created we must fetch our reference bone directly
 		//###TODO22: Have extra bone for man rig to point to penis start
 		transform.position = oGenitalsT.position;
 		transform.rotation = oGenitalsT.rotation;

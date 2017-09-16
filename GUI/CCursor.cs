@@ -143,8 +143,8 @@ public class CCursor : MonoBehaviour {
 		//###WEAK?  The changes above to cursor mode operation are specific to the game and take away some of the generic behavior that may be useful for other purposes
              if (Input.GetKeyDown(KeyCode.W))	SetEditMode(EEditMode.Move);		// W = Move
 		else if (Input.GetKeyDown(KeyCode.T))	SetEditMode(EEditMode.Rotate);      // T = roTate               //###WEAK: Conflicts with reset!  Which to keep??
-                                                                                    //else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
-                                                                                    //else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
+        //else if (Input.GetKeyDown(KeyCode.E)) 	SetEditMode(EEditMode.Scale);		// E = Expand = Scale		//###DESIGN: Any value in scale / select for game??
+        //else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
 
         //=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
         CGame.SetGuiMessage(EGameGuiMsg.CursorStat1, "Cursor Mode: " + _eModeCursor.ToString());

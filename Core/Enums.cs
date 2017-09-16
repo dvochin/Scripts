@@ -77,7 +77,6 @@ public enum EActorNode {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 	//Height			//###HACK?  A bit out of place for a generic node... fix would be to specialize nodes for base and torso?
 };
 public enum EActorChest {
@@ -88,7 +87,6 @@ public enum EActorChest {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 	Torso_LeftRight,
 	Torso_UpDown,
 	Torso_Twist,
@@ -102,7 +100,6 @@ public enum EActorPelvis {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 };
 
 public enum EActorArm {
@@ -113,7 +110,6 @@ public enum EActorArm {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 //	HandTarget,
 	Hand_UpDown,
 	Hand_LeftRight,
@@ -132,7 +128,6 @@ public enum EActorLeg {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 	Thigh_Spread,
 	Thigh_Rotate,
 };
@@ -145,7 +140,6 @@ public enum EActorFootCenter {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 };
 
 public enum EActorGenitals {
@@ -156,7 +150,6 @@ public enum EActorGenitals {
 	RotX,
 	RotY,
 	RotZ,
-	RotW,
 };
 
 
@@ -208,4 +201,3 @@ public enum EPoseRoot {
 public enum EMorphOps {		//####TEMP
 	BreastSize
 };
-

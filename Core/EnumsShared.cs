@@ -27,18 +27,18 @@ public enum EColGroups {					// PhysX collider groups.  Keep synced with C++
 
 
 
-public enum ESoftBody {
-	VolumeStiffness,
-	StretchingStiffness,
-	SoftBody_Damping,
-	Friction,
-	SoftBody_Gravity,
-	ParticleRadius,
-	SolverIterations,
-	SoftBody_GPU,						//###TODO!!!: Reset when changed
-};
+//public enum ESoftBody {
+//	VolumeStiffness,
+//	StretchingStiffness,
+//	SoftBody_Damping,
+//	Friction,
+//	SoftBody_Gravity,
+//	ParticleRadius,
+//	SolverIterations,
+//	SoftBody_GPU,						//###TODO!!!: Reset when changed
+//};
 
-public enum EPenis {
+public enum EPenis_OBS {
 	PenisScale,
 	BaseUpDown,
 	BaseLeftRight,
@@ -46,14 +46,14 @@ public enum EPenis {
 	ShaftLeftRight,
 	DriveStrength,
 	DriveStrengthMax,
-	DriveDamping,				//###LEARN: Setting drive damping reduces drive!!  Far better to reduce actor angular damping instead!!
+	DriveDamping,				//###INFO: Setting drive damping reduces drive!!  Far better to reduce actor angular damping instead!!
 	Mass,
 	Density,					//###OBS: Useless??
 	AngularDamping,
 	LinearDamping
 };
 
-public enum EPenisTip {
+public enum EPenisTip_OBS {
 	//FlagEjaculate,				// Now by CGamePlay for easier global sync
 	CycleTime,						//###IMPROVE: Change curve to only active ejaculation and have 'time on' and 'time off'??
 	MaxVelocity,
@@ -149,8 +149,45 @@ public enum EFlexCloth {
     ClothMass
 };
 
-public enum EFlexSoftBody{
-    Volume,
+//public enum ESoftBody{
+//    Volume,
+//    Stiffness,
+//    SoftBodyMass
+//};
+
+public enum EPenis {
+	SizeShaft,
+	SizeWholePenis,
+	Length,
     Stiffness,
-    SoftBodyMass
+	BendLeftRight,
+	BendUpDown,
+	CurveLeftRight,
+	CurveUpDown,
+	ShaftTwist,
+	Transparency,
+	TransparencyBody_HACK,
+	StaticBaking_HACK,
+	Visualizer_HACK,
+};
+
+public enum ESoftBodyPenis {
+	Stiffness,
+	Size,
+	BaseUpDown,
+	BaseLeftRight,
+	ShaftUpDown,
+	ShaftLeftRight,
+	ShaftTwistLeftRight,
+	Reset_HACK,
+	Kinematic_HACK,
+	Transparency,
+	TransparencyBody_HACK,
+	///TrimFlexParticles_HACK,
+	//Visualizer_HACK,
+	//Mass,
+};
+public enum ESoftBodyBreast {
+	Stiffness,
+	Size,
 };

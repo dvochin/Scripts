@@ -28,7 +28,7 @@ using System.Collections;
 using System.Collections.Generic;
 
 
-public class CHeadLook : MonoBehaviour {		//###LEARN: Based on code from http://wiki.unity3d.com/index.php?title=CHeadLook.  (Modified to look at different bones of parter's body at random intervals)
+public class CHeadLook : MonoBehaviour {		//###INFO: Based on code from http://wiki.unity3d.com/index.php?title=CHeadLook.  (Modified to look at different bones of parter's body at random intervals)
 
 	CBody				_oBody;									//###MOD: Extra members to autolook different bones of other body over time.
 	List<Transform>		_aLookTargets = new List<Transform>();	// List of transforms made of bones from other body we look at at random

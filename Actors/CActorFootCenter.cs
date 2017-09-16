@@ -31,6 +31,9 @@ public class CActorFootCenter : CActor {
 	}
 
 	public override void OnSimulatePre() {
+		return;         //###BROKEN: Auto foot placement disabled... need a GUI / body option for that
+
+
 		base.OnSimulatePre();
 
 		//=== Set the foot center to be the average of the chest and pelvis bone positions flattened on the Y=0 floor.

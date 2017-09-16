@@ -20,7 +20,7 @@ public class CUIPanelDrag_OBS : MonoBehaviour, IPointerDownHandler, IDragHandler
         _oRectTranPanel = oPanel.transform as RectTransform;
     }
 
-    public void OnPointerDown(PointerEventData data)        //###LEARN: How to easily trap mouse events!
+    public void OnPointerDown(PointerEventData data)        //###INFO: How to easily trap mouse events!
     {
         _oRectTranPanel.SetAsLastSibling();
         //_oVecPtrMouseDown = data.position;
@@ -37,7 +37,7 @@ public class CUIPanelDrag_OBS : MonoBehaviour, IPointerDownHandler, IDragHandler
         //Vector2 pointerPostion = ClampToWindow(data);
         Vector2 pointerPostion = data.position;
         Vector2 localPointerPosition;
-        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_oRectTranCanvas, pointerPostion, data.pressEventCamera, out localPointerPosition))     //###LEARN: Converting to point-in-rectangle!
+        if (RectTransformUtility.ScreenPointToLocalPointInRectangle(_oRectTranCanvas, pointerPostion, data.pressEventCamera, out localPointerPosition))     //###INFO: Converting to point-in-rectangle!
             _oRectTranPanel.localPosition = localPointerPosition - _oVecOffsetOrigDragPoint;
     }
 

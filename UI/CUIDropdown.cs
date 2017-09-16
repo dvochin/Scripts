@@ -26,7 +26,7 @@ using UnityEngine.UI;
 //            _oDropdown.options.Add(oOptData);
 //        }
 //        base.Init(oCanvas, null);
-//        _oDropdown.value = -1;                  //###LEARN: Original setting of drop down won't 'take' if we first don't set to other value than start value.
+//        _oDropdown.value = -1;                  //###INFO: Original setting of drop down won't 'take' if we first don't set to other value than start value.
 //        base.Init(oCanvas, null);              //###WEAK: We must init twice for above call to work
 //    }
 

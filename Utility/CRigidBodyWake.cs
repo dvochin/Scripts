@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections;
 
 //=== Simple script to never allow a rigid body to sleep ===
-public class CRigidBodyWake : MonoBehaviour {
+public class CRigidBodyWake : MonoBehaviour {		//###OBS?
 	
 	Rigidbody _oRB = null;
 	

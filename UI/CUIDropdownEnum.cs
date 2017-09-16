@@ -36,7 +36,7 @@ public class CUIDropdownEnum : CUIWidget {
 			CUtility.ThrowExceptionF("Exception in CUIDropdownEnum.  CProp '{0}' has no choices defined!", oProp);
 		}
         base.Init(oCanvas, oProp);
-        _oDropdown.value = -1;                  //###LEARN: Original setting of drop down won't 'take' if we first don't set to other value than start value.
+        _oDropdown.value = -1;                  //###INFO: Original setting of drop down won't 'take' if we first don't set to other value than start value.
         base.Init(oCanvas, oProp);              //###WEAK: We must init twice for above call to work
     }
 

@@ -17,7 +17,7 @@ public class CActorLeg : CActor {
 
         //=== Init Bones and Joints ===
         CBone oBonePelvis = _oBody._oActor_Pelvis._oBoneExtremity;
-		float n = 1f;		//###DEV22:???
+		float n = 1f;		//###DESGIN:!!!
 		_aBones.Add(_oBoneThighBend 	= CBone.Connect(this, oBonePelvis,	    _chSidePrefixL+"ThighBend",     n*10, 3.0f));
 		_aBones.Add(_oBoneThighTwist	= CBone.Connect(this, _oBoneThighBend,	_chSidePrefixL+"ThighTwist",	n, 2.0f));
 		_aBones.Add(_oBoneShin			= CBone.Connect(this, _oBoneThighTwist,	_chSidePrefixL+"Shin",	        n, 2.0f));

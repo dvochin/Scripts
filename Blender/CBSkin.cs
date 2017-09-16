@@ -28,7 +28,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		List<BoneWeight> aBoneWeights 	= null;
 
 		//=== Read in the flat array of names of vertex groups.  This will enable us to map the Blender vertex group blends to our fixed Unity bone rig ===
-		byte nVertGroupsMesh = oBA.ReadByte();
+		ushort nVertGroupsMesh = oBA.ReadUShort();
 		aSkinBones = new Transform[nVertGroupsMesh];
 		aSkinBindPoses = new Matrix4x4[nVertGroupsMesh];
 
@@ -37,15 +37,16 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 
 		if (oNodeBoneParentRoot == null)
 			CUtility.ThrowException("CBMesh is attempting to reconstruct a skinned mesh but was not able to find root node of bones!");
-		for (byte nVertGroup = 0; nVertGroup < nVertGroupsMesh; nVertGroup++) {
+		for (ushort nVertGroup = 0; nVertGroup < nVertGroupsMesh; nVertGroup++) {
 			string sVertGroup = oBA.ReadString();
+			//if (sVertGroup[0] == '+') {				//###CHECK: Bone names that start with '+' are dynamic and are fully-serialized at game time (now).  As we don't have statically-created bone info that Unity pulled from Blender at ship-time we must fully create this dyanic bone right here from full info Blender is now providing for this.
 			Transform oNodeBone = CUtility.FindNodeByName(oNodeBoneParentRoot, sVertGroup);     //###OPT: Recursive on hundreds of bones for hundreds of bones = O squared!!  ###IMPROVE: Find by direct path!
 			if (oNodeBone != null) {
 				//Debug.Log("Bone found for '" + sVertGroup + "'");	
 				aSkinBones[nVertGroup] = oNodeBone;
 				aSkinBindPoses[nVertGroup] = oNodeBone.worldToLocalMatrix;	//###CHECK
 			} else {
-				Debug.LogError("**ERROR: CBMesh.ctor() could not find bone '" + sVertGroup + "'");		//###DESIGN?: Throw?
+				Debug.LogWarningFormat("**ERROR: CBMesh.ctor() could not find bone '{0}'", sVertGroup);		//###DESIGN?: Throw?
 			}
 		}
 			
@@ -53,41 +54,39 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		aBoneWeights = new List<BoneWeight>();
 		int[] aBoneIndex = new int[32];			// Temp arrays 
 		float[] aBoneWeight = new float[32];
-		int nErrSumOutOfRange = 0;
-		int nVertsWithNoVertGroups = 0;
-		int nVertsWithTooManyVertGroups = 0;
+		int nErr_VertsWithOutOfRangeSums = 0;
+		int nErr_VertsWithZeroBones = 0;
+		int nErr_VertsWithTooManyBones = 0;
 
 		int nVerts = GetNumVerts();
 		for (int nVert = 0; nVert < nVerts; nVert++) {
 			byte nVertGroups = oBA.ReadByte();
 			float nBoneWeightSum = 0;
             if (nVertGroups == 0) {
-				nVertsWithNoVertGroups++;
+				nErr_VertsWithZeroBones++;
                 //Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has 0 vert groups!", _sNameBlenderMesh, nVert);
                 //CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {} vertex groups!", nVertGroups);
             }
             if (nVertGroups >= 5) {
-				nVertsWithTooManyVertGroups++;
+				nErr_VertsWithTooManyBones++;
                 Debug.LogWarningFormat("Warning: Skinned mesh '{0}' at vert {1} has {2} vert groups!", _sNameBlenderMesh, nVert, nVertGroups);
-                CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {} vertex groups!", nVertGroups);
+                CUtility.ThrowExceptionF("CBMesh.ctor() encountered a vertex with {0} vertex groups!", nVertGroups);
             }
     
             for (byte nVertGroup = 0; nVertGroup < nVertGroups; nVertGroup++) {		//###IMPROVE: It might be more elegant to shift this code to Blender Python?
-				aBoneIndex[nVertGroup]  = oBA.ReadByte();
+				aBoneIndex[nVertGroup]  = oBA.ReadUShort();
 				float nBoneWeight = oBA.ReadFloat();
 				if (nBoneWeight < 0)
-					//Debug.LogErrorFormat("CBSkin.ctor() encountered a bone weight below 0 at vert {0} and vert group.", nVert, nVertGroup);
 					CUtility.ThrowExceptionF("CBSkin.ctor() encountered a bone weight below 0 at vert {0} and vert group.", nVert, nVertGroup);
 				if (nBoneWeight > 1)
-					//CUtility.ThrowExceptionF("CBSkin.ctor() encountered a bone weight over 1 = {0} at vert {1} and vert group {2}.", nBoneWeight, nVert, nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 					Debug.LogWarningFormat("CBSkin.ctor() encountered a bone weight over 1 = {0} at vert {1} and vert group {2}.", nBoneWeight, nVert, nVertGroup);	//###IMPROVE: Common!  What to do? cap??
 				aBoneWeight[nVertGroup] = nBoneWeight;
 				nBoneWeightSum += nBoneWeight;
 			}
 	
 			if (nBoneWeightSum < 0.999 || nBoneWeightSum > 1.001) {
-				//###BROKEN: Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
-				nErrSumOutOfRange++;
+				//###TODO: Too many right now but put back in ASAP: Debug.LogWarning("###W: CBMesh.ctor() vertex " + nVert + " had out of range weight of " + nBoneWeightSum);
+				nErr_VertsWithOutOfRangeSums++;
 			}
 			BoneWeight oBoneWeight = new BoneWeight();
 			if (nVertGroups > 0) { oBoneWeight.boneIndex0 = aBoneIndex[0]; oBoneWeight.weight0 = aBoneWeight[0]; }
@@ -98,14 +97,14 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			aBoneWeights.Add(oBoneWeight);
 		}
 			
-		if (nErrSumOutOfRange > 0)		//###CHECK: What to do???
-			Debug.LogWarning("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with out-of-range sums!");
+		if (nErr_VertsWithOutOfRangeSums > 0)		//###CHECK: What to do???
+			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with out-of-range sums!", gameObject.name, nErr_VertsWithOutOfRangeSums);
 			
-		if (nVertsWithNoVertGroups > 0)
-			Debug.LogError("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with zero bones!");
+		if (nErr_VertsWithZeroBones > 0)
+			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with zero bones!", gameObject.name, nErr_VertsWithZeroBones);
 			
-		if (nVertsWithTooManyVertGroups > 0)
-			Debug.LogError("###ERROR: CBSkin.ctor() found " + nErrSumOutOfRange + " bones with too many bones!");
+		if (nErr_VertsWithTooManyBones > 0)
+			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with too many bones!", gameObject.name, nErr_VertsWithTooManyBones);
 			
 		//=== Read the number of errors detected when sending over the blender bone weights... what to do?? ===		
 		int nErrorsBoneGroups = oBA.ReadInt();
@@ -120,7 +119,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		_oMeshNow.bindposes 	= aSkinBindPoses;
 		_oMeshNow.boneWeights 	= aBoneWeights.ToArray();
 		_oSkinMeshRendNow.sharedMesh = _oMeshNow;					//###TODO: skinned mesh complex bounds!
-		_oSkinMeshRendNow.materials = _aMats;
+		_oSkinMeshRendNow.materials = _aMatsCurrent;		//###DESIGN:!! Using materials instead of shared materials so that different bodies on the same texture base can go invisible or not... (but more costly in video memory!)  ###OPT:!!
 		_oSkinMeshRendNow.bones = aSkinBones;
 
 
