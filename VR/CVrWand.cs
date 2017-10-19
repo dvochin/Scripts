@@ -56,7 +56,7 @@ using UnityEngine;
 
 
 
-public class CVrObjControl : MonoBehaviour {
+public class CVrWand : MonoBehaviour {
 
 	Transform			_oCameraRigT;					// The '[CameraRig]' transform.  Needed to subtract its position / rotation away from global wand tip / position
 	Transform			_oHeadsetT;						// The headset transform.  Used for camera rotation
@@ -86,10 +86,8 @@ public class CVrObjControl : MonoBehaviour {
 	CProp               _oPropEditedByJoystick_HACK;    // Debug property actively being edited by this wand's joystick.  Either _oPropDebugJoystickHor_HACK, _oPropDebugJoystickVer_HACK or null when no joystick editing
 
 	public string       _sNameWand;                     // "Left" or "Right"
-	EGameGuiMsg         _eGameGuiMsg;                   // VrWandLeft or VrWandRight
+	EGameGuiMsg         _eGameGuiMsg;                   // VrWandL or VrWandR
 
-	const float C_JoystickPropEdit_SizeDeadzone = 0.15f;				// How wide the deadzone is during debug joystick property editing
-	const float C_JoystickPropEdit_PropertyModifyStrength = 0.01f;      // How strong the joystick property editing is per frame as a percentage of its range
 
 	//======================================================================	INIT
 	void Start () {
@@ -97,15 +95,15 @@ public class CVrObjControl : MonoBehaviour {
 		_nControllerIndex = VRTK.VRTK_DeviceFinder.GetControllerIndex(gameObject);
 
         if (_oVrControlEvents == null)
-            CUtility.ThrowExceptionF("###EXCEPTION: CVrObjControl() could not find VRTK_ControllerEvents component for wand '{0}'", gameObject.name);
+            CUtility.ThrowExceptionF("###EXCEPTION: CVrWand() could not find VRTK_ControllerEvents component for wand '{0}'", gameObject.name);
 
 		_bIsLeft = gameObject.name.Contains("Left");            // A bit of a weak way to know if this wand is left or right... There must be a better way
 		if (_bIsLeft) {
 			_sNameWand = "Left";
-			_eGameGuiMsg = EGameGuiMsg.VrWandLeft;
+			_eGameGuiMsg = EGameGuiMsg.VrWandL;
 		} else {
 			_sNameWand = "Right";
-			_eGameGuiMsg = EGameGuiMsg.VrWandRight;
+			_eGameGuiMsg = EGameGuiMsg.VrWandR;
 		}
 
 		//=== Setup controller event listeners to trap wand trigger pressed and released to move / rotate controlled object with six degrees of freedom! ===
@@ -119,12 +117,19 @@ public class CVrObjControl : MonoBehaviour {
 		//_oVrControlEvents.ButtonOneReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton1_Released);
 		//_oVrControlEvents.ButtonTwoReleased	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButton2_Released);
 		//_oVrControlEvents.StartMenuPressed	+= new VRTK.ControllerInteractionEventHandler(OnVrWandButtonPressedStartMenu);	//###IMPROVE: How to trap the damn 'third button' for ourselves!!
+	}
+
+	public void AssignToObject_HACK(Transform oVrWandObject) {
+		//=== Assign the object we're controlling ===
+		_oVrWandObject = oVrWandObject;
 
 		//=== Create the wand GUI panel ===
-		Transform oModelAttachParentT = transform;		//###IMPROVE: When on SteamVR we had a nice 3D model of wand with useful anchors we could use.  Oculus doesn't have that so we're stuck with our plain old transform node.  _oWandSteamT.Find("Model/handgrip/attach").transform;
-		if (_bIsLeft == false) {			//###HACK:!!!!  Bad hack with left / right VR panels!
-			_oVrPanelWand = new CVrPanelWand(this, oModelAttachParentT);
-			_oVrPanelWand._oCanvas.gameObject.SetActive(false);			// Panel hidden until brought close to headset
+		Transform oModelAttachParentT = transform;      //###IMPROVE: When on SteamVR we had a nice 3D model of wand with useful anchors we could use.  Oculus doesn't have that so we're stuck with our plain old transform node.  _oWandSteamT.Find("Model/handgrip/attach").transform;
+		if (_oVrPanelWand == null) {			//###HACK:!!! Panel should connect to us as opposed to the other way around
+			if (_bIsLeft == false) {            //###HACK:!!!!  Bad hack with left / right VR panels!
+				_oVrPanelWand = new CVrPanelWand(this, oModelAttachParentT);
+				_oVrPanelWand._oCanvas.gameObject.SetActive(false);         // Panel hidden until brought close to headset
+			}
 		}
 	}
 
@@ -135,10 +140,10 @@ public class CVrObjControl : MonoBehaviour {
 
 			//=== Obtain references to the necessary VRTK and SteamVR game objects ===	//###IMPROVE: Add safety checks to make sure we have been re-parented by VRTK
 			//if (_oWandSteamT.GetComponent<SteamVR_TrackedObject>() == null)			// Make sure we really have the steam wand VR object (VRTK object gets reparented to it and we might get called too early)
-			//	CUtility.ThrowExceptionF("###EXCEPTION: CVrObjControl() could not find SteamVR_TrackedObject for wand '{0}'", gameObject.name);
+			//	CUtility.ThrowExceptionF("###EXCEPTION: CVrWand() could not find SteamVR_TrackedObject for wand '{0}'", gameObject.name);
 			_oCameraRigT = _oWandSteamT.transform.parent;
 			//if (_oCameraRigT.GetComponent<SteamVR_ControllerManager>() == null)     // Make sure we really have the steam wand VR object (VRTK object gets reparented to it and we might get called too early)
-			//	CUtility.ThrowExceptionF("###EXCEPTION: CVrObjControl() could not find SteamVR_ControllerManager in camera rig for wand '{0}'", gameObject.name);
+			//	CUtility.ThrowExceptionF("###EXCEPTION: CVrWand() could not find SteamVR_ControllerManager in camera rig for wand '{0}'", gameObject.name);
 			_oHeadsetT = VRTK.VRTK_DeviceFinder.DeviceTransform(VRTK.VRTK_DeviceFinder.Devices.Headset);       //###INFO: How to globally get the objects we need!
 
 			//=== Obtain references to the needed parts of the 3D wand model ===
@@ -192,17 +197,13 @@ public class CVrObjControl : MonoBehaviour {
 		float nValMax_abs = Mathf.Max(nX_abs, nY_abs);
 
 		if (_oPropEditedByJoystick_HACK == null) {										// Start joystick debug property editing if not currently editing anything and joystick out of deadzone
-			if (nValMax_abs > C_JoystickPropEdit_SizeDeadzone) {						// Ignore joystick movements within our 'deadzone'
+			if (nValMax_abs > CGame.INSTANCE.C_JoystickPropEdit_SizeDeadzone) {						// Ignore joystick movements within our 'deadzone'
 				if (nX_abs > nY_abs)                                                    // X movement larger = start horizontal edit
 					_oPropEditedByJoystick_HACK = _oPropDebugJoystickHor_HACK;          // Enables update to update this property
 				else																	// Y movement larger = start vertical edit
 					_oPropEditedByJoystick_HACK = _oPropDebugJoystickVer_HACK;          // Enables update to update this property
 			}
-		} else {																		// End joystick debug property editing if editing something and joystick entered deadzone
-			if (nValMax_abs <= C_JoystickPropEdit_SizeDeadzone) {
-				_oPropEditedByJoystick_HACK = null;         // Stops update from editing any property
-				CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = string.Format("{0} Wand:", _sNameWand);
-			}
+			//	if (nValMax_abs <= CGame.INSTANCE.C_JoystickPropEdit_SizeDeadzone) {		//###NOTE: Cancelling axis edit mode here doesn't work!  This function is not called frequently enough and can easily miss return to center!!  (Moved to Update())
 		}
 	}
 
@@ -216,13 +217,10 @@ public class CVrObjControl : MonoBehaviour {
 
 		//=== User pressed down on grip.  Obtain reference to the transform we're set to move / rotate ===
 		LateInitialization();
-		if (_bIsLeft)
-			_oVrWandObject = CGame.INSTANCE._oVrWandObjectL;
-		else
-			_oVrWandObject = CGame.INSTANCE._oVrWandObjectR;
-
-        if (_oVrWandObject == null)
-            CUtility.ThrowException("###EXCEPTION: CVrObjControl() could not obtain a valid object to move / rotate!");
+		if (_oVrWandObject == null) {
+			Debug.LogWarning("#WARNING: CVrWand() could not obtain a valid object to move / rotate!");
+			return;
+		}
 
 		//=== Store *local* position / rotation of our wand relative to the camera rig.  We will apply 'delta' position / rotations from this starting point at each frame in Update() ===
 		_vecPosStart_Wand		= Util_GetWandTipLocalPosition();		// We observe the *local* position of our parent.  (that is what SteamVR pushes in.  We don't use the global position as we move its parent.parent!!)
@@ -348,7 +346,6 @@ public class CVrObjControl : MonoBehaviour {
 				} else {		//=== User released grip.  End movement / rotation ===
 
 					_eVrControlObject = EVrControlObject.None;				// End the control object op
-					_oVrWandObject = null;
 					// CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrControl1] = "";
 					// CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.VrControl2] = "";
 				}
@@ -362,14 +359,19 @@ public class CVrObjControl : MonoBehaviour {
 		if (_oPropEditedByJoystick_HACK != null) {
 			Vector2 vecTouchpadAxis = _oVrControlEvents.GetTouchpadAxis();
 			float nValJoystickAxis = (_oPropEditedByJoystick_HACK == _oPropDebugJoystickHor_HACK) ? vecTouchpadAxis.x : vecTouchpadAxis.y;
-			float nValJoystickAxis_Abs = Mathf.Abs(nValJoystickAxis);
-			float nJoystickRatioLessDeadzone = (nValJoystickAxis_Abs - C_JoystickPropEdit_SizeDeadzone) / (1 - C_JoystickPropEdit_SizeDeadzone);
-			if (nValJoystickAxis < 0)
-				nJoystickRatioLessDeadzone *= -1;
-			float nValue = _oPropEditedByJoystick_HACK._nValueLocal;
-			nValue += nJoystickRatioLessDeadzone * _oPropEditedByJoystick_HACK._nMinMaxRange * C_JoystickPropEdit_PropertyModifyStrength;
-			_oPropEditedByJoystick_HACK.PropSet(nValue);
-			CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = string.Format("{0} Wand: {1} = {2}", _sNameWand, _oPropEditedByJoystick_HACK._sNameProp, _oPropEditedByJoystick_HACK.PropGet());
+			float nValJoystickAxis_Abs = Mathf.Max(Mathf.Abs(nValJoystickAxis) - CGame.INSTANCE.C_JoystickPropEdit_SizeDeadzone, 0);
+			if (nValJoystickAxis_Abs > 0) {
+				float nJoystickRatioLessDeadzone = nValJoystickAxis_Abs / (1 - CGame.INSTANCE.C_JoystickPropEdit_SizeDeadzone);
+				if (nValJoystickAxis < 0)
+					nJoystickRatioLessDeadzone *= -1;
+				float nValue = _oPropEditedByJoystick_HACK._nValueLocal;
+				nValue += nJoystickRatioLessDeadzone * _oPropEditedByJoystick_HACK._nMinMaxRange * CGame.INSTANCE.C_JoystickPropEdit_PropertyModifyStrength;
+				_oPropEditedByJoystick_HACK.PropSet(nValue);
+				CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = string.Format("{0} Wand: {1} = {2}   Joy={3:F3}/{4:F3}", _sNameWand, _oPropEditedByJoystick_HACK._sNameProp, _oPropEditedByJoystick_HACK.PropGet(), vecTouchpadAxis.x, vecTouchpadAxis.y);
+			} else {
+				_oPropEditedByJoystick_HACK = null;         // Stops update from editing any property
+				CGame.INSTANCE._aGuiMessages[(int)_eGameGuiMsg] = "";       //string.Format("{0} Wand:", _sNameWand);
+			}
 		}
 	}
 }

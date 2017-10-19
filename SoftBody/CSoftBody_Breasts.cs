@@ -12,7 +12,7 @@ public class CSoftBody_BreastL : CSoftBody {
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Breast", typeof(ESoftBodyBreast));
         oPropGrp.PropAdd(ESoftBodyBreast.Stiffness,			"Stiffness",		0.1f, 0.01f, 0.2f, "");
         oPropGrp.PropAdd(ESoftBodyBreast.Size,				"Size",				1.0f, 0.5f, 1.3f, "");
-		CGame.INSTANCE._oVrWandLeft ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyBreast.Size);
+		CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyBreast.Size);
 
 		_oObj.FinishInitialization();
 	}

@@ -15,7 +15,13 @@ public class CFlexTriCol : CBSkinBaked {        // CFlexTriCol: Converts a reduc
 		_oFlexColliders.RegisterFlexTriCol(this);
 	}
 
-	public void InsertIntoFlexScene(uFlex.FlexColliders oFlexSceneColliders, uFlex.Flex.Memory oFlexMemory) {
+	public virtual void DoDestroy() {
+		_oFlexColliders.UnregisterFlexTriCol(this);
+		GameObject.Destroy(gameObject);
+	}
+
+
+public void InsertIntoFlexScene(uFlex.FlexColliders oFlexSceneColliders, uFlex.Flex.Memory oFlexMemory) {
 		//=== Create the mesh in GPU memory ===
 		Baking_UpdateBakedMesh();
 		Vector3[] aVerts =	_oMeshBaked.vertices;

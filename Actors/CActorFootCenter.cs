@@ -16,7 +16,7 @@ public class CActorFootCenter : CActor {
 
 		//_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/pelvis/lThighBend/lThighTwist/lShin/lFoot/lMetatarsals/lToe"), "Left Leg", true, new Vector3(0, 0, 0));
 
-		OnSimulatePre();				// OnStart compute our position right away so our descendents (both feet) are properly positioned relatively to us.
+		OnUpdate();				// OnStart compute our position right away so our descendents (both feet) are properly positioned relatively to us.
 
 		//=== Init CObject ===
 		_oObj = new CObject(this, "FootCenter", "FootCenter");
@@ -30,11 +30,11 @@ public class CActorFootCenter : CActor {
 		base.OnDestroy();
 	}
 
-	public override void OnSimulatePre() {
+	public override void OnUpdate() {
 		return;         //###BROKEN: Auto foot placement disabled... need a GUI / body option for that
 
 
-		base.OnSimulatePre();
+		base.OnUpdate();
 
 		//=== Set the foot center to be the average of the chest and pelvis bone positions flattened on the Y=0 floor.
 		Vector3 vecPos = (_oBody._oActor_Pelvis._oBoneExtremity.transform.position + _oBody._oActor_Chest._oBoneExtremity.transform.position) / 2;

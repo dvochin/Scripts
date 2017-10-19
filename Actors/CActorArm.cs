@@ -224,8 +224,8 @@ public class CActorArm : CActor {
 	}
 
 	//---------------------------------------------------------------------------	UPDATE
-	public override void OnSimulatePre() {          // Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
-		base.OnSimulatePre();
+	public override void OnUpdate() {          // Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
+		base.OnUpdate();
         //###F ###BROKEN (Body col!)
 		//if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
 		//	Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!

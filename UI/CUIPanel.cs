@@ -99,7 +99,15 @@ public class CUIPanel : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         //=== Construct the dialog's content dependent on what type of dialog it is ===
 		foreach (CPropGrp oPropGrp in oObj._aPropGrps) {
 			oPropGrp.Widget_Separator_Create(this);
-			foreach (CProp oProp in oPropGrp._aProps)
+			int nProps = oPropGrp._aProps.Length;
+			CProp[] aProps_Sorted = new CProp[nProps];
+			System.Array.Copy(oPropGrp._aProps, aProps_Sorted, nProps);
+			string[] aProps_Names = new string[nProps];
+			for (int nProp = 0; nProp < nProps; nProp++)
+				aProps_Names[nProp] = aProps_Sorted[nProp]._sNameProp;
+			System.Array.Sort(aProps_Names, aProps_Sorted);
+			//something.Sort(function(go1, go2) return String.Compare(go1.name, go2.name));
+			foreach (CProp oProp in aProps_Sorted)
                 oProp.Widget_Create(this);
         }
 

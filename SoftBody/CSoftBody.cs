@@ -118,21 +118,21 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
     public static byte C_SoftBodyID_BreastR    = 0x03;
     public static byte C_SoftBodyID_Penis      = 0x04;
     //#-------------------------------------------------- Dynamic Bone naming constants shared between Blender and Unity		###CHECK: Needed?
-    public static string C_Prefix_DynBone_Penis			= "+DynBone-Penis-";		//# The dynamic penis bones.   Created and skinned in Blender and responsible to repel (only) vagina bones
-    public static string C_Prefix_DynBone_Vagina		= "+DynBone-Vagina-";		//# The dynamic vagina bones.  Created and skinned in Blender and repeled (only) by penis bones
-    public static string C_Prefix_DynBone_VaginaHole	= "+DynBone-VaginaHole-";	//# The dynamic vagina hole bones.  Created and skinned in Blender and responsible to guide penis in rig body.
+    public static string C_Prefix_DynBone_Penis			= "+Penis-";		//# The dynamic penis bones.   Created and skinned in Blender and responsible to repel (only) vagina bones
+    public static string C_Prefix_DynBone_Vagina		= "+Vagina-";		//# The dynamic vagina bones.  Created and skinned in Blender and repeled (only) by penis bones
+    public static string C_Prefix_DynBone_VaginaHole	= "+VaginaHole-";	//# The dynamic vagina hole bones.  Created and skinned in Blender and responsible to guide penis in rig body.
 
 	//---------------------------------------------------------------------------	DEV
 	CProp               _oPropChanged;              // Last property user adjusted.  Set by our CObject property changed event to notify Flex processor loop to perform the work (adjusting Flex data *must* be done in processor call)
 	public Transform	_oBoneRootT;
-	public Quaternion[] _aQuatParticleRotations;            // Stores particle rotations: So that morphs and bends can properly rotate each 'particle bone'
-	bool[] _aCloseParticleSearch_WasTraversed;
-	bool[] _aCloseParticleSearch_IsActive;
+	public Quaternion[] _aQuatParticleRotations;	// Stores particle rotations: So that morphs and bends can properly rotate each 'particle bone'
 	public Vector3[] _aShapeRestPositionsBAK;       // Backup of init-time '_oFlexShapeMatching.m_shapeRestPositions'.  Used to scale entire softbody size (Breast game-time resize uses this simple technique)
+
 
 	public static CSoftBody Create(CBody oBody, int nSoftBodyID, Transform oBoneRootT, System.Type oType) {
 		CSoftBody oSoftBody = CBMesh.Create(null, oBody._oBodyBase, ".oBody.mapFlexSoftBodies[" + nSoftBodyID.ToString() + "].oMeshSoftBody", oType) as CSoftBody;
-		oSoftBody.name = oBody._oBodyBase._sBodyPrefix + "-SoftBody#" + nSoftBodyID.ToString();		//###IMPROVE: Set better name from ID or subclass?
+		string sNameSoftBody = CSoftBody.Util_GetSoftbodyNameFromID(nSoftBodyID);
+		oSoftBody.name = oBody._oBodyBase._sBodyPrefix + "-SoftBody-" + sNameSoftBody;
 		oSoftBody.transform.SetParent(oBody._oBodyBase._oBodyRootGO.transform);        //###IMPROVE: Put this common re-parenting and re-naming in Create!
 		oSoftBody.GetComponent<SkinnedMeshRenderer>().enabled = false;
 		oSoftBody.Initialize(oBody, nSoftBodyID, oBoneRootT);
@@ -162,8 +162,6 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		_nParticles = _oMeshBaked.vertexCount;					// Each vertex in the rig mesh is a particle!  (A small portion are simulated (in softbody areas) while most are skinned (in limbs / non-softbody areas))
 		_nShapes	= _aShapeVerts.Count;                           // Only some simulated particles / verts have actual shapes.  (Most 'simulated particles' have a shape, and most of the surface ones have a bone)
 		_aQuatParticleRotations = new Quaternion[_nParticles];
-		_aCloseParticleSearch_WasTraversed = new bool[_nShapes];
-		_aCloseParticleSearch_IsActive = new bool[_nShapes];
 
 
 		//===== CREATE FLEX PARTICLES OBJECT =====
@@ -215,13 +213,14 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
         oFlexProc._oFlexProcessor = this;
 
 		//=== Recursively find all the dynamic bones for softbody.  This CSoftBody instance will move them once per frame ===
-		Util_FindDynamicBones_RECURSIVE(_oBoneRootT, ref _mapBonesDynamic);
+		string sBonePrefix = "+" + CSoftBody.Util_GetSoftbodyNameFromID(nSoftBodyID) + "-";
+		Util_FindDynamicBones_RECURSIVE(sBonePrefix, _oBoneRootT, ref _mapBonesDynamic);
 
 		//=== Create the maps between shapes and particles (and vice-versa) ===
 		int nShapeLinkStart = 0;
 		for (int nShape = 0; nShape < _nShapes; nShape++) {
 			int nShapeLinkEnd = _oFlexShapeMatching.m_shapeOffsets[nShape];
-			_oFlexShapeMatching.m_shapeCoefficients[nShape] = 0.1f;                        //###TODO:!!!!! Implement property pushing at init like old CPenis!
+			_oFlexShapeMatching.m_shapeCoefficients[nShape] = CGame.INSTANCE.D_SoftBodyStiffness_HACK;                        //###TODO:!!!!! Implement property pushing at init like old CPenis!
 			_mapParticlesToShapes_Base.Add((ushort)_oFlexShapeMatching.m_shapeIndices[nShapeLinkStart], (ushort)nShape);     // Now that we have first index available map two way relationship between a shape and its 'master particle' (ie. the particle that created it in Blender)
 			_mapShapesToParticles_Base.Add((ushort)nShape, (ushort)_oFlexShapeMatching.m_shapeIndices[nShapeLinkStart]);
 			nShapeLinkStart = nShapeLinkEnd;
@@ -244,6 +243,13 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		ShapeDef_DefineSoftBodyShape(true);
 	}
 
+
+	public virtual void DoDestroy() {
+		//=== Destroy the dynamic bones we created ===
+		foreach (KeyValuePair<ushort, Transform> oPair in _mapBonesDynamic)
+			GameObject.Destroy(oPair.Value.gameObject);
+		GameObject.Destroy(gameObject);
+	}
 
 	public void ShapeDef_DefineSoftBodyShape(bool bInitialize = false) {
 		//=== Calculate shape centers from each shape's particles ===
@@ -320,8 +326,10 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		//if (Input.GetKey(KeyCode.Backspace))
 		//	CGame.INSTANCE._bDisableFlexOutputStage_HACK = !CGame.INSTANCE._bDisableFlexOutputStage_HACK;
 
-		if (_bEnableVisualizer != _bEnableVisualizer_COMPARE)
+		if (_bEnableVisualizer != _bEnableVisualizer_COMPARE) {
 			Visualization_Set(_bEnableVisualizer);
+			_bEnableVisualizer_COMPARE = _bEnableVisualizer;
+		}
 
 		if (_bEnableVisualizer) {
 			float nSizeParticles	= CGame.INSTANCE.particleRadius * _SizeParticles_Mult;
@@ -396,8 +404,8 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 	}
 
 	//=========================================================================	UTILITY
-	void Util_FindDynamicBones_RECURSIVE(Transform oBoneNow, ref Dictionary<ushort, Transform> mapBonesDynamic) {
-		if (oBoneNow.name.StartsWith("+")) {                    // Dynamic bones are in the form "+Breast-123" where '+' indicates a dynamic bone (generated on the fly by Blender), the '-' is a separator before the bone ID
+	void Util_FindDynamicBones_RECURSIVE(string sNameBonePrefix, Transform oBoneNow, ref Dictionary<ushort, Transform> mapBonesDynamic) {
+		if (oBoneNow.name.StartsWith(sNameBonePrefix)) {			// Dynamic bones are in the form "+BreastL-123" where '+' indicates a dynamic bone (generated on the fly by Blender), the '-' is a separator before the bone ID
 			int nPosSeparator = oBoneNow.name.IndexOf("-");
 			ushort nBoneID = 0;
 			bool bFoundID = ushort.TryParse(oBoneNow.name.Substring(nPosSeparator+1), out nBoneID);
@@ -408,8 +416,21 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		int nChilds = oBoneNow.childCount;
 		for (int nChild = 0; nChild < nChilds; nChild++) {
 			Transform oBoneChild = oBoneNow.GetChild(nChild);
-			Util_FindDynamicBones_RECURSIVE(oBoneChild, ref mapBonesDynamic);
+			Util_FindDynamicBones_RECURSIVE(sNameBonePrefix, oBoneChild, ref mapBonesDynamic);
 		}
+	}
+
+	static public string Util_GetSoftbodyNameFromID(int nSoftBodyID) {
+		if (nSoftBodyID == C_SoftBodyID_Vagina)
+			return "Vagina";
+		else if (nSoftBodyID == C_SoftBodyID_BreastL)
+			return "BreastL";
+		else if (nSoftBodyID == C_SoftBodyID_BreastR)
+			return "BreastR";
+		else if (nSoftBodyID == C_SoftBodyID_Penis)
+			return "Penis";
+		else
+			return "###ERROR###";
 	}
 
 
@@ -584,3 +605,11 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 	//}
 	#endregion
 }
+
+
+
+//bool[] _aCloseParticleSearch_WasTraversed;
+//bool[] _aCloseParticleSearch_IsActive;
+//public Vector3[] _aShapeRestPositionsBAK;       // Backup of init-time '_oFlexShapeMatching.m_shapeRestPositions'.  Used to scale entire softbody size (Breast game-time resize uses this simple technique)
+//_aCloseParticleSearch_WasTraversed = new bool[_nShapes];
+//_aCloseParticleSearch_IsActive = new bool[_nShapes];

@@ -4,7 +4,7 @@ using System.Collections;
 public enum EGameModes {	//### The 'Game Modes': Central mode that changes how nearly everything operates.  Implemented by CGameXXX derivatives which are all owned by CGame singleton
 	Uninitialized,			// Uninitialized = Only exists at game start.  Cannot go back to this mode.
 	MorphBody,              // Gameplay mode that doesn't start the animation engine  (characters are fully realized by remain in T-pose).  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
-	CutCloth,               // Cloth is being cut by removing parts from the ClothSrc / Bodysuit.
+//	CutCloth,               // Cloth is being cut by removing parts from the ClothSrc / Bodysuit.
 	Play,					// Normal gameplay.  Splits mesh between skinned and softbody/cloth simulated, sends simulated parts to PhysX, animates the characters for normal gameplay
 }
 public enum ECollLayer_OBS {
@@ -33,7 +33,7 @@ public enum EBodyPartType {			// The different body parts that our soft body imp
 
 
 
-public enum EBodyPose_TEMP {		//###TODO ###DESIGN: Add the body type extension like WomanA, ManB, etc?
+public enum EBodyPose_TEMP {		//###TODO ###DESIGN: Add the body type extension like Woman, ManB, etc?
 	Standing,
 //	Squatting,
 //	Kneeling,

@@ -296,17 +296,21 @@ public class CFluidParticleGroup : MonoBehaviour {                  // CFluidPar
 		foreach (CBodyBase oBodyBase in CGame.INSTANCE._aBodyBases) {				//###OPT:!!!!! Very expensive to iterate through all collider verts on all body!  Can redesign?  Can reduce frequency of this full check?
 			Vector3[] aVerts	= oBodyBase._oBody._oFlexTriCol_BodyFluid._oMeshBaked.vertices;
 			Vector3[] aNormals	= oBodyBase._oBody._oFlexTriCol_BodyFluid._oMeshBaked.normals;
-			ushort nVerts = (ushort)aVerts.Length;
-			for (ushort nVert = 0; nVert < nVerts; nVert++) {
-				Vector3 vecVert		= aVerts[nVert];
-				Vector3 vecNormal	= aNormals[nVert];
-				vecVertColliderToMasterParticle = vecVert - vecPosMaster;
-				float nDistSqr = vecVertColliderToMasterParticle.sqrMagnitude;
-				if (nDistSqr <= _oFlexParamsFluid._nFluidGrp_PlaneDetect_MinDistToParticleSqr) {			// Only consider collider verts within a reasonable distance (avoids sorting collection becoming too large / slow)
-					vecVertColliderToEmitter = _oFlexEmitter.transform.position - vecVert;
-					float nDistEmitterSqr = vecVertColliderToEmitter.sqrMagnitude;
-					if (nDistEmitterSqr > _oFlexParamsFluid._nFluidGrp_PlaneDetect_MinDistToEmitterSqr)		// Avoid connecting to this collider vert because it is too close to the emitter.  (prevents cum sticking to penis)
-						aSortedColliderVerts.Add(nDistSqr, new CColliderVert(nVert, vecVert, vecNormal, nDistSqr, oBodyBase._oBody._oFlexTriCol_BodyFluid));
+
+			if (aNormals.Length > 0) {			//###BROKEN:!!!! mesh no longer has normals!  WTF??
+
+				ushort nVerts = (ushort)aVerts.Length;
+				for (ushort nVert = 0; nVert < nVerts; nVert++) {
+					Vector3 vecVert		= aVerts[nVert];
+					Vector3 vecNormal	= aNormals[nVert];
+					vecVertColliderToMasterParticle = vecVert - vecPosMaster;
+					float nDistSqr = vecVertColliderToMasterParticle.sqrMagnitude;
+					if (nDistSqr <= _oFlexParamsFluid._nFluidGrp_PlaneDetect_MinDistToParticleSqr) {			// Only consider collider verts within a reasonable distance (avoids sorting collection becoming too large / slow)
+						vecVertColliderToEmitter = _oFlexEmitter.transform.position - vecVert;
+						float nDistEmitterSqr = vecVertColliderToEmitter.sqrMagnitude;
+						if (nDistEmitterSqr > _oFlexParamsFluid._nFluidGrp_PlaneDetect_MinDistToEmitterSqr)		// Avoid connecting to this collider vert because it is too close to the emitter.  (prevents cum sticking to penis)
+							aSortedColliderVerts.Add(nDistSqr, new CColliderVert(nVert, vecVert, vecNormal, nDistSqr, oBodyBase._oBody._oFlexTriCol_BodyFluid));
+					}
 				}
 			}
 		}

@@ -181,11 +181,6 @@ public enum ESoftBodyPenis {
 	ShaftTwistLeftRight,
 	Reset_HACK,
 	Kinematic_HACK,
-	Transparency,
-	TransparencyBody_HACK,
-	///TrimFlexParticles_HACK,
-	//Visualizer_HACK,
-	//Mass,
 };
 public enum ESoftBodyBreast {
 	Stiffness,

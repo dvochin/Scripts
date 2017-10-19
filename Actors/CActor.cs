@@ -346,7 +346,7 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 		}
 	}
 
-	public virtual void OnSimulatePre() {       //###DESIGN: Rename?
+	public virtual void OnUpdate() {       //###DESIGN: Rename?
 		//if (GetComponent<MeshRenderer>() != null)	
 		//	GetComponent<MeshRenderer>().enabled = true;		//###DESIGN: Temp to circumvent VRTK hiding our pins!
 	}
@@ -366,7 +366,7 @@ public enum EBodySide {
 
 
 
-//	public virtual void OnSimulatePre() {		//###DESIGN: Anything useful here?
+//	public virtual void OnUpdate() {		//###DESIGN: Anything useful here?
 
 //		Vector3 vecLoc = transform.position;			// Ensure our pin position doesn't get invalid (like y < GroundLevel = underground!)
 //		if (vecLoc.y < _oBody.GroundLevel) {

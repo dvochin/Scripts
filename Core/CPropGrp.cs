@@ -30,7 +30,7 @@
 using UnityEngine;
 using System;
 using System.Reflection;
-
+using System.Collections.Generic;
 
 
 public class CPropGrp {		// CPropGrp: Enables children CProp properties of this object to be 'grouped' by functionality such as all enum properties, all Blender properties, etc
@@ -66,12 +66,14 @@ public class CPropGrp {		// CPropGrp: Enables children CProp properties of this 
 		return oProp;
 	}
 
-	public CProp PropFind(string sNameProp) {
+	public CProp PropFind(string sNameProp, bool bThrowIfNotFound = true) {
 		foreach (CProp oProp in _aProps) {
 			if (oProp._sNameProp == sNameProp)
 				return oProp;
 		}
-		throw new CException("###EXCEPTION: CObjectBlender.PropFind() cannot find property " + sNameProp);
+		if (bThrowIfNotFound)
+			CUtility.ThrowExceptionF("###EXCEPTION: CProp.PropFind() cannot find property '{0}'", sNameProp);
+		return null;
 	}
 
 
@@ -111,6 +113,81 @@ public class CPropGrp {		// CPropGrp: Enables children CProp properties of this 
 			GameObject.Destroy(_oWidgetSeparator.gameObject);
 			_oWidgetSeparator = null;
 		}
+	}
+
+	//---------------------------------------------------------------------------	LOAD / SAVE
+
+	public bool Load(string sPropFilterPrefix, string sFileSuffix) {
+		string sPathFile = CGame.GetPath_Properties() + sPropFilterPrefix + "-" + sFileSuffix + ".txt";
+
+		if (System.IO.File.Exists(sPathFile)) {
+			Debug.LogFormat("CPropGrp.Load('{0}.{1}') saving properties with prefix filter '{2}' and file suffix '{3}'", _oObj._sNameObject, _sNamePropGrp, sPropFilterPrefix, sFileSuffix);
+			System.IO.StreamReader oStreamRead = new System.IO.StreamReader(sPathFile);
+
+			//=== Reset all our filtered properties to zero.  File only stores the non-zero properties ===
+			foreach (CProp oProp in _aProps)
+				if (oProp._sNameProp.StartsWith(sPropFilterPrefix) && oProp._nValueLocal != 0)
+					oProp.PropSet(0);                   //###OPT:!! Slow!  Recalc normals at each prop set?  Can recalc once after all properties loaded?  Also going to Blender... neeeded??
+
+			//=== Read each line of the file and attempt to find that property and set it ===
+			float nPropValue = 0;
+			while (oStreamRead.Peek() >= 0) {
+				string sLine = oStreamRead.ReadLine();
+				string[] aLineFields = sLine.Split('\t');           // Properties file is a very simple text file with 'value' + <TabCharacter> + 'property name' format
+				string sPropValue		= aLineFields[0];
+				string sNamePropSuffix	= aLineFields[1];
+				string sNameProp = sPropFilterPrefix + "_" + sNamePropSuffix;
+				float.TryParse(sPropValue, out nPropValue);
+				CProp oProp = PropFind(sNameProp, /*bThrowIfNotFound=*/ false);
+				if (oProp != null) {
+					oProp.PropSet(nPropValue);
+				} else {
+					Debug.LogWarningFormat("#Warning: CPropGrp.Load() could not find property '{0}'", sNameProp);
+				}
+			}
+			oStreamRead.Close();
+			return true;        // Success
+		} else {
+			Debug.LogErrorFormat("###ERROR: CPropGrp.Load() could not find file '{0}'", sPathFile);
+			return false;           // Failure
+		}
+	}
+
+	public void Save(string sPropFilterPrefix, string sFileSuffix) {
+		Debug.LogFormat("CPropGrp.Save('{0}.{1}') saving properties with prefix filter '{2}' and file suffix '{3}'", _oObj._sNameObject, _sNamePropGrp, sPropFilterPrefix, sFileSuffix);
+
+		//=== Count the number of properties to save ===
+		int nPropsToSave = 0;
+		foreach (CProp oProp in _aProps) {
+			float nPropValue = oProp.PropGet();
+			if (nPropValue != 0 && oProp._sNameProp.StartsWith(sPropFilterPrefix))
+				nPropsToSave++;
+		}
+
+		//=== Write the to-be-saved properties in two flat arrays for sorting ===
+		CProp[]  aPropsToSave_Prop	= new CProp[nPropsToSave];
+		string[] aPropsToSave_Name	= new string[nPropsToSave];
+		int nProp = 0;
+		foreach (CProp oProp in _aProps) {
+			if (oProp.PropGet() != 0 && oProp._sNameProp.StartsWith(sPropFilterPrefix)) {
+				aPropsToSave_Prop[nProp] = oProp;
+				aPropsToSave_Name[nProp] = oProp._sNameProp;
+				nProp++;
+			}
+		}
+		System.Array.Sort(aPropsToSave_Name, aPropsToSave_Prop);
+
+		//=== Write to file the sorted array of properties ===
+		string sPathFile = CGame.GetPath_Properties() + sPropFilterPrefix + "-" + sFileSuffix + ".txt";
+		System.IO.StreamWriter oStreamWrite = new System.IO.StreamWriter(sPathFile);
+		for (nProp = 0; nProp < nPropsToSave; nProp++) {
+			CProp oPropToSave = aPropsToSave_Prop[nProp];
+			float nPropValue = oPropToSave.PropGet();
+			string sPropSuffix = oPropToSave._sNameProp.Substring(sPropFilterPrefix.Length + 1);
+			string sLine = string.Format("{0:F6}\t{1}", nPropValue, sPropSuffix);           //###TODO:!!! Remove prop buy level suffix from file!!!
+			oStreamWrite.WriteLine(sLine);
+		}
+		oStreamWrite.Close();
 	}
 
 	//---------------------------------------------------------------------------	UTILITY

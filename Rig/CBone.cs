@@ -313,19 +313,20 @@ public class CBone : MonoBehaviour {
 
 	public static void BoneUpdate_UpdateFromBlender(string sSex) {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
         //StartBlender();
-        GameObject oResourcesGO = GameObject.Find("Resources");
-        GameObject oPrefabGO = CUtility.FindObject(oResourcesGO, "Prefab" + sSex + "A");
-        oPrefabGO.SetActive(true);
-		Transform oBoneRootT = CUtility.FindNodeByName(oPrefabGO.transform, "Bones");
-		Dictionary<string, CBone> mapBonesFlattened = new Dictionary<string, CBone>();		// Flattened collection of bones extracted from Blender.  Includes dynamic bones.
-        string sNameBodySrc = sSex + "A";        // Remove 'Prefab' to obtain Blender body source name (a bit weak)
-		CBone.BoneUpdate_UpdateFromBlender(sNameBodySrc, oBoneRootT, ref mapBonesFlattened);
+		//###BROKEN: Now part of CBody but we don't have that instance?
+  //      GameObject oResourcesGO = GameObject.Find("Resources");
+  //      GameObject oPrefabGO = CUtility.FindObject(oResourcesGO, "Prefab" + sSex + "A");
+  //      oPrefabGO.SetActive(true);
+		//Transform oBoneRootT = CUtility.FindNodeByName(oPrefabGO.transform, "Bones");
+		//Dictionary<string, CBone> mapBonesFlattened = new Dictionary<string, CBone>();		// Flattened collection of bones extracted from Blender.  Includes dynamic bones.
+  //      string sNameBodySrc = sSex + "A";        // Remove 'Prefab' to obtain Blender body source name (a bit weak)
+		//CBone.BoneUpdate_UpdateFromBlender(sNameBodySrc, oBoneRootT, ref mapBonesFlattened);
 	}
 
-	public static void BoneUpdate_UpdateFromBlender(string sNameBodySrc, Transform oBoneRootT, ref Dictionary<string, CBone> mapBonesFlattened) {
+	public static void BoneUpdate_UpdateFromBlender(string sBlenderAccessString, Transform oBoneRootT, ref Dictionary<string, CBone> mapBonesFlattened) {
 		// Called during CBody creation to de-serialize *all* Blender bones on a body (including dynamic ones) and to set / update their position / orientation
 
-		CByteArray oBA = new CByteArray("'Client'", "gBL_GetBones('" + sNameBodySrc + "')");
+		CByteArray oBA = new CByteArray("'CBody'", sBlenderAccessString + ".Unity_GetBones()");
 
 		//=== Read the recursive bone tree.  The mesh is still based on our bone structure which remains authoritative but we need to map the bone IDs from Blender to Unity! ===
 		CBone.BoneUpdate_ReadBone_RECURSIVE(ref oBA, oBoneRootT);		//###IMPROVE? Could define bones in Unity from what they are in Blender?  (Big design decision as we have lots of extra stuff on Unity bones!!!)

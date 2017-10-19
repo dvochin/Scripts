@@ -1,27 +1,12 @@
-/*###DOCS24: July 2017 - Soft Body rewrite - Unity side
+/*###DOCS: Miscellaneous todo scratch pad
 
 === DEV ===
 
 === NEXT ===
-- Naming of +DynBone- to change for each SB?
 
 === TODO ===
 
 === LATER ===
-
-=== CHECKIN REMAINS ===
---- 24: Major rewrite around full SoftBody creation in Blender and new Unity Softbody runtime ---
-- Auto foot placement disabled... need a GUI / body option for that
-- Body transparency done with full duplication of all mats!
-- Broken PhysX collision temp disable
-- Broke cloth because of CFlex static creation removal... do in Blender too?
-- Script record / playback has bad hacks
-- Softbodies don't have auto prop set like old CPenis
-- Leaving Flex iter count very high!  Need to tune params for softbody growth
-- Bad hack with left / right VR panels!
-- Disabled cam too low... enabled on debug builds?
-- Bad hacks of uFlex with fluid solver and its (dumb) component search
-- VRTK has a bad hack around its panel creation
 
 === OPTIMIZATIONS ===
 
@@ -182,11 +167,11 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 	[HideInInspector]	public int		_nLayer_BodyColliders;					//###MOVE23: Coalesce these globals into in class like G?
 	[HideInInspector]	public int		_nLayerMask_BodyColliders;
+	protected uFlex.Flex.ErrorCallback	_fnFlexErrorCallback;					// The global Flex error function
 
-	public CVrObjControl _oVrWandLeft;			//###DESIGN: Change name to CVrWand?
-	public CVrObjControl _oVrWandRight;
-	public Transform _oVrWandObjectL;
-	public Transform _oVrWandObjectR;
+
+	public CVrWand _oVrWandL;			//###DESIGN: Change name to CVrWand?
+	public CVrWand _oVrWandR;
 	public float _nVrObjectControlPos = 0.1f;
 	public float _nVrObjectControlRot = 0.03f;
 
@@ -197,8 +182,10 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	public bool _bQuickStart_HACK = true;
 	public bool _bDisableSomeCodeInDevelopment_HACK = false;
 	public bool _bShowFlexFluidColliders_HACK = false;
-
-
+	public float D_SoftBodyStiffness_HACK = 0.02f;
+	public bool _bSkipLongUnnecessaryOps_HACK = true;
+	public float C_JoystickPropEdit_SizeDeadzone = 0.1f;					// How wide the deadzone is during debug joystick property editing.  ###IMPROVE: Can make narrower reliably??
+	public float C_JoystickPropEdit_PropertyModifyStrength = 0.01f;			// How strong the joystick property editing is per frame as a percentage of its range
 
 
 	#region === INIT
@@ -213,20 +200,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_nLayer_BodyColliders		= LayerMask.NameToLayer("BodyColliders");          //###INFO: How to set layers by name
 		_nLayerMask_BodyColliders	= 1 << _nLayer_BodyColliders;
 
-		_oVrWandLeft	= GameObject.Find("[VRTK]/LeftController")	.GetComponent<CVrObjControl>();		//###WEAK: Find by name path
-		_oVrWandRight	= GameObject.Find("[VRTK]/RightController")	.GetComponent<CVrObjControl>();
+		_oVrWandL	= GameObject.Find("[VRTK]/LeftController")	.GetComponent<CVrWand>();		//###WEAK: Find by name path
+		_oVrWandR	= GameObject.Find("[VRTK]/RightController")	.GetComponent<CVrWand>();
 
 		//    StartCoroutine(Coroutine_StartGame());			// Handled by a coroutine so that our 'OnGui' can run to update the 'Please wait' dialog
 		//}
 		//public IEnumerator Coroutine_StartGame() {		//####OBS: IEnumerator?? //###NOTE: Game is started by iGUICode_Root once it has completely initialized (so as to present the 'Please Wait...' dialog
-
-
-		//_oFlexSolver = FindObjectOfType<uFlex.FlexSolver>();        //###F
-
-		//return;
-
-
-
 
 		//=== Define the cardinal axis for faster angle-axis rotation ===
 		_aCardinalAxis = new Vector3[3];
@@ -236,15 +215,12 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_aGuiMessages = new string[(int)EGameGuiMsg.COUNT];
 
 
-		//=== Find the Flex solvers ===
-		_oFlexSolverMain	= GameObject.Find("FlexMain") .GetComponent<uFlex.FlexSolver>();
-		_oFlexParamsMain = _oFlexSolverMain.GetComponent<CFlexParamsMain>();
-		GameObject oFlexParamsFluidGO = GameObject.Find("FlexFluid");
-		if (oFlexParamsFluidGO) { 
-			_oFlexSolverFluid	= oFlexParamsFluidGO.GetComponent<uFlex.FlexSolver>();
-			_oFlexParamsFluid	= oFlexParamsFluidGO.GetComponent<CFlexParamsFluid>();
-			_oFlexParamsFluid.OnStart();
-		}
+		//=== Initialize Flex.  Flex lifecycle now managed by CGame because we have two solvers ===
+		_fnFlexErrorCallback = new uFlex.Flex.ErrorCallback(FlexErrorCallback);
+		uFlex.Flex.Error flexErr = uFlex.Flex.Init(100, _fnFlexErrorCallback, -1);
+		Debug.Log("NVidia FleX v" + uFlex.Flex.GetVersion());
+		if (flexErr != uFlex.Flex.Error.eFlexErrorNone)
+			Debug.LogError("FlexInit: "+flexErr);
 
 
 
@@ -344,7 +320,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			SetForegroundWindow(_hWnd_Unity);           // Set our editor / player back into focus (away from just-spawned Blender)
 
 			//=== Initialize Blender global instance (which in turns intializes lots of things like cloth sources and global variables) ===
-			CGame.gBL_SendCmd("G", "CGlobals.Initialize(nFlexParticleSpacing=" + CGame.INSTANCE.particleSpacing.ToString() + ")");         //###TODO: Add others?
+			CGame.gBL_SendCmd("G", "CGlobals.Initialize(nFlexParticleSpacing=" + CGame.INSTANCE.particleSpacing.ToString() + ",bSkipLongUnnecessaryOps=" + (CGame.INSTANCE._bSkipLongUnnecessaryOps_HACK ? "True)" : "False)"));         //###TODO: Add others?
 		}
 
         //=== Start PhysX ===
@@ -446,17 +422,17 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
         //Time.timeScale = 0.05f;		//###REVA ###TEMP   Gives more time for cloth to settle... but fix it some other way (with far stronger params??)
 
         ChangeGameMode(EGameModes.MorphBody);             // Set the initial game mode as statically requested		###DESIGN18:!!: We need to go in order but what about when user wants to play right away?  (Auto-progress through modes to morph and cut cloth or load from file?)
-		ChangeGameMode(EGameModes.CutCloth);		//###HACK21:!!!!!!!
-		ChangeGameMode(EGameModes.Play);
+		//ChangeGameMode(EGameModes.CutCloth);		//###HACK21:!!!!!!!
+		//ChangeGameMode(EGameModes.Play);
 
 		//SetGameModeBasicInteractions(false);		//###DESIGN:!!!
 
 		//###HACK22:!!!!!!!
-		if (_oVrWandObjectR == null)
+		//if (_oVrWandObjectR == null)
 			//_oVrWandObjectR = _aBodyBases[0]._oBody._oActor_ArmL.transform;
-			_oVrWandObjectR = (_aBodyBases.Length > 1) ? _aBodyBases[1]._oBody._oActor_Genitals.transform : null;
-		if (_oVrWandObjectL == null)
-			_oVrWandObjectL = _aBodyBases[0]._oBody._oActor_Genitals.transform;
+			//_oVrWandObjectR = (_aBodyBases.Length > 1) ? _aBodyBases[1]._oBody._oActor_Genitals.transform : null;
+		//if (_oVrWandObjectL == null)
+		//	_oVrWandObjectL = _aBodyBases[0]._oBody._oActor_Genitals.transform;
 
         Debug.LogFormat("Time at startup end: {0}", Time.time - _nTimeAtStart);
 
@@ -484,13 +460,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//_GameIsRunning = false;						// Stop running update loop as we're destroying a lot of stuff
 		enabled = false;                                // Stop CGame component will prevent Update() from running and prevent anything from happening.
 
-		//###IMPROVE: Need to destroy Flex?
-		//if (_oFlexSolverFluid != null)
-		//	_oFlexSolverFluid.enabled = false;
-		//if (_oFlexSolverMain != null)
-		//	_oFlexSolverMain.enabled = false;
-		//GameObject.DestroyImmediate(_oFlexSolverFluid.gameObject);
-
+		uFlex.Flex.Shutdown();							// Only place in the app we can destroy Flex completely (removed from solvers as we now have two!)
 
 		//=== Destroy Blender ===
 		if (_oProcessBlender != null) {
@@ -530,15 +500,20 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
             }
         }
 
-		if (Input.GetKeyDown(KeyCode.F1))           //####TEMP?
-            ChangeGameMode(EGameModes.MorphBody);
-		if (Input.GetKeyDown(KeyCode.F2))
-			ChangeGameMode(EGameModes.CutCloth);
-		if (Input.GetKeyDown(KeyCode.F3))
-			ChangeGameMode(EGameModes.Play);
-		if (Input.GetKeyDown(KeyCode.F4)) {		
-			SetBodiesAsKinematic(!_bBodiesAreKinematic);
+		if (Input.GetKeyDown(KeyCode.F1)) {          //###TEMP?
+			//ChangeGameMode(EGameModes.CutCloth);
+			ChangeGameMode(EGameModes.MorphBody);
 		}
+		if (Input.GetKeyDown(KeyCode.F2)) {
+			//ChangeGameMode(EGameModes.CutCloth);
+			ChangeGameMode(EGameModes.Play);
+		}
+		if (Input.GetKeyDown(KeyCode.F3))
+			SetBodiesAsKinematic(!_bBodiesAreKinematic);
+		//if (Input.GetKeyDown(KeyCode.F2))
+		//	ChangeGameMode(EGameModes.CutCloth);
+
+
 		if (Input.GetKeyDown(KeyCode.KeypadPlus)) {
 			_oFlexParamsFluid.D_DisableEmitters = false;
 			_nTimeStartOfCumming = Time.time;
@@ -546,68 +521,30 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		if (Input.GetKeyDown(KeyCode.KeypadMinus))
 			_oFlexParamsFluid.D_FlagForCompleteFluidDestruction = true;
 
-
-		////###TEMP22: Test first person control stuff.  Going 3rd person for now
-		//if (Input.GetKeyDown(KeyCode.F5)) {				
-		//	Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
-		//	Transform oBoneEyeCenterT = oBoneHeadT.Find("CenterEye");
-		//	if (oBoneEyeCenterT == null) {			// Center Eye made-up bone not created yet... create it
-		//		Transform oBoneEyeLT = oBoneHeadT.Find("lEye");
-		//		Transform oBoneEyeRT = oBoneHeadT.Find("lEye");
-		//		Vector3 vecEyeCenterLocal = (oBoneEyeLT.localPosition + oBoneEyeRT.localPosition) / 2;
-		//		vecEyeCenterLocal.z += 0.018f;			// Bone position of eyes is given about eyeball center.  Bring forward toward pupil  ###CHECK22: Good idea?  Looks good on cam or 'too far forward'?  Can step back and increase 'near clipping plane'
-		//		oBoneEyeCenterT = new GameObject("CenterEye").transform;
-		//		oBoneEyeCenterT.SetParent(oBoneHeadT);
-		//		oBoneEyeCenterT.transform.localPosition = vecEyeCenterLocal;
-		//	}
-		//	//Transform oBoneHeadT = _aBodyBases[0].FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/neckLower/neckUpper/head");
-		//	//Transform oBoneEyeCenterT = oBoneHeadT.FindChild("CenterEye");
-		//	Vector3 vecEyeCenter = oBoneEyeCenterT.position;
-		//	Transform oCameraRigT = GameObject.Find("[CameraRig]").transform;
-		//	Transform oCameraHeadT = oCameraRigT.Find("Camera (eye)");		//###CHECK21: Why do we have Camera (head) as child during design time and it dissapears
-		//	Vector3 vecPosRig = vecEyeCenter - oCameraHeadT.localPosition;
-		//	oCameraRigT.position = vecPosRig;
-		//	//oCameraRigT.rotation = oEyeCenterT.rotation;		//###DESIGN22: Do we ever touch rotation?  (Or... user changes by invoking some button to rotate?)
-		//}
-		//if (Input.GetKeyDown(KeyCode.F6)) {
-		//	GameObject oWandLGO = GameObject.Find("[CameraRig]/Controller (left)");
-		//	if (oWandLGO != null) {
-		//		Transform oWandLT = oWandLGO.transform;
-		//		_aBodyBases[0]._oBody._oActor_ArmL.transform.position = oWandLT.position;		//###HACK21:!!!! Find bettter way to get to proper pin!!
-		//		_aBodyBases[0]._oBody._oActor_ArmL.transform.rotation = oWandLT.rotation;
-		//		_aBodyBases[0]._oBody._oActor_ArmL._oObj.PropSet(0, EActorNode.Pinned, 1);		//###MOVE?
-		//	}
-		//}
-		//if (Input.GetKeyDown(KeyCode.F7)) {
-		//	bDrivenByVr_HACK = !bDrivenByVr_HACK;
-		//}
-
-			//if (bDrivenByVr_HACK) {
-			//	GameObject oWandRGO = GameObject.Find("[CameraRig]/Controller (right)");
-			//	if (oWandRGO != null) {
-			//		Transform oWandRT = oWandRGO.transform;
-			//		_aBodyBases[0]._oBody._oActor_ArmR.transform.position = oWandRT.position;
-			//		_aBodyBases[0]._oBody._oActor_ArmR.transform.rotation = oWandRT.rotation;
-			//		_aBodyBases[0]._oBody._oActor_ArmR._oObj.PropSet(0, EActorNode.Pinned, 1);
-			//	}
-			//	//bDrivenByVr_HACK = false;
-			//}
-			//-------------------------------------
-
-
 		if (Input.GetKeyDown(KeyCode.F5)) {          //###TEMP:!!!!
 			_aBodyBases[0]._oBody.Pose_Save("Body0");
-			if (_aBodyBases.Length > 1)							//###HACK: While waiting for our fancy pose combination stuff...
+			if (_aBodyBases.Length > 1)                         //###HACK: While waiting for our fancy pose combination stuff...
 				_aBodyBases[1]._oBody.Pose_Save("Body1");
 		}
-			//ScenePose_Save("TEMP");
+		//ScenePose_Save("TEMP");
 		if (Input.GetKeyDown(KeyCode.F6)) {
 			_aBodyBases[0]._oBody.Pose_Load("Body0");
 			if (_aBodyBases.Length > 1)
 				_aBodyBases[1]._oBody.Pose_Load("Body1");
 		}
 
-			//ScenePose_Load("TEMP", false);
+		if (Input.GetKeyDown(KeyCode.F7)) {          //###TEMP:!!!!
+			_aBodyBases[0]._oObj._aPropGrps[0].Save("Body", "TEMP");
+			_aBodyBases[0]._oObj._aPropGrps[0].Save("Penis", "TEMP");       //###TODO:suffix name from user, what filter to save, GUI to edit, load and save body composite files, etc
+			_aBodyBases[0]._oObj._aPropGrps[0].Save("Breasts", "TEMP");		//###WEAK: Property group access
+		}
+		if (Input.GetKeyDown(KeyCode.F8)) {
+			_aBodyBases[0]._oObj._aPropGrps[0].Load("Body", "TEMP");
+			_aBodyBases[0]._oObj._aPropGrps[0].Load("Penis", "TEMP");
+			_aBodyBases[0]._oObj._aPropGrps[0].Load("Breasts", "TEMP");
+		}
+
+		//ScenePose_Load("TEMP", false);
 
 
 
@@ -660,7 +597,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
             string sDateTime = System.DateTime.Now.ToString() + ".png";     //###IMPROVE: Auto hide of GUI
             sDateTime = sDateTime.Replace('/', '-');
             sDateTime = sDateTime.Replace(':', '.');
-            string sPathFileCapture = GetPathScreenCaptures() + _sNameScenePose + " - " + sDateTime;
+            string sPathFileCapture = GetPath_ScreenCaptures() + _sNameScenePose + " - " + sDateTime;
             Debug.Log("Saved screen capture file to " + sPathFileCapture);  //###IMPROVE: Save a .jpg
             ScreenCapture.CaptureScreenshot(sPathFileCapture);
         }
@@ -790,36 +727,57 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		}
 
 
-   //     //=== Iterate through our PhysX-enabled objects to ask them to prepare themselves for this upcoming frame ===
+		//=== Iterate through our PhysX-enabled objects to ask them to prepare themselves for this upcoming frame ===
         foreach (CBodyBase oBodyBase in _aBodyBases)
-			oBodyBase.OnSimulatePre();
+			oBodyBase.OnUpdate();
 
 		//=== Update Flex solvers and support objects ===
-		//if (_oFlexSolverMain != null && _oFlexSolverMain.m_cntr != null)
-		//	_oFlexSolverMain.DoFixedUpdate();
-		//if (_oFlexSolverFluid != null && _oFlexSolverFluid.m_cntr != null)
-		//	_oFlexSolverFluid.DoFixedUpdate();
-		//if (_oFlexParamsFluid != null)
-		//	_oFlexParamsFluid.DoFixedUpdate();
-
-		_oFlexSolverFluid.DoUpdate1();
-		_oFlexSolverMain .DoUpdate1();
-		_oFlexSolverFluid.DoUpdate2();
-		_oFlexSolverMain .DoUpdate2();
-		_oFlexSolverFluid.DoUpdate3();
-		_oFlexSolverMain .DoUpdate3();
-		_oFlexSolverFluid.DoUpdate4();
-		_oFlexSolverMain .DoUpdate4();
-		_oFlexSolverFluid.DoFixedUpdate();
-		_oFlexSolverMain .DoFixedUpdate();
-
-		if (_oFlexParamsFluid != null)
+		if (_oFlexSolverMain)
+			_oFlexSolverMain.DoFixedUpdate();
+		if (_oFlexSolverFluid)
+			_oFlexSolverFluid.DoFixedUpdate();
+		if (_oFlexParamsFluid)
 			_oFlexParamsFluid.DoFixedUpdate();
 
         CGame.INSTANCE._nFrameCount_MainUpdate++;	//###HACK! To stats!
     }
 
- //   IEnumerator Coroutine_Update100ms() {			// Slow update coroutine to update low-priority stuff.
+	public void Flex_Create() {     //#@
+		Debug.Log("=== Flex_Create() ===");
+		//=== Find the Flex solvers and start them ===
+		_oFlexSolverMain = GameObject.Find("FlexMain") .GetComponent<uFlex.FlexSolver>();
+		_oFlexSolverMain.DoStart();
+		_oFlexParamsMain = _oFlexSolverMain.GetComponent<CFlexParamsMain>();
+		GameObject oFlexParamsFluidGO = GameObject.Find("FlexFluid");
+		if (oFlexParamsFluidGO) { 
+			_oFlexSolverFluid	= oFlexParamsFluidGO.GetComponent<uFlex.FlexSolver>();
+			_oFlexSolverFluid.DoStart();
+			_oFlexParamsFluid   = oFlexParamsFluidGO.GetComponent<CFlexParamsFluid>();
+			_oFlexParamsFluid.OnStart();
+		}
+	}
+
+	public void Flex_Destroy() {
+		Debug.Log("--- Flex_Destroy() ---");
+		if (_oFlexSolverMain) {
+			_oFlexSolverMain.DoDestroy();
+			_oFlexSolverMain = null;
+		}
+		if (_oFlexSolverFluid) {
+			_oFlexSolverFluid.DoDestroy();
+			_oFlexSolverFluid = null;
+		}
+
+		//###IMPROVE: Need to destroy Flex?
+		//if (_oFlexSolverFluid != null)
+		//	_oFlexSolverFluid.enabled = false;
+		//if (_oFlexSolverMain != null)
+		//	_oFlexSolverMain.enabled = false;
+		//GameObject.DestroyImmediate(_oFlexSolverFluid.gameObject);
+	}
+
+
+	//   IEnumerator Coroutine_Update100ms() {			// Slow update coroutine to update low-priority stuff.
 	//	for (; ; ) {
 	//		if (_GameIsRunning) {					//####CHECK?
 	//			//if (_oGui != null) {		//###HACK!!!
@@ -1033,7 +991,9 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 			return;
 		//###BROKEN22: Game change limits
 		//if (Math.Abs((int)_GameMode - (int)eGameMode) != 1)			// Ensure we only go from one game mode to another right adjacent to it
-		//	throw new CException("Exception in ChangeGameMode().  Cannot go from game mode " + _GameMode.ToString() + " to game mode " + eGameMode.ToString());
+		//	CUtility.ThrowExceptionF("###EXCEPTION: ChangeGameMode() cannot go from game mode " + _GameMode.ToString() + " to game mode " + eGameMode.ToString());
+
+		Flex_Destroy();				// Destroy Flex before every mode change.
 
 		_GameMode = eGameMode;
 
@@ -1047,15 +1007,15 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 
 		switch (_GameMode) {
 			case EGameModes.MorphBody:
-				//_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
-				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
-					oBodyBase.OnChangeBodyMode(EBodyBaseModes.MorphBody);
+				_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.MorphBody);       // Enter body morph mode for the active body
+				//foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
+				//	oBodyBase.OnChangeBodyMode(EBodyBaseModes.MorphBody);
 				break;
-			case EGameModes.CutCloth:
-				//_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
-				foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
-					oBodyBase.OnChangeBodyMode(EBodyBaseModes.CutCloth);
-				break;
+			//case EGameModes.CutCloth:
+			//	//_aBodyBases[nBodyToEdit].OnChangeBodyMode(EBodyBaseModes.CutCloth);       // Enter cloth cutting mode for the active body
+			//	foreach (CBodyBase oBodyBase in _aBodyBases)		//###DESIGN:!!!!!!!!  Huge hack to allow quick entry of two bodies... revise the whole bit about cloth editing and mode change!!
+			//		oBodyBase.OnChangeBodyMode(EBodyBaseModes.CutCloth);
+			//	break;
 			case EGameModes.Play:
 				foreach (CBodyBase oBodyBase in _aBodyBases)				// Entering play mode.  Tell all body bases to get the game-time body ready.
 					oBodyBase.OnChangeBodyMode(EBodyBaseModes.Play);
@@ -1063,10 +1023,13 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
                 ScenePose_Load("Standing", false);      //###DESIGN17: When to do this and where??
         		break;
         }
+
+		Flex_Create();			// Re-create Flex at every mode change
+
 		//###DESIGN18: Hide / show all options given the many game modes too complex... ditch?
 		//HideShowMeshes();           // Hide or show meshes as per configured by our (many) global variables.
-    }
-    public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
+	}
+	public void HoldSoftBodiesInReset(bool bSoftBodyInReset) {                       // Reset softbodies to their startup state.  Essential during pose load / teleportation!
 		//###BROKEN11:
         //foreach (CBody oBody in _aBodyBases)
         //    if (oBody != null)
@@ -1301,10 +1264,14 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		//	return _aBodyBases[0];
 	}
 
+	private void FlexErrorCallback(uFlex.Flex.ErrorSeverity severity, String msg, String file, int line) {
+		Debug.LogError("###ERROR Flex " + severity + ": " + msg + "\t[FILE: " + file + ": " + line + "]");     //###IMPROVE: Reveal which solver!  Solver = '" + gameObject.name + "'"
+	}
+
 	//--------------------------------------------------------------------------	SCENE LOAD / SAVE  ###MOVE??
 
 	public void ScenePose_Load(string sNameScenePose, bool bScenePoseFlipped) {		// Load a 'scene' = The pose & position of each character plus CPoseRoot position.  bInvert loads pose for body 2 into body 1 and vice versa
-		string sPathScenePose = CGame.GetPathSceneFile(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		string sPathScenePose = CGame.GetPathFile_Scene(sNameScenePose);	// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 
 		if (_aBodyBases.Length > 0)
 			_aBodyBases[0]._oBody.Pose_Load("Body0");			//###BROKEN:!!!! Pose loading direct to our bodies... bypassing old concept of 'scene pose'
@@ -1360,8 +1327,8 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		_sNameScenePose = sNameScenePose;
 		_bScenePoseFlipped = false;				// By definition when we save a pose it is not-flipped.  (Flipping only occurs during load)
 
-		Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);							// Make sure that directory path exists
-		string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		Directory.CreateDirectory(CGame.GetPath_Scenes() + _sNameScenePose);							// Make sure that directory path exists
+		string sPathScenePose = CGame.GetPathFile_Scene(_sNameScenePose);			// Scenes save their name as the folder, with the payload file always called 'Scene.txt'
 		Debug.Log("Scene_Save() saving scene " + sPathScenePose);
 		StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
 		/////////EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
@@ -1392,6 +1359,23 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		TemporarilyDisablePhysicsCollision();
 	}
 
+	//--------------------------------------------------------------------------	BODY DEF FILES
+
+	public void BodyDef_Save(string sPrefixMorph) {
+		//Debug.Log("BodyDef_Save() saving body defintion " + sPrefixMorph);
+
+		//Directory.CreateDirectory(CGame.GetPathScenes() + _sNameScenePose);                         // Make sure that directory path exists
+		//string sPathScenePose = CGame.GetPathSceneFile(_sNameScenePose);            // Scenes save their name as the folder, with the payload file always called 'Scene.txt'
+		//StreamWriter oStreamWrite = new StreamWriter(sPathScenePose);
+		///////////EPoseRootPos ePoseRootPos = (EPoseRootPos)_oObj.PropGet(EGamePlay.PoseRootPos);
+		//////////oStreamWrite.WriteLine(ePoseRootPos.ToString());
+
+		////string sLine = string.Format("{0},{1},{2},{3},{4},{5},{6},{7}", oBody._sNamePose, vecBase.x, vecBase.y, vecBase.z, quatBase.x, quatBase.y, quatBase.z, quatBase.w);
+		//oStreamWrite.WriteLine(sLine);
+		//oStreamWrite.Close();               //###IMPROVE: Save placeholder image?
+	}
+
+
 
 	//--------------------------------------------------------------------------	COBJECT CALLBACK EVENTS
 
@@ -1404,7 +1388,7 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 	//	Scene_ApplyPoseRoot(ePoseRootPos);
 	//}
 
-	
+
 	//--------------------------------------------------------------------------	IHotspot interface
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
@@ -1434,12 +1418,13 @@ public class CGame : MonoBehaviour, IHotSpotMgr {	// The singleton game object. 
 		return sNameFolder;				// This should always return a string like "D:/Src/EroticVR/EroticVR/Runtime/" for both editor and player buids.  This is our 'root directory' where all our assets are based!
 	}
 
-	public static string GetPathPoses() { return GetFolderPathRuntime() + "Poses/"; }
-	public static string GetPathPoseFile(string sNameFolder) { return GetPathPoses() + sNameFolder + "/Pose.txt"; }		// Poses are stored in their own name directory with payload file always 'Pose.txt'
-	public static string GetPathScenes() { return GetFolderPathRuntime() + "Scenes/"; }
-	public static string GetPathSceneFile(string sNameFolder) { return GetPathScenes() + sNameFolder + "/Scene.txt"; }	// Scenes are stored in their own name directory with payload file always 'Scene.txt'
-	public static string GetPathScript(string sNameFile) { return GetFolderPathRuntime() + "Scripts/" + sNameFile + ".txt"; }
-	public static string GetPathScreenCaptures() { return GetFolderPathRuntime() + "ScreenCaptures/"; }
+	public static string GetPath_Poses() { return GetFolderPathRuntime() + "Poses/"; }
+	public static string GetPath_PoseFile(string sNameFolder) { return GetPath_Poses() + sNameFolder + "/Pose.txt"; }     // Poses are stored in their own name directory with payload file always 'Pose.txt'
+	public static string GetPath_Scenes() { return GetFolderPathRuntime() + "Scenes/"; }
+	public static string GetPath_Properties() { return GetFolderPathRuntime() + "Properties/"; }
+	public static string GetPath_Script(string sNameFile) { return GetFolderPathRuntime() + "Scripts/" + sNameFile + ".txt"; }
+	public static string GetPath_ScreenCaptures() { return GetFolderPathRuntime() + "ScreenCaptures/"; }
+	public static string GetPathFile_Scene(string sNameFolder) { return GetPath_Scenes() + sNameFolder + "/Scene.txt"; }	// Scenes are stored in their own name directory with payload file always 'Scene.txt'
 	public static string GetPathBlends() { return GetFolderPathRuntime() + "Blends"; }
     public static string GetPathBlender()				{ return GetFolderPathRuntime() + "Blender"; }
     //public static string GetPathBlender()			    { return "C:/src/EroticVR/EroticVR/Runtime/Blender" }
@@ -1458,8 +1443,8 @@ public enum EGameGuiMsg {		//###OBS??  ###TODO: Incomplete!
 	VrControl1,
 	VrControl2,
 	VrControlCam,
-	VrWandLeft,
-	VrWandRight,
+	VrWandL,
+	VrWandR,
 	Fluid1,
 	Fluid2,
     CursorStat1,

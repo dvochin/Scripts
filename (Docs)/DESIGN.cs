@@ -32,9 +32,6 @@
 
 
 
-
-
-
 /*=== CENTRAL DESIGN OF GAME USER INTERFACE ===
 > The following control permutations are possible:
 - Right-handed mouse users *must* position their left  hand on the WASD keyboard area and their right hand on the mouse.

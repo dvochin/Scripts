@@ -1,5 +1,16 @@
 ﻿/*###DOCS25: Aug 2017 - Penis SoftBody
 === DEV ===
+- Need to accurately determine the beginning of the shaft to avoid moving ball bones
+- Need to create a convincing 'limp to erect' effect... but is stiffness enough??  (base needs to be stronger)
+- Need a convincing penis bend up / down morph... (both base and shaft)
+-IDEA: Have button combo control other penis attributes
+
+--- Penis sizing architecture ---
+	- Based on the penis collider:
+		- At init find the left-most and right-most verts
+		- Occasionally compute the distance between the two and update collider's _nPenisDiameter
+		- When vagina penis sensor detects penis tip is entering vagina it begins a co-routine that occasionally updates its size (to account for penis growth)
+			- (Vagina sensor obtains the penis collider instance from the PhysX raycast results)
 
 === NEXT ===
 - Property group setting at startup
@@ -62,24 +73,24 @@ public class CSoftBody_Penis : CSoftBody {
 		_oObj = new CObject(this, "Penis", "Penis");				//###WEAK: String names duplication x 3
 		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
 		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Penis", typeof(ESoftBodyPenis));
-        oPropGrp.PropAdd(ESoftBodyPenis.Stiffness,			"Stiffness",		0.1f, 0.01f, 0.2f, "");			//###TUNE:!!!	 ###PROBLEM: Stiffness can 'blow up' depending on many Flex parameters!	  ###NOTE: Stiffness *must* propagate itself through all particles to avoid softbody falling appart!!
-        oPropGrp.PropAdd(ESoftBodyPenis.Size,				"Size",				1.0f, 0.5f, 1.3f, "");
+        oPropGrp.PropAdd(ESoftBodyPenis.Stiffness,			"Stiffness",		0.1f, 0.01f, 0.3f, "");			//###TUNE:!!!	 ###PROBLEM: Stiffness can 'blow up' depending on many Flex parameters!	  ###NOTE: Stiffness *must* propagate itself through all particles to avoid softbody falling appart!!
+        oPropGrp.PropAdd(ESoftBodyPenis.Size,				"Size",				1.0f, 0.7f, 1.3f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.BaseUpDown,			"Base Up/Down",		0.0f, -45.0f, 45.0f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.BaseLeftRight,		"Base Left/Right",	0.0f, -45.0f, 45.0f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.ShaftUpDown,		"Curve Up/Down",	0.0f, -25.0f, 25.0f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.ShaftLeftRight,		"Curve Left/Right",	0.0f, -20.0f, 20.0f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.ShaftTwistLeftRight,"Twist Left/Right",	0.0f, -5.0f, 5.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.Transparency,		"Transparency",			0.0f, 0.0f, 100.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.TransparencyBody_HACK,	"Body Transparency",	0.0f, 0.0f, 100.0f, "");		//###MOVE
         oPropGrp.PropAdd(ESoftBodyPenis.Reset_HACK,			"Reset",			0.0f, 0.0f, 1.0f, "");
         oPropGrp.PropAdd(ESoftBodyPenis.Kinematic_HACK,		"Kinematic",		0.0f, 0.0f, 1.0f, "");
-		//oPropGrp.PropAdd(ESoftBody.TrimFlexParticles_HACK,	"Trim",			0.0f, 0.0f, 1.0f, "");
-		//CGame.INSTANCE._oVrWandLeft ._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBody.BaseUpDown);
-		//CGame.INSTANCE._oVrWandLeft ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBody.TrimFlexParticles_HACK);
-		CGame.INSTANCE._oVrWandLeft ._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Size);
-		//CGame.INSTANCE._oVrWandLeft ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.BaseLeftRight);
-		CGame.INSTANCE._oVrWandRight._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.Kinematic_HACK);
-		CGame.INSTANCE._oVrWandRight._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Reset_HACK);
+		CGame.INSTANCE._oVrWandR._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.BaseUpDown);
+		CGame.INSTANCE._oVrWandR._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.BaseLeftRight);
+		//CGame.INSTANCE._oVrWandL ._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.ShaftUpDown);
+		//CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.ShaftLeftRight);
+		CGame.INSTANCE._oVrWandL._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.Size);
+		CGame.INSTANCE._oVrWandL._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Stiffness);
+		///CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.TrimFlexParticles_HACK);
+		///CGame.INSTANCE._oVrWandR._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.Kinematic_HACK);
+		///CGame.INSTANCE._oVrWandR._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Reset_HACK);
 
 		_oObj.FinishInitialization();
 
@@ -115,6 +126,7 @@ public class CSoftBody_Penis : CSoftBody {
 		Vector3 vecPenisStart	= _oBoneRootT.position;
 		Vector3 vecPenisEnd		= _oCumEmitterT.position;
 		vecPenisStart.x = 0;
+		vecPenisStart.z += 0.022f;		//###HACK:!!!!!! Perform crappy manual adjustment of 'beginning of penis shaft' so we don't change scrotum bones!  Get this info from a marked Blender vert?  (Improved: don't process bones under a certain vert)
 		vecPenisEnd.Set(0, vecPenisStart.y, vecPenisEnd.z);
 		float nLenPenis = vecPenisEnd.z - vecPenisStart.z;
 		float nLenPenisSlice = nLenPenis / nSlices;
@@ -141,6 +153,13 @@ public class CSoftBody_Penis : CSoftBody {
 			_aPenisSlices[nSlice].AddChildBone(oBoneParticleT, nParticleID);
 		}
 	}
+	public override void DoDestroy() {
+		//=== Destroy the PARENTS of the dynamic bones we created ===
+		foreach (KeyValuePair<ushort, Transform> oPair in _mapBonesDynamic)
+			GameObject.Destroy(oPair.Value.parent.gameObject);		// Because we create shapes for every particle / bone, lookup to the parent so we can delete both shape and bone in one call
+		GameObject.Destroy(gameObject);
+	}
+
 
 	public override void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
 		base.PreContainerUpdate(solver, cntr, parameters);
@@ -181,13 +200,6 @@ public class CSoftBody_Penis : CSoftBody {
 			case (int)ESoftBodyPenis.ShaftLeftRight:
 			case (int)ESoftBodyPenis.ShaftTwistLeftRight:
 				Util_AdjustPenisSliceRotation(2, _aPenisSlices.Length-1, false);
-				break;
-
-			case (int)ESoftBodyPenis.Transparency:
-				_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, false);
-				break;
-			case (int)ESoftBodyPenis.TransparencyBody_HACK:
-				_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, true);
 				break;
 
 			case (int)ESoftBodyPenis.Reset_HACK:
@@ -318,3 +330,14 @@ public class CBSkinBaked_PenisMeshCollider : CBSkinBaked {      // CBSkinBaked_P
 		_oMeshCollider.sharedMesh = _oMeshBaked;
 	}
 }
+
+
+//oPropGrp.PropAdd(ESoftBodyPenis.Transparency,		"Transparency",			0.0f, 0.0f, 100.0f, "");
+//oPropGrp.PropAdd(ESoftBodyPenis.TransparencyBody_HACK,	"Body Transparency",	0.0f, 0.0f, 100.0f, "");		//###MOVE
+			//case (int)ESoftBodyPenis.Transparency:
+			//	_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, false);
+			//	break;
+			//case (int)ESoftBodyPenis.TransparencyBody_HACK:
+			//	_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, true);
+			//	break;
+

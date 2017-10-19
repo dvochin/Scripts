@@ -51,20 +51,23 @@
 using UnityEngine;
 
 public class CVrPanelWand {
-	public CVrObjControl	_oVrObjControl;
+	public CVrWand	_oVrWand;
 	public CUICanvas		_oCanvas;		
 
-	public CVrPanelWand(CVrObjControl oVrObjControl, Transform oModelAttachParentT) {
-		_oVrObjControl = oVrObjControl;
-		_oCanvas = CUICanvas.Create(_oVrObjControl.transform);
+	public CVrPanelWand(CVrWand oVrWand, Transform oModelAttachParentT) {
+		_oVrWand = oVrWand;
+		_oCanvas = CUICanvas.Create(_oVrWand.transform);
 		_oCanvas.transform.SetParent(oModelAttachParentT);					// Attach the canvas to the provided attach point on the wand model...
 		_oCanvas.transform.localPosition = new Vector3(0, 0.015f, 0.07f);		//... and give it a small offset so it doesn't collider with wand 3D model.
 		_oCanvas.transform.localRotation = Quaternion.Euler(90, 0, 0);
+		_oCanvas.gameObject.name = "CUICanvas-VrWand";
 
 		//###HACK:!!!!!! While waiting for our object selection functionality we hardcode direct access
 		//CObject oObj = CGame.INSTANCE._aBodyBases[0]._oBody.Breasts;
-		CObject oObj = CGame.INSTANCE._aBodyBases[0]._oBody.Penis;
 		//CObject oObj = CGame.INSTANCE._aBodyBases[0]._oBody._oObj;
+		CObject oObj = null;
+		if (CGame.INSTANCE._aBodyBases[0] != null && CGame.INSTANCE._aBodyBases[0]._oBody != null)
+			oObj = CGame.INSTANCE._aBodyBases[0]._oBody.Penis;
 		if (oObj != null)
 			CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { oObj }, "Wand Menu");	//###IMPROVE: Menu name based on wand name
 	}

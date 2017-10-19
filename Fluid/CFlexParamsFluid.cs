@@ -297,7 +297,7 @@ public class CFlexParamsFluid : uFlex.FlexParameters, uFlex.IFlexProcessor {
 		} else {
 			//=== Iterate through all bodies to update the fluid pinning particles ===
 			foreach (CBodyBase oBodyBase in CGame.INSTANCE._aBodyBases) {		//###MOVE:??  ###CHECK:!!! Is this the right timing to guarantee baked mesh as recent as possible??
-				if (oBodyBase._oBody._oFlexTriCol_BodyFluid)
+				if (oBodyBase._oBody != null && oBodyBase._oBody._oFlexTriCol_BodyFluid)
 					oBodyBase._oBody._oFlexTriCol_BodyFluid.OnSimulate();
 			}
 
