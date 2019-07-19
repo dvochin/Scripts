@@ -66,8 +66,6 @@ public class CFlexParamsMain : uFlex.FlexParameters /* ,uFlex.IFlexProcessor*/ {
 
 			_bUpdateParameters = false;
 		}
-
-		//CGame.INSTANCE._aGuiMessages[(int)EGameGuiMsg.Fluid1] = string.Format("Fluid:  A={0}/{1}  Rays={2}/{3} [#{4}]   Cull={5}", _nStat_NumActiveColliderTris, _nStat_NumActiveColliderSpheres, _nStat_NumFluidRaycasts, _nStat_NumFluidRaycastsAvoided, _setFluidParticleGroups.Count, _nStat_ParticlesCulled);
 	}
 
 	//=========================================================================	PER-FRAME FLEX UPDATE

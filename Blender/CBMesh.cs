@@ -35,7 +35,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 			if (oBodyBase._oBody != null)											// Parent to body main node if available, to body base static collider if not.
 				oBMeshGO.transform.SetParent(oBodyBase._oBody._oBodySkinnedMeshGO_HACK.transform);   //... Parent it to the body if it's there  ###HACK!
 			else
-				oBMeshGO.transform.SetParent(oBodyBase._oMeshStaticCollider.transform);		//... else to the body base
+				oBMeshGO.transform.SetParent(oBodyBase._oSkinMeshMorphing.transform);		//... else to the body base
 		}
 
 		//=== Create our component (of the requested type) from the above-created game object ===
@@ -92,8 +92,15 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		string sTextureSetSuffix = "_A";							//###TODO: Give the user the option of selecting the texture selection
 		for (byte nMat = 0; nMat < nMats; nMat++) {
 			string sNameMaterialAndTexture = oBA.ReadString();
-			Material oMat = new Material(Shader.Find("Standard"));       // If material was not found (usual case) we just create a standard diffuse on
-			Debug.Log("-Texture: " + sNameMaterialAndTexture);
+            Material oMat;
+            if (sNameMaterialAndTexture.Contains("Eyelash"))        //#DEV26: ###HACK:!!!! Find a way to properly process transparent materials!!
+                oMat = Resources.Load<Material>("ModelsOLD/(Tests)/Ana4-Bones/MaterialsT/_Woman_Eyelashes");    //###TODO: Use this template form
+            else
+                oMat = new Material(Shader.Find("Standard"));       // If material was not found (usual case) we just create a standard diffuse on
+            if (sNameMaterialAndTexture.Contains("Penis"))        //#DEV26: ###HACK:!!!! Find a way to set material smoothness??  Or pre-made materials??
+                oMat.SetFloat("_Glossiness", 0.7f);         //###INFO: How to set material smoothness.  See https://forum.unity.com/threads/set-smoothness-of-material-in-script.381247/ for how to obtain Shader variable names from the Unity GUI labels.
+
+            Debug.Log("-Texture: " + sNameMaterialAndTexture);
 
 			//=== Assign the mandatory diffuse texture ===
 			string sPathTextureResource = sPathTextures + sNameMaterialAndTexture + sTextureSetSuffix;		//###HACK25:!!! Path info should NOT be in CBMesh!  ###MOVE:!!!!  ###DESIGN: How do we specify which texture set?  ###IMPROVE: Sex selection here?
@@ -124,9 +131,10 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		}
 		_oMeshNow.subMeshCount = nMats;
 		if (bCreatingSkinnedMesh == false)
-			oMeshRenderer.materials = _aMatsCurrent;
+            oMeshRenderer.sharedMaterials = _aMatsCurrent;
+            //oMeshRenderer.materials = _aMatsCurrent;
 
-		oBA.CheckMagicNumber_End();                 // Check the 'end magic number' that always follows a stream.
+        oBA.CheckMagicNumber_End();                 // Check the 'end magic number' that always follows a stream.
 		
 
 		
@@ -140,7 +148,7 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 		memUVs    .Allocate(nVerts);
 
 		//=== With the header data process, the GetMeshHeader command also copied the large verts & tri arrays in shared memory for us to access quickly ===
-		int nError = ErosEngine.gBL_GetMeshArrays(_sNameBlenderMesh, nMats, memVerts.P, memNormals.P, memUVs.P);
+		int nError = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_GetMeshArrays(_sNameBlenderMesh, nMats, memVerts.P, memNormals.P, memUVs.P);
 		if (nError != 0)
 			CUtility.ThrowExceptionF("Exception in CBMesh.ctor().  gBL_GetMeshArrays('{0}') returns error {1} on mesh '{2}'.", _sNameBlenderMesh, nError, gameObject.name);
 
@@ -150,11 +158,11 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
 		//=== Create separation of mesh by material ===
 		for (int nMat = 0; nMat < nMats; nMat++) {
-			int nTrisThisMat = ErosEngine.gBL_GetNumTrianglesAtMaterial(nMat);			//###HACK: These are 'last access' only!
+			int nTrisThisMat = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_GetNumTrianglesAtMaterial(nMat);			//###HACK: These are 'last access' only!
 			if (nTrisThisMat > 0) {								//###IMPROVE: Issue warning when no materials?  (So Blender mesh can clean up its unused materials)?
 				CMemAlloc<int> memTris = new CMemAlloc<int>();
 				memTris.Allocate(3 * nTrisThisMat);				// Number of triangles = 3 * number of triangles
-				ErosEngine.gBL_GetTrianglesAtMaterial(nMat, memTris.P);
+				ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_GetTrianglesAtMaterial(nMat, memTris.P);
 				_oMeshNow.SetTriangles(memTris.L, nMat);
 			}
 		}
@@ -206,13 +214,13 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
 
  //       //###BUG!!! (Fixed with hack)  For some reason we can't get an update on our own buffer!  WTF?  Hack is to create a temp pinned array, get updated results and manually copy array to its source = WTF crap!!
  //       //###IDEA: Is it possible it is because each vert is an object and we replaced these object's reference from their original pinned array?? (Verify this with pointer addresses!)
- //       //int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, _memVerts.P);
+ //       //int nError = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_UpdateClientVerts(_sNameBlenderMesh, _memVerts.P);
  //       //if (nError != 0)
 	//	//	CUtility.ThrowExceptionF("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error {0} on mesh '{0}'.", nError, gameObject.name);
 
  //       //###HACK: Create temporary pinned array of the same size, get updated results, manually copy to where the results should go!
  //       CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
- //       int nError = ErosEngine.gBL_UpdateClientVerts(_sNameBlenderMesh, memVertsCopy.P);
+ //       int nError = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_UpdateClientVerts(_sNameBlenderMesh, memVertsCopy.P);
 	//	if (nError != 0)
 	//		CUtility.ThrowExceptionF("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error {0} on mesh '{0}'.", nError, gameObject.name);
  //       _memVerts.L = (Vector3[])memVertsCopy.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
@@ -237,21 +245,22 @@ public class CBMesh : MonoBehaviour {		// The base class to any Unity object tha
     //    //    _oMeshNow.vertices[nVert] = _memVertsStart.L[nVert];					// Set the 'startup verts' to what Blender just provided.  (Blender is always authoritative)
     //}
     public virtual void UpdateVertsToBlenderMesh() {		// Ask Blender to update its copy of the verts
-        if (_bConnectedToBlenderMesh == false)
-            CUtility.ThrowException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
+		//###BROKEN
+  //      if (_bConnectedToBlenderMesh == false)
+  //          CUtility.ThrowException("Exception in CBMesh.UpdateVertsToBlenderMesh().  Mesh is not exported / shared from Blender!");
 
-		//int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
+		////int nError = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_UpdateBlenderVerts(_sNameBlenderMesh, _memVerts.P);
+		////if (nError != 0)
+		////	CUtility.ThrowException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
+
+		////###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
+		//CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
+		//memVertsCopy.L = (Vector3[])_memVerts.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
+		//memVertsCopy.PinInMemory();			//###PROBLEM17: Dll would get only zeros without this line... Previous call to Pin too soon? ###BUG17: Memory leak??
+		//int nError = ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
 		//if (nError != 0)
-		//	CUtility.ThrowException("Exception in CBMesh.gBL_UpdateBlenderVerts().  DLL returns error " + nError + " on mesh " + gameObject.name);
-
-		//###HACK: Create temporary pinned array of the same size, send copy of updated results, manually copy to where the results should go!
-		CMemAlloc<Vector3> memVertsCopy = new CMemAlloc<Vector3>(_memVerts.L.Length);
-		memVertsCopy.L = (Vector3[])_memVerts.L.Clone();      //###CHECK: Will screw up pin??  Copy each vert by value??
-		memVertsCopy.PinInMemory();			//###PROBLEM17: Dll would get only zeros without this line... Previous call to Pin too soon? ###BUG17: Memory leak??
-		int nError = ErosEngine.gBL_UpdateBlenderVerts(_sNameBlenderMesh, memVertsCopy.P);
-		if (nError != 0)
-			CUtility.ThrowExceptionF("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error {0} on mesh '{0}'.", nError, gameObject.name);
-		memVertsCopy = null;
+		//	CUtility.ThrowExceptionF("Exception in CBMesh.gBL_UpdateClientVerts().  DLL returns error {0} on mesh '{0}'.", nError, gameObject.name);
+		//memVertsCopy = null;
 	}	
 
 	public void UpdateNormals() {                       // Unity must split Blender's verts at the seam.  Blender provides the '' map for us to average out these normals in order to display seamlessly accross seams.  

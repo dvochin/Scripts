@@ -78,15 +78,6 @@ public class CCursor : MonoBehaviour {
 						public const float	C_GizmoScale_RotationMultiplier = 3.0f;		// Extra multiplier applied to only the rotate gizmo
 						public const float	C_HotSpot_DefaultSize	= 0.1f;
 
-						public const byte 	C_Layer_HotSpotHands		= 28;			// Layer used to detect only hotspots related to CHandTarget
-						public const byte 	C_Layer_Cutter				= 29;			// Layer used to detect only the 'cutter plane' that makes single-plane editing possible
-						public const byte 	C_Layer_Gizmo 				= 30;			// Layer used to detect only gizmo colliders
-						public const byte 	C_Layer_HotSpot 			= 31;			// Layer used to detect only hotspots
-						public const uint 	C_LayerMask_HotSpotHands	= (uint)1 << C_Layer_HotSpotHands;	//###OBS!?!?! ???
-						public const uint 	C_LayerMask_Cutter			= (uint)1 << C_Layer_Cutter;
-						public const uint 	C_LayerMask_Gizmo 			= (uint)1 << C_Layer_Gizmo;
-						public const uint 	C_LayerMask_HotSpot 		= (uint)1 << C_Layer_HotSpot;
-
 						public const float	C_TimeMaxForMouseClick		= 0.2f;		// Mouse clicks longer then this do not do anything ###TUNE
 
 
@@ -125,7 +116,7 @@ public class CCursor : MonoBehaviour {
 		//=== Switch edit mode if the corresponding key was pressed ===
 		//###DESIGN!!!!! How / when to map these important keys???			###TODO!!!!  Only change mode when in pose edit mode, enforce 'play mode' to always move!
 
-		if (CGame.INSTANCE._bGameModeBasicInteractions == false) {
+		if (CGame._bGameModeBasicInteractions == false) {
 			if (Input.GetKeyDown(KeyCode.T)) {					// Toggle between move and rotate mode when not in basic game interaction mode
 				if (_EditMode == EEditMode.Move)
 					SetEditMode(EEditMode.Rotate);
@@ -135,7 +126,7 @@ public class CCursor : MonoBehaviour {
 		}
 
 		//=== Determine which layer we search for hotspot on ===
-		int nLayerTarget = C_Layer_HotSpot;					//###BUG??? Send this layer mask to derived classes???
+		int nLayerTarget = G.C_Layer_HotSpot;					//###BUG??? Send this layer mask to derived classes???
 		//if (Input.GetKey(KeyCode.Space))					//###CHECK: Proper?  Hunt for hotspots on hand layer if proper key pressed
 		//	nLayerTarget = C_Layer_HotSpotHands;
 		uint nLayerTargetMask = (uint)1 << nLayerTarget;
@@ -147,13 +138,13 @@ public class CCursor : MonoBehaviour {
         //else if (Input.GetKeyDown(KeyCode.Q))	SetEditMode(EEditMode.Select);		// Q = Select
 
         //=== Test what collider is under the mouse cursor.  This is used to process the various stages of mouse interactivity as well as to adjust the '3D depth' of the cursor ===
-        CGame.SetGuiMessage(EGameGuiMsg.CursorStat1, "Cursor Mode: " + _eModeCursor.ToString());
-        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, 0xFFFFFFFF);
+        CGame.SetGuiMessage(EMsg.CursorStat1, "Cursor Mode: " + _eModeCursor.ToString());
+        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, -1);
         if (_oRayHit_LayerHotSpot.collider != null)
-            CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: " + _oRayHit_LayerHotSpot.transform.name);
+            CGame.SetGuiMessage(EMsg.CursorStat2, "Cursor Collider: " + _oRayHit_LayerHotSpot.transform.name);
         else
-            CGame.SetGuiMessage(EGameGuiMsg.CursorStat2, "Cursor Collider: None");
-        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, nLayerTargetMask);
+            CGame.SetGuiMessage(EMsg.CursorStat2, "Cursor Collider: None");
+        _oRayHit_LayerHotSpot = CUtility.RaycastToCameraPoint2D(Input.mousePosition, (int)nLayerTargetMask);
 		if (_oRayHit_LayerHotSpot.collider != null)
 			_nDepth = _oRayHit_LayerHotSpot.distance * _DefaultCursorDepthOnHotspots;         // We adjust the '3D depth' of mouse cursor only when a collider is found.  ###IMPROVE: Implement slerp to gracefully change depth?
 
@@ -161,7 +152,7 @@ public class CCursor : MonoBehaviour {
 
   //      GameObject oSelectedUI = EventSystem.current.currentSelectedGameObject;     // EventSystem.current.IsPointerOverGameObject()) {        // If cursor is over Unity UI widget set cursor directly there and don't process further cursor functionality
   //      if (oSelectedUI != null) { 
-		//    CGame.SetGuiMessage(EGameGuiMsg.CursorStat3, "Cursor GUI: " + oSelectedUI.name);
+		//    CGame.SetGuiMessage(EMsg.CursorStat3, "Cursor GUI: " + oSelectedUI.name);
   //          //transform.position = Camera.main.ScreenToWorldPoint(;
   //          //PointerEventData eventDataCurrentPosition = new PointerEventData(EventSystem.current);
   //          //eventDataCurrentPosition.position = screenPosition;
@@ -171,7 +162,7 @@ public class CCursor : MonoBehaviour {
   //          //return results.Count > 0;
   //          _nDepth = Vector3.Distance(oSelectedUI.transform.position, Camera.main.transform.position);
 		//} else {
-  //          CGame.SetGuiMessage(EGameGuiMsg.CursorStat3, "(Cursor: No GUI control)");
+  //          CGame.SetGuiMessage(EMsg.CursorStat3, "(Cursor: No GUI control)");
   //      }
 
 
@@ -214,7 +205,7 @@ public class CCursor : MonoBehaviour {
 
 			case EModeCursor.S2_HoveringOverHotspot:							// The user is now hovering over a valid Hotspot, but has not yet selected it with left mouse button.  (3D cursor displays name of Hotspot for visual feedback)
 				if (bClickDown) {
-					if (CGame.INSTANCE._bGameModeBasicInteractions == false || bClickRightDown) {	// If we're in full edit mode we wait for up-click, activate and display full gizmo.
+					if (CGame._bGameModeBasicInteractions == false || bClickRightDown) {	// If we're in full edit mode we wait for up-click, activate and display full gizmo.
 						_eModeCursor = EModeCursor.S3_WaitingForMouseUp;
 					} else {													// If we're in reduced edit mode, we fast-track to immediate movement along Y,Z axis without showing gizmo
 						_oHotSpotCurrent.OnActivate(bClickLeftDown, bClickRightDown, bClickMiddleDown);
@@ -255,7 +246,7 @@ public class CCursor : MonoBehaviour {
 
 			case EModeCursor.S4_ActivatedHotspot:							// The user is now hovering over a valid Hotspot, but has not yet selected it with left mouse button.  (3D cursor displays name of Hotspot for visual feedback)
 				if (bClickDown) {
-					RaycastHit oRayHit_LayerHotSpotAndGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, nLayerTargetMask | CCursor.C_LayerMask_Gizmo);	// Test to see if user clicked on nothing in gizmo or hotspot layers (in 'void')
+					RaycastHit oRayHit_LayerHotSpotAndGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, (int)nLayerTargetMask | G.C_LayerMask_Gizmo);	// Test to see if user clicked on nothing in gizmo or hotspot layers (in 'void')
 
 					if (oRayHit_LayerHotSpotAndGizmo.collider == null) {			// If user didn't click on anything we cancel hotspot activation and return to start state.
 						_oHotSpotCurrent.OnDeactivate();
@@ -280,7 +271,7 @@ public class CCursor : MonoBehaviour {
 				if (_oHotSpotCurrent != null) {				// Only the active hotspot gets the chance to trap events (typically to reroute to the gizmo it manages) ===
 					_oHotSpotCurrent.OnUpdate_ActiveHotspot();
 					//=== Handle special case if we're not showing helper object and the left or middle mouse button is not pressed -> destroy everything and returning to start state to complete the highly transient operation
-					if (CGame.INSTANCE._bGameModeBasicInteractions && Input.GetMouseButton(0) == false && Input.GetMouseButton(2) == false) {	
+					if (CGame._bGameModeBasicInteractions && Input.GetMouseButton(0) == false && Input.GetMouseButton(2) == false) {	
 						_oHotSpotCurrent.OnDeactivate();
 						_oHotSpotCurrent.OnHoverEnd();
 						_oHotSpotCurrent = null;
@@ -351,11 +342,11 @@ public enum EModeCursor { 							// The cursor modes used in its Finite State Ma
 //iGUICode_Root.INSTANCE._oPaneContextMenu.setType(iGUIPanelType.Box);
 //iGUICode_Root.INSTANCE._oPaneContextMenu.layout = iGUILayout.VerticalDense;
 
-//foreach (CPropGrp oPropGrp in _aPropGrps) {			//###DESIGN: Use property groups??
-//	oPropGrp.CreateWidget(oPanel);
-//	foreach (int nPropID in oPropGrp._aPropIDs) {
-//		CProp oProp = PropFind(nPropID);
-//		oProp.CreateWidget(oPanel, oPropGrp);
+//foreach (CObjGrp oObjGrp in _aPropGrps) {			//###DESIGN: Use property groups??
+//	_oObj.CreateWidget(oPanel);
+//	foreach (int nPropID in _oObj._aPropIDs) {
+//		CObj oObj = Find(nPropID);
+//		oObj.CreateWidget(oPanel, oObjGrp);
 //	}
 //}
 
@@ -365,8 +356,8 @@ public enum EModeCursor { 							// The cursor modes used in its Finite State Ma
 		//if (oPanel != null)
 		//	ContextMenu_Hide();
 
-		//oPanel.setEnabled(true);				//###OBS???  Now every CObject has its own popup window!!
-		//oPanel.positionAndSize = new Rect(0.5f, 0.5f, G.C_Gui_WidgetsWidth, oObj._aProps.Length * G.C_Gui_WidgetsHeight);		//###IMPROVE: Change to moveable window, default pos at side of screen
+		//oPanel.setEnabled(true);				//###OBS???  Now every CObj has its own popup window!!
+		//oPanel.positionAndSize = new Rect(0.5f, 0.5f, G.C_Gui_WidgetsWidth, oObj._aChildren.Length * G.C_Gui_WidgetsHeight);		//###IMPROVE: Change to moveable window, default pos at side of screen
 
 		////=== Create context menu label ===
 		//iGUILabel oLabelTitle = oPanel.addElement<iGUILabel>();						//###IMPROVE: A bit of duplication creating these basic controls into panels... abstract into functions??
@@ -376,9 +367,9 @@ public enum EModeCursor { 							// The cursor modes used in its Finite State Ma
 		//oLabelTitle.positionAndSize.Set(0, 0, 1, G.C_Gui_WidgetsHeight);
 		//oLabelTitle.style.alignment = TextAnchor.MiddleCenter;
 
-		////=== Create context menu CProp widgets ===
-		//foreach (CProp oProp in oObj._aProps)
-		//	oProp.CreateWidget(oPanel, null);
+		////=== Create context menu CObj widgets ===
+		//foreach (CObj oObj in oObj._aChildren)
+		//	oObj.CreateWidget(oPanel, null);
 
 		////=== Create context menu close button ===
 		//iGUIButton oButton = oPanel.addElement<iGUIButton>();					

@@ -46,12 +46,12 @@ public class CGameEd : Editor {         // CGameEd: Provides editor-time service
     bool StartBlender() {
         if (_BlenderStarted)                        //###BUG: Doesn't remember if started or not... static variable?
             return _BlenderStarted;		
-		if (ErosEngine.gBL_Init(CGame.GetFolderPathRuntime()) == false)
-			CUtility.ThrowException("ERROR: Could not start gBlender library!  Game unusable.");
-		System.Diagnostics.Process oProcessBlender = CGame.LaunchProcessBlender();
+		if (ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_Init() == false)         //CGame.GetFolderPathRuntime()
+            CUtility.ThrowException("ERROR: Could not start gBlender library!  Game unusable.");
+		System.Diagnostics.Process oProcessBlender = CGame.LaunchProcess_Blender();
 		if (oProcessBlender == null)
 			CUtility.ThrowException("ERROR: Could not start Blender!  Game unusable.");
-		if (ErosEngine.gBL_HandshakeBlender() == false)
+		if (ZenFulcrum.EmbeddedBrowser.BrowserNative.gBL_HandshakeBlender() == false)
 			CUtility.ThrowException("ERROR: Could not handshake with Blender!  Game unusable.");
         _BlenderStarted = true;
         return _BlenderStarted;

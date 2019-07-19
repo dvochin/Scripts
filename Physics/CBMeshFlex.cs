@@ -4,7 +4,7 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
     //---------------------------------------------------------------------------	SUB MESHES
     //CBMesh				_oBMeshClothAtStartup;              // The 'startup cloth' that is never simulated.  It is used to reset the simulated cloth to its start position
     //---------------------------------------------------------------------------	USER INTERFACE
-	//CObject				_oObj;							// The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
+	//CObj				_oObj;							// The multi-purpose CObj that stores CObj properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
     //CHotSpot            _oHotSpot;                        // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
     //---------------------------------------------------------------------------	FLEX
 	uFlex.FlexParticles _oFlexParticles;
@@ -61,7 +61,7 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
 	public void FlexObject_ClothSrc_Enable() {          // Create the Flex functionality when becomning active in game.
 		if (_oFlexParticles == null) { 
-			//###BROKEN: CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
+			//###BROKEN: CGame._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.nMassCloth, Color.yellow);
 			_oFlexParticles = GetComponent<uFlex.FlexParticles>();
 			GetComponent<MeshRenderer>().enabled = true;				// Make sure the mesh is visible in the scene so player can interact with it.
 		} else { 
@@ -86,9 +86,9 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
 	//--------------------------------------------------------------------------	UTILITY
 	public void HideShowMeshes() {
-        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
-        //_oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowMeshStartup;
-        GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
+        GetComponent<MeshRenderer>().enabled = CGame.ShowPresentation;
+        //_oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = CGame.ShowMeshStartup;
+        GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.ShowFlexParticles;
     }
 
 
@@ -104,15 +104,15 @@ public class CBMeshFlex: CBMesh, uFlex.IFlexProcessor {		// CBMeshFlex: Simple F
 
 	void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
 		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
-		Debug.LogFormat("CBMeshFlex updates on body'{0}' because property '{1}' changed to value {2}", _oBodyBase._sBodyPrefix, oArgs.PropertyName, oArgs.ValueNew);
+		Debug.LogFormat("CBMeshFlex updates on body'{0}' because property '{1}' changed to value {2}", _oBodyBase._sBodyPrefix, oArgs.CObj._sNameInCodebase , oArgs.CObj._nValue);
 
 		//if (oArgs.Property._oObjectExtraFunctionality == null)
 		//	oArgs.Property._oObjectExtraFunctionality = new CMorphChannel(this, oArgs.PropertyName);
 		//CMorphChannel oMorphChannel = oArgs.Property._oObjectExtraFunctionality as CMorphChannel;
-		//bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.ValueNew);
+		//bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.CObj._nValue);
 		//if (bMeshChanged) {
-		//	_oMeshMorphResult._oMeshNow.vertices = _oMeshMorphResult._memVerts.L;       //###IMPROVE: to some helper function?
-		//	_oMeshMorphResult.UpdateNormals();							// Morphing invalidates normals... update
+		//	_oSkinMeshMorph._oMeshNow.vertices = _oSkinMeshMorph._memVerts.L;       //###IMPROVE: to some helper function?
+		//	_oSkinMeshMorph.UpdateNormals();							// Morphing invalidates normals... update
 		//	_bParticlePositionsUpdated = true;                          // Flag Flex to perform an update of its particle positions...
 		//}
 	}

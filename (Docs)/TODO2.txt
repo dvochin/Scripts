@@ -1,0 +1,175 @@
+###TODO: New Unity/JScript CWebView master-slave architecture.
+
+===== Honey Select =====
+- Positions -
+- Caress:
+	+++ Cunnilingus 
+	++ Standing Vib
+	++++ Chair Cunnilingus
+- Service
+	++ Deep Throat
+	++ Licking Penis Tip
+	++ Sitting Foot Job
+- Insert
+	+++ Standing Behind
+- Special
+	++++ Masturbation
+	++++ Tentacles
+	
+
+
+=== REVIVE Game ===
+
+- Ideas to stabilize fingers:
+	- Add springs between fingers
+	- Have a 'preamble position' before engaging in a new 'caress' (e.g. penis, vagina, breasts)
+	- Reduce skin friction
+	- Fingers go backward when pushed hard against a surface... can reduce that effect via collider slide??
+
+- Jerk off
+	- Would be safer to 'init' the hand rotation before jerk off cycle
+		- Storing 'hand-calibrated hand pos/rot would make arms move smoother
+	- Get fucking init faster!
+	- Fucking finger explosion getting long
+	- Need various anchor points for hand?
+		- Need to adjust to cock size... or just spring it?
+	- Need to remove rotation to _oJoint_ExtremityToPin?
+	- Hack on rot spring... another enum??
+	- VrWandMove_Begin args are crap... redo or merge?  Still need this class or merge into arm?
+	- Hacked source body to also simplify hands out... revise?!?
+	- Hacked spring and anchor... need tough springs and right distance!
+	- Idea wrap fingers around a fake cylinder same diam as cock?
+
+- Direct cock movement
+	- Need MUCH stiffer pos, rot springs!
+	- Need the Flex equivalent of longer fingers!
+	- Need to automatically interpret the user's look into semi-automated caresses that make sense for body parts:
+		- Looking at cock cusps the hand and strokes it via proper path
+		- Looking at tits massages them properly.
+		- Looking far away plots a reasonable-looking path.
+	- Need to rethink damping on arms... looks weird... only damped hands?
+	- Add speech commands for the unit testing control we need.
+
+
+- Wand grip
+	- Hand grip adjust in the code is a big hack but does have promise...
+	- Cursor not showing anymore cuz of removal of dual joy axis.
+	- Didn't we have a hand mode where it can squeeze cock?  Need that!!
+	- Hand shape keys not working!
+	- There used to be a strong grip mode... wtf is it?
+
+- Save of body shape not working!
+	
+- Have body default loaded at start
+- Redesign wand soon
+    - Dual action per axis gone or not??  (action1, select)
+    - VrWandMove_Begin?  (remmed out in wand)
+        - CBone bakes!!
+        - HandCollider_EnableDisableCollisionWithOtherCollider
+        - _oVrWandMoveable
+    - Direct versus remote still on?
+    - Cum control was in there!
+    - Caress system pretty neat.
+        - Drive of hand clasping from VR axis gone tho...  why was this taken out??  (for speech??)
+        - Need a 'auto masturbation' mode that automatically changes to jerk off mode when approaching penis.
+            -IDEA:!!! For now guide hand close to penis and a menu appears!!
+        - We used to be able to push into breast, penis, etc... pull this back!
+
+- Speech!
+    - Add commands to help out!
+
+=== DEV ===
+-- Scripting export cleanup
+	- jscript export name
+	- Port code for 'Browser', BodyBase, GameInstance, etc
+	- WTF script play still on CBodyBase??
+
+
+- Need to rewrite Unity / Web codebase:
+	- Unity creates / destroys simple granular panels.  
+	- Web code very simple: Display what Unity wants and send events.  Unity always in charge.  No inter-panel comm.
+- Need to create multiple panel: CWebPanel
+	- Arg for which codebase: WandButtons, Tab panel, etc.
+- Need to first create the tiny wand panel with the main game buttons.
+	- Does it expand for minimalist UI on some buttons?
+	- The game modes create the pinned panels around the bodies.
+		- Left panel is the main one, right one for support panels: BodyDef, PoseSaveLoad, etc
+		- LATER: Could have panels being moved by wand with a wand button.
+
+
++ Creation / destruction a mess... what part of game creates / destroys?  Game modes? global?
+    - We need the GUI we need created / destroyed as Unity changes modes.
+
+=== NEXT ===
+- Can finally load body shapes..
+    - What is the best way for body ctor to load intersting body?
+        - in C# or jscript?
+- Create a BodyDef_Load/Save()
+	- New bodies load the 'Default' body at startup.
+- BodyDef load does not update the sliders.
+	- Request a view refresh when tab is clicked!
+		
+=== TODO ===
++ Need a coherent top-level UI strategy between all the game modes / sub modes...
+    - e.g. 'play mode' (Flex enabled) versus 'config mode'
+    - But posing always applies!
+    - But morphing only in config mode...
+    - so for now just cheap out and have play / config in and out create the GUI?
+? Need selection framework that unifies Unity + Jscript
+	- Ties in with toolbar and its actions... maybe toolbar can be decoupled from view and just fire 'generic actions'?
+	- Toolbar can be constructed by the view's array of generic actions
+- Web UI has no concept of what body it is modifying... implement body selection?
+- Rethink game modes toward Unity-centric flow:
+    - Web can have buttons but they notify Unity and it does everything.
+    - Full de-select / select architecture.  When exiting a game mode it cleans up all its panes and entering new one creates them.
+    - Rewrite web codebase so that Unity can create / destroy tab panes and their views as needed.
+- Rework Posing:
+	- Deactivates colliders for a while?
+	- Kinematic move?
+	- What to do about the fucking fingers exploding?
+	- Fix the softbodies (In game mode)
+- Two-body posing:
+	- Need a new CEditor-based pane with PoseBody1, PoseBody2 and possibly other value tweaking:
+		- Tweaking values: base pose orientation delta (typically 180 about up axis)
+			- Also possibly adjust pose front/back delta, torso height, torso angle?
+- Get to dual-wand animation work on interesting bodies asap
+	
+=== LATER ===
+- Add a toolbar for the tree property viewer: property configuration, range extension, reset to default, etc
+- Need to revisit Unity-side scripting... currently on CBodyBase!  To CGame?8
+    - Web property viewers need to remember how to access their Unity equivalent object... CGame?  BodyBase?  Which body?  Selected??
+
+=== OPTIMIZATIONS ===
+
+=== REMINDERS ===
+
+=== IMPROVE ===
+- Async call in editor data save could be used elsewhere?  Move to global functions?
+- Toolbars could be auto-created from a list of actions in some smart mechanism?
+
+=== NEEDS ===
+
+=== DESIGN ===
+-- New design of Unity / Web interaction --
+- Need to overhaul 'exportation' of Unity codebase symbols to unity script and web = EXPORTS collection
+
+
+- Problem with abstraction of load / save across all views... tree of properties never need to 'load'
+- CEditor contains a lot of functionality that would benefit other views:
+	- The popup record editor
+- Toolbar functionality a mess... had to be copied to work around that nasty problem with only one set being visible, but I know more now so retry?
+
+=== QUESTIONS ===
+
+=== IDEAS ===
+
+=== LEARNED ===
+
+=== PROBLEMS ===
+- Current tab-based interface super clumsy.  Reduce usage of tabs with other widgets.  Toolbar??
+- Why are some sliders created on non-leaves of the tree??
+
+=== WISHLIST ===
+
+=== SORT ===
+

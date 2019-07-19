@@ -56,8 +56,8 @@ public class CHeadLook : MonoBehaviour {		//###INFO: Based on code from http://w
 		_oBody = oBody;						//###MOD: Init segment from code as our component is added at runtime now
 		BendingSegment oSeg = new BendingSegment();
 
-		oSeg.firstTransform		= _oBody._oBodyBase.FindBone("chest/neck");			//###IMPROVE?  Can spine be added (or would interfere with our anim too much?)
-		oSeg.lastTransform		= _oBody._oBodyBase.FindBone("chest/neck/head");
+		oSeg.firstTransform		= _oBody._oBodyBase.FindBoneByPath("chest/neck");			//###IMPROVE?  Can spine be added (or would interfere with our anim too much?)
+		oSeg.lastTransform		= _oBody._oBodyBase.FindBoneByPath("chest/neck/head");
 		oSeg.thresholdAngleDifference = 0;			//###???
 		oSeg.bendingMultiplier = 1.0f;				//###IMPROVE!!!: Add 'eyes' and get them to move part of the way
 		oSeg.maxAngleDifference = 90;
@@ -104,10 +104,10 @@ public class CHeadLook : MonoBehaviour {		//###INFO: Based on code from http://w
 		_aLookTargets.Add(Camera.main.transform);			// We always add the camera		//###DESIGN???
 
 		if (oBodyOther != null) {			//###IMPROVE?? Add parts of self body to look at like penis tip?
-			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/neck/head"));
-			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen"));
-			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen/hip"));
-			_aLookTargets.Add(oBodyOther._oBodyBase.FindBone("chest/abdomen/hip/sex"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBoneByPath("chest/neck/head"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBoneByPath("chest/abdomen"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBoneByPath("chest/abdomen/hip"));
+			_aLookTargets.Add(oBodyOther._oBodyBase.FindBoneByPath("chest/abdomen/hip/sex"));
 			//_aLookTargets.Add(oBodyOther.FindBone("chest/lCollar/lShldr/lForeArm/lHand"));		//###DESIGN???
 			//_aLookTargets.Add(oBodyOther.FindBone("chest/rCollar/rShldr/rForeArm/rHand"));
 		}
@@ -124,15 +124,15 @@ public class CHeadLook : MonoBehaviour {		//###INFO: Based on code from http://w
 		//=== Change look target if the time has come to do so ===
 		float nTime = Time.time;
 		if (nTime > _nTimeNextChangeLookTarget) {
-			_nTimeNextChangeLookTarget = nTime + CGame.INSTANCE._oRnd.Next(C_TimeBetweenLookChangeLow, C_TimeBetweenLookChangeHigh);
-			int nNextLookTarget = CGame.INSTANCE._oRnd.Next(_aLookTargets.Count-1);		//###CHECK: Can get last item??
+			_nTimeNextChangeLookTarget = nTime + CGame._oRnd.Next(C_TimeBetweenLookChangeLow, C_TimeBetweenLookChangeHigh);
+			int nNextLookTarget = CGame._oRnd.Next(_aLookTargets.Count-1);		//###CHECK: Can get last item??
 			_oNodeLookTarget = _aLookTargets[nNextLookTarget];		//###IMPROVE: Prevent going back to same?	//###IMPROVE: Don't select next look targets that are currently not within a reasonable angle
 		}
 
 		//=== Change random shift if the time has come to do so ===
 		if (nTime > _nTimeNextChangeRandomShift) {
-			_nTimeNextChangeRandomShift = nTime + CGame.INSTANCE._oRnd.Next(1, 2);
-			_vecRandomShift = new Vector3((float)CGame.INSTANCE._oRnd.NextDouble() * C_RandomShiftAmount, (float)CGame.INSTANCE._oRnd.NextDouble() * C_RandomShiftAmount, (float)CGame.INSTANCE._oRnd.NextDouble() * C_RandomShiftAmount);
+			_nTimeNextChangeRandomShift = nTime + CGame._oRnd.Next(1, 2);
+			_vecRandomShift = new Vector3((float)CGame._oRnd.NextDouble() * C_RandomShiftAmount, (float)CGame._oRnd.NextDouble() * C_RandomShiftAmount, (float)CGame._oRnd.NextDouble() * C_RandomShiftAmount);
 		}
 
 

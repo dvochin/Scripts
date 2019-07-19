@@ -51,35 +51,44 @@ public class CScriptPlay : MonoBehaviour {		// CScriptPlay: Responsible for load
 	public	bool	_Run;
 	public	bool	_Reload;
 
-	ArrayList		_aScriptLines;			// The script file code lines, one string per code line
+	ArrayList		_aScriptLines;          // The script file code lines, one string per code line
 
-	CEvalProxy		_oEvalProxy;			// Our JavaScript class that enables C# to evaluate script code by using Javascript's eval. (neat/useful trick)
+    GameObject      _oEvalProxy;			// Our JavaScript class that enables C# to evaluate script code by using Javascript's eval. (neat/useful trick)  We communicate with it via 'SendMessage()' to avoid complex project build issues.
 
 
-	public void OnStart(CBody oBody) {
-		_oEvalProxy = gameObject.AddComponent<CEvalProxy>();
-		_oEvalProxy.OnStart(oBody);
-	}
+	public void OnStart(CGame oGame) {      //###DESIGN: Keep game argument?
+        //_oEvalProxy = gameObject.AddComponent<CEvalProxy>();
+        Transform oEvalProxyT = CGame.INSTANCE.transform.Find("CEvalProxy");
+        _oEvalProxy = oEvalProxyT.gameObject;
+        _oEvalProxy.SendMessage("OnStart", oGame);
+        ExportAdd("GameInstance", oGame);
+    }
 
-	public void OnUpdate() {							//###DESIGN: _Run at much lower frequency if we're Runing to poll???
-		if (_Reload) {
-			LoadScript(_ScriptFile);
-			_Reload = false;
-		}
-		if (_Run == false)						//###TEMP
-			return;
-		if (_CurrentLine >= _aScriptLines.Count)
-			return;
+    public void ExportAdd(string sNameExport, object oExportObject) {
+        _oEvalProxy.SendMessage("ExportAdd_Name",    sNameExport);       // We must first push in the name then the object (weak workaround to 'SendMessage' only accepting one argument)
+        _oEvalProxy.SendMessage("ExportAdd_Object",  oExportObject);
+    }
 
-		// if (Input.GetKey(KeyCode.Space) == false)		//###TODO: Advance to next script file code segment with a key?
-		//		return;
+    public void ExportRemove(string sNameExport) {
+        _oEvalProxy.SendMessage("ExportRemove",    sNameExport);
+    }
 
-		string sScriptLine = (string)_aScriptLines[_CurrentLine];
-		_oEvalProxy.EvaluateScript(sScriptLine, _CurrentLine);
-		_CurrentLine++;
-	}
+  //  public void OnUpdate() {							//###DESIGN: _Run at much lower frequency if we're Runing to poll???
+		//if (_Reload) {              //#DEV27: ###OBSOLETE?
+		//	LoadScript(_ScriptFile);
+		//	_Reload = false;
+		//}
+		//if (_Run == false)						//###TEMP
+		//	return;
+		//if (_CurrentLine >= _aScriptLines.Count)
+		//	return;
 
-	public void LoadScript(string sScriptFile) {
+		//string sScriptLine = (string)_aScriptLines[_CurrentLine];
+        //_oEvalProxy.SendMessage("EvaluateScript", sScriptLine);
+		//_CurrentLine++;
+    //}
+
+    public void LoadScript(string sScriptFile) {
 
 		if (File.Exists(sScriptFile)) {
 			_ScriptFile = sScriptFile;
@@ -99,10 +108,14 @@ public class CScriptPlay : MonoBehaviour {		// CScriptPlay: Responsible for load
 	}
 
 	public void ExecuteAll() {				
-		int nLine = 0;
-		if (_aScriptLines == null)
+		//int nLine = 0;
+		if   (_aScriptLines == null)
 			return;
-		foreach (string sScriptLine in _aScriptLines)
-			_oEvalProxy.EvaluateScript(sScriptLine, nLine++);		//###IMPROVE:!! Keep going even when errors?  No logging / returning of results??? WTF??
+        foreach (string sScriptLine in _aScriptLines)
+			_oEvalProxy.SendMessage("EvaluateScript", sScriptLine);       //###IMPROVE:!! Keep going even when errors?  No logging / returning of results??? WTF??
+    }
+
+	public void ExecuteLine(string sCodeLine) {
+		_oEvalProxy.SendMessage("EvaluateScript", sCodeLine);
 	}
 }

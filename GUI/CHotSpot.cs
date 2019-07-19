@@ -23,17 +23,15 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 
 
 	//---------------------------------------------------------------------------	STATIC CREATION
-	public static CHotSpot CreateHotspot(IHotSpotMgr iHotSpotMgr, Transform oParentT, string sNameHotspot, bool bEnableEditing, Vector3 vecPosLocalOffset = new Vector3(), float nScaleMult = 1.0f, int nLayer = CCursor.C_Layer_HotSpot) {
+	public static CHotSpot CreateHotspot(IHotSpotMgr iHotSpotMgr, Transform oParentT, string sNameHotspot, bool bEnableEditing, int nLayer, float nScaleMult = 1.0f, Vector3 vecPosLocalOffset = new Vector3()) {
 		float nScale = CCursor.C_HotSpot_DefaultSize * nScaleMult;
-		Transform oHotspotTP = Resources.Load("Gizmo/Prefabs/CHotSpot",	typeof(Transform)) as Transform;
-		Transform oHotSpotT = (Transform)GameObject.Instantiate(oHotspotTP);
-		CHotSpot oHotSpot = oHotSpotT.GetComponent<CHotSpot>();			//###WEAK: Scale constants everwhere as absolute values?  Make relative to some well known size?
-		oHotSpot.Initialize(iHotSpotMgr, oParentT, sNameHotspot, bEnableEditing, vecPosLocalOffset, nScale, nLayer);
+        CHotSpot oHotSpot = CUtility.InstantiatePrefab<CHotSpot>("Gizmo/Prefabs/CHotSpot", sNameHotspot, oParentT);     //###WEAK: Scale constants everwhere as absolute values?  Make relative to some well known size?
+		oHotSpot.Initialize(iHotSpotMgr, oParentT, sNameHotspot, bEnableEditing, nLayer, nScale, vecPosLocalOffset);
 		return oHotSpot;
 	}
 
 	//---------------------------------------------------------------------------	INIT
-	public void Initialize(IHotSpotMgr iHotSpotMgr, Transform oParentT, string sNameHotspot, bool bEnableEditing, Vector3 vecPosLocalOffset, float nScale, int nLayer) {
+	public void Initialize(IHotSpotMgr iHotSpotMgr, Transform oParentT, string sNameHotspot, bool bEnableEditing, int nLayer, float nScale, Vector3 vecPosLocalOffset) {
 		_iHotSpotMgr	= iHotSpotMgr;
 		_oParentT		= oParentT;
 		_sNameHotspot	= sNameHotspot;
@@ -65,27 +63,27 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 	//---------------------------------------------------------------------------	HOVERING
 	public void OnHoverBegin() {
 		GetComponent<Renderer>().sharedMaterial.color = _oColorSelected;
-		CGame.INSTANCE._oCursor.SetCursorText(_sNameHotspot);
-		CGame.INSTANCE._oCursor.SetCursorColor(new Color(0,128,0));		// Change the inner part of the arrow to indicate a 'hotspot' is currently under the mouse cursor.			//###DESIGN: Change cursor text based on what is under cursor now?
+		CGame._oCursor.SetCursorText(_sNameHotspot);
+		CGame._oCursor.SetCursorColor(new Color(0,128,0));		// Change the inner part of the arrow to indicate a 'hotspot' is currently under the mouse cursor.			//###DESIGN: Change cursor text based on what is under cursor now?
 	}
 	public void OnHoverEnd() {
 		GetComponent<Renderer>().sharedMaterial.color = _oColorUnselected;
-		CGame.INSTANCE._oCursor.SetCursorText("");
-		CGame.INSTANCE._oCursor.SetCursorColor(Color.white);
+		CGame._oCursor.SetCursorText("");
+		CGame._oCursor.SetCursorColor(Color.white);
 	}
 
 
 	//---------------------------------------------------------------------------	ACTIVATION
 	public void OnActivate(bool bClickLeft, bool bClickRight, bool bClickMiddle) {						// The user has left-clicked or right-click activated us!  We activate our 'payload' by performing its default action
 		GetComponent<Renderer>().sharedMaterial.color = _oColorActivated;
-		CGame.INSTANCE._oCursor.SetCursorText("");
-		CGame.INSTANCE._oCursor.SetCursorColor(new Color(0,255,0));		// Change the inner part of the arrow to indicate a 'hotspot' is currently under the mouse cursor.			//###DESIGN: Change cursor text based on what is under cursor now?
+		CGame._oCursor.SetCursorText("");
+		CGame._oCursor.SetCursorColor(new Color(0,255,0));		// Change the inner part of the arrow to indicate a 'hotspot' is currently under the mouse cursor.			//###DESIGN: Change cursor text based on what is under cursor now?
 
 		OnHotspotEvent(EHotSpotEvent.Activation, null);					// Send activation event
 
 		if (bClickLeft || bClickMiddle) {
 			if (_bEnableEditing) {		//###CHECK
-				CGame.INSTANCE._oCursor._oGizmo = CGizmo.CreateGizmo(this, bClickMiddle);
+				CGame._oCursor._oGizmo = CGizmo.CreateGizmo(this, bClickMiddle);
 			}
 		} else if (bClickRight) {			// The user has right-clicked us!  We activate our 'payload' for context sensitive (typically display a context sensitive menu / editing panel)
 			OnHotspotEvent(EHotSpotEvent.ContextMenu, null);
@@ -94,15 +92,15 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 	
 	public void OnDeactivate() {						// The user has left-clicked or right-click activated us!  We activate our 'payload' by performing its default action
 		OnHotspotEvent(EHotSpotEvent.Deactivation, null);
-		if (CGame.INSTANCE._oCursor._oGizmo)
-			Destroy(CGame.INSTANCE._oCursor._oGizmo.gameObject);
+		if (CGame._oCursor._oGizmo)
+			Destroy(CGame._oCursor._oGizmo.gameObject);
 	}
 
 
 	//---------------------------------------------------------------------------	UPDATE
 	public void OnUpdate_ActiveHotspot() {		// Called only on the active hotspot: typically to reroute event processing to the gizmos we created/manage...
-		if (CGame.INSTANCE._oCursor._oGizmo)
-			CGame.INSTANCE._oCursor._oGizmo.OnUpdateGizmo();
+		if (CGame._oCursor._oGizmo)
+			CGame._oCursor._oGizmo.OnUpdateGizmo();
 	}
 
 	//---------------------------------------------------------------------------	EVENTS
@@ -130,9 +128,9 @@ public class CHotSpot : MonoBehaviour {				// Represents a 'hotspot' object that
 
 	//---------------------------------------------------------------------------	CREATION HELPERS
 
-	public void WndPopup_Create(CUICanvas oCanvas, CObject[] aObjects, float nX = -1, float nY = -1) {			// Create a popup window capable of end-user editing of the public properties of this object.
-		CUtility.WndPopup_Create(oCanvas, EWndPopupType.PropertyEditor, aObjects, _sNameHotspot, nX, nY);
-	}
+	//public void WndPopup_Create(CUICanvas oCanvas, CObj[] aObjects, float nX = -1, float nY = -1) {			// Create a popup window capable of end-user editing of the public properties of this object.
+	//	CUtility.WndPopup_Create(oCanvas, EWndPopupType.PropertyEditor, aObjects, _sNameHotspot, nX, nY);
+	//}
 }
 
 public enum EHotSpotType {
@@ -159,21 +157,21 @@ public interface IHotSpotMgr {
 }
 
 
-//public static void ChangePropByHotSpotMove(CProp oProp, CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp, float nScale) {
+//public static void ChangePropByHotSpotMove(CObj oObj, CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp, float nScale) {
 //	// Change our property value by user moving hotspot up / down.  (Example: changing penis base up/down)
 //	if (eEditMode == EEditMode.Move) {
 //		switch (eHotSpotOp) {
 //			case EHotSpotOp.First:
-//				oProp._nHotSpotEdit_BeginPosY = oGizmo.transform.position.y;
-//				oProp._nHotSpotEdit_BeginValue = oProp._nValueLocal;
+//				oObj._nHotSpotEdit_BeginPosY = oGizmo.transform.position.y;
+//				oObj._nHotSpotEdit_BeginValue = oObj._nValue;
 //				break;
 //			case EHotSpotOp.Middle:
-//				float nValue = oProp._nHotSpotEdit_BeginValue + (oGizmo.transform.position.y - oProp._nHotSpotEdit_BeginPosY) * nScale;
-//				oProp.PropSet(nValue);
-//				SetGuiMessage(EGameGuiMsg.MouseEdit, string.Format("{0} = {1:F1}", oProp._sNameProp, oProp.PropGet()));
+//				float nValue = oObj._nHotSpotEdit_BeginValue + (oGizmo.transform.position.y - oObj._nHotSpotEdit_BeginPosY) * nScale;
+//				oObj.Set(nValue);
+//				SetGuiMessage(EMsg.MouseEdit, string.Format("{0} = {1:F1}", oObj._sName, oObj.Get()));
 //				break;
 //			case EHotSpotOp.Last:
-//				SetGuiMessage(EGameGuiMsg.MouseEdit, null);		//###DESIGN: Consider resetting these OnGUI strings at the start of each frame???
+//				SetGuiMessage(EMsg.MouseEdit, null);		//###DESIGN: Consider resetting these OnGUI strings at the start of each frame???
 //				break;
 //		}
 //	}

@@ -40,76 +40,48 @@
 
 using UnityEngine;
 using System.Collections.Generic;
+using System.IO;
 
 
-public class CBoneRot {				//###MOVE21:??
-	public CBone		_oBone;					// Our parent bone.  Manages / owns this bone rotation definition
 
-	public char			_chAxis;				// Axis of rotation about our owning bone.  Must be 'X', 'Y' or 'Z'
-	public char			_chAxisDAZ;				// Axis of rotation about our owning bone in the DAZ domain.  (Enables us to test proper bone angles by importing raw DAZ pose dumps that contain DAZ-domain bone rotation axis)
-	public bool			_bAxisNegated;			// If true _chAxis is negated instead of positive
-	public byte			_nAxis;					// 0 for X, 1 for Y, 2 for Z
-	public string		_sNameRotation;
-	public float		_nMin;
-	public float		_nMax;
-	public float		_nValue;				//###DESIGN20: Keep?
-
-	public CBoneRot(CBone oBone, string sRotationSerialization) {		// Creates a bone rotation from a Blender-provided 'serialization string' statically stored in CBone
-		_oBone = oBone;
-		sRotationSerialization = "[" + sRotationSerialization + "]";			//###WEAK20: SplitCommaSeparatedPythonListOutput() expects a string wrapped by Python's '[' / ']'.  Wrap our csv string for it to work without clipping our parameters
-		string[] aRotationsParams = CUtility.SplitCommaSeparatedPythonListOutput(sRotationSerialization);
-		string sAxisAndDirection = aRotationsParams[0];				// Looks like 'X+', 'Z-', 'Y+', etc: the axis of rotation and wheter it is positive or negated
-		_chAxis				= sAxisAndDirection[0];
-		_bAxisNegated		= (sAxisAndDirection[1] == '-');	// Flags if axis is negated or not
-		_nAxis				= (byte)(_chAxis - 'X');			// Break down X,Y,Z axis character into axis number (0 = X, 1 = Y, 2 = Z)
-		_chAxisDAZ			= aRotationsParams[1][0];
-		_sNameRotation		= aRotationsParams[2];
-		//_nMin				= float.Parse(aRotationsParams[3]);			//###HACK21:!!!!!!! Why the heck does min/max interchange seem to work???
-		//_nMax				= float.Parse(aRotationsParams[4]);
-		_nMin				= -float.Parse(aRotationsParams[4]);
-		_nMax				= -float.Parse(aRotationsParams[3]);
-		if (_chAxis == 'Z')										//###WEAK: It appears from observation that all Z rotations are meant to go the other direction... Verify this!  Is this caused because Blender (& DAZ) are Right-handed while Unity is left-handed??
-			_bAxisNegated = !_bAxisNegated;
-		//Debug.LogFormat("-CBoneRot {0}  '{1}'   {2} - {3} ", sAxisAndDirection, _sNameRotation, _nMin, _nMax);
-	}
-}
-
-
-public class CBone : MonoBehaviour {
+public class CBone : MonoBehaviour, CVrWand.IVrWandMoveable {
 	static Quaternion C_quatRotBlender2Unity = Quaternion.Euler(-90, 0, 0);             // Quaternion to convert from Blender-domain to Unity domain (so we have our usual Y+ up, Z- Forward from Blender's Z+ up, Y- forward)
 
-						public CBoneRot[]	_aBoneRots;						// Our collection of three-possible rotations where 0 = X, 1 = Y, 2 = Z.  Always of size three if a bone rotation is owned by this bone  (Created at gametime from 
-	[HideInInspector]	public string[]		_aBoneRots_Serialized;			// Serialized form of what is expanded in _aBoneRots.  Stored during static creation of CBone objects during Blender update of bones
+						public CBoneRot[]	_aBoneRots;						// Our collection of three-possible rotations where 0 = X, 1 = Y, 2 = Z.  Always of size three if a bone rotation is owned by this bone  (Created at gametime)
+	                    public string[]		_aBoneRots_Serialized;			// Serialized form of what is expanded in _aBoneRots.  Stored during static creation of CBone objects during Blender update of bones
 						public string		_sRotOrder;						// DAZ-provided order to apply rotation for DAZ pose loading (looks like 'XYZ', 'ZXY', 'YZX', etc)  Essential to apply DAZ poses as DAZ intended but of no consequence to our gameplay as bones are moved via PhysX D6 joints.  We parse through the order of this string at every rotation to apply them in the proper order
 
     [HideInInspector]	public CActor				_oActor;				// The actor that owns us
 	[HideInInspector]	public CBone				_oBoneParent;			// Our parent bone.  Has a 1:1 relationship with the actual transform bone objects we wrap	[HideInInspector] public Rigidbody			_oRigidBody;                        // Our rigid body (also a component of our same game object)
-	[HideInInspector]	public ConfigurableJoint	_oConfJoint;            // Our D6 configurable joint.  Responsibly for PhysX processing to keep our two bone extremities at their proper rotation
-	[HideInInspector]	public Rigidbody			_oRigidBody;            // Our rigid body for this bone.  Essential for PhysX simulation
+	[HideInInspector]	public ConfigurableJoint	_oJointD6;              // Our D6 configurable joint.  Responsibly for PhysX processing to keep our two bone extremities at their proper rotation
+    [HideInInspector]	public Rigidbody			_oRigidBody;            // Our rigid body for this bone.  Essential for PhysX simulation
 						public Vector3				_vecStartingPos;		// Pose and rotation stored so we can return to 'configure' game mode at any time
 						public Quaternion 			_quatBoneRotationStartup;// The bone rotation at game startup.  Used to rotate from that starting position at each rotation for precision
-	//###CLEANUP21: All these still needed??
+	                                                                        //###CLEANUP21: All these still needed??
 						public float				_X, _Y, _Z;             // Our current raw rotation in degrees.  Fed directly into joint
-    [HideInInspector]	public float				_X2, _Y2, _Z2;			// 'Old' version of rotation.  Used to auto-update bone rotation in 'C_BoneDebugMode' debug mode 
+    [HideInInspector]	public float				_X2, _Y2, _Z2;			// 'Old' version of rotation.
 						public float				_XP, _YP, _ZP;          // Our 'percentage' version of the _X, _Y, _Z rotation.  Used for bone debugging only
     [HideInInspector]	public float				_XP2, _YP2, _ZP2;       // 'Old' version of bone percentage rotation.  Used for bone debugging
 						public float				_XL, _XH, _YHL, _ZHL;   // Our configuration parameters.  X = main bone bend (has a low and high), Y = twist, Z = 'side-to-side' bend (Y&Z only have Low/High combined)
-						public float				_nDriveStrengthMult;	// How strongly our configurable joint is driven (as related to the global setting)
+						public float				_nJointSlerpSpringMult;	// How strongly our configurable joint is driven (as related to the global setting)
+                        public EBoneType            _eBoneType;             // The 'bone type' grouping this bone into a 'stiffness setting'  From 'bender' to 'stiff' to 'twister', etc
+                        public float                _nMass;                 // Mass of the rigid body
 
+    [HideInInspector]	public  CTrigger            _oTrigger;              // Optional trigger child that creates a small trigger collider sphere close to this bone to 'actuate it' when a collider enters trigger.  (Used for finger to 'grasp objects' entering trigger range)
 
 	
 
-	public static CBone Connect(CActor oActor, CBone oBoneParent, string sNameBone, float nDriveStrengthMult, float nMass) {
+	public static CBone Connect(CActor oActor, CBone oBoneParent, string sNameBone, float nMass, EBoneType eBoneType = EBoneType.Default) {        // Note: Bone has no PhysX components if nMass is 0
         Transform oBoneT;
         if (oBoneParent == null)
-            oBoneT = CUtility.FindChild(oActor._oBody._oBodyBase._oBoneRootT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
+            oBoneT = CUtility.FindChild(oActor._oBodyBase._oBoneRootT, sNameBone);           // Finding bone when root is different.  ###IMPROVE: Can be simplified to just always top bone?  (e.g. Why does 'Bones' have a single top bone 'chestUpper' when the could be merged?)
         else
             oBoneT = CUtility.FindChild(oBoneParent.transform, sNameBone);
 
         if (oBoneT == null)
             CUtility.ThrowExceptionF("CBone.Connect() cannot find bone '{0}'", sNameBone);
 		CBone oBone = oBoneT.GetComponent<CBone>();
-        oBone.Initialize(oActor, oBoneParent, nDriveStrengthMult, nMass);
+        oBone.Initialize(oActor, oBoneParent, nMass, eBoneType);
         return oBone;
 	}
 
@@ -126,13 +98,34 @@ public class CBone : MonoBehaviour {
 		}
 	}
 
-    public void Initialize(CActor oActor, CBone oBoneParent, float nDriveStrengthMult, float nMass) {
-		_oActor = oActor;
-		_oBoneParent = oBoneParent;
-        _nDriveStrengthMult = nDriveStrengthMult;
+	//public void SetBoneRotationAngle(Vector3 eulRotIn) {
+	//	// Set our value from element from 'quatRot' that is pertinent to this bone rotation.  Mapping of D6 X/Y/Z to Unity transform's X,Y,Z changes from bone to bone preventing a direct angle setting of all bone rotations in one command
+	//	//Vector3 eulRotOut = new Vector3(eulRotIn.x, eulRotIn.y, eulRotIn.z);
+	//	Vector3 eulRotOut = new Vector3();
+	//	foreach (CBoneRot oBoneRot in _aBoneRots)
+	//		if (oBoneRot != null)
+	//			oBoneRot.SetBoneRotationAngle(eulRotIn, ref eulRotOut);
 
-		//=== Create our CBoneRot objects from their 'serialized format' (stuffed by Blender into prefab during design-time import procedure) ===
-		_aBoneRots = new CBoneRot[3];
+	//	_oJoint.targetRotation = Quaternion.Euler(eulRotIn);
+	//}
+
+	public void BakeCurrentBoneRotationIntoJointRotation() {
+        if (_oJointD6 == null)        //###WEAK?
+            return;
+		Quaternion quatRotRelativeToStartup = Quaternion.Inverse(transform.localRotation) * _quatBoneRotationStartup;       //###INFO: How to calculate the relative rotation
+		_oJointD6.targetRotation = quatRotRelativeToStartup;		//###Apply the change in local rotation (since init state) as the target of the D6 joint rotation.  This has the effect of 'baking' the current bend into the bone rotation
+	}
+
+
+	public void Initialize(CActor oActor, CBone oBoneParent, float nMass, EBoneType eBoneType = EBoneType.Default) {       // Note: Bone has no PhysX components if nMass is 0
+        _oActor = oActor;
+		_oBoneParent = oBoneParent;
+        //_nJointSlerpSpringMult = nDriveStrengthMult;
+        _nMass = nMass;
+        _eBoneType = eBoneType;
+
+        //=== Create our CBoneRot objects from their 'serialized format' (stuffed by Blender into prefab during design-time import procedure) ===
+        _aBoneRots = new CBoneRot[3];
 		for (int nRotation = 0; nRotation < _aBoneRots_Serialized.Length; nRotation++) {
 			string sRotationSerialization = _aBoneRots_Serialized[nRotation];
 			if (sRotationSerialization != null && sRotationSerialization.Length > 0) { 
@@ -141,118 +134,150 @@ public class CBone : MonoBehaviour {
 			}
 		}
 
-		//=== Create an debug bone visualizer mesh (to visually show the axis rotations) ===
-		if (false) {			//###DEBUG21: Add visual gizmos at bone positions to fully show position / orientation
-			GameObject oVisResGO	= Resources.Load("Gizmo/Gizmo-Rotate-Unity") as GameObject;
-			GameObject oVisGO = GameObject.Instantiate(oVisResGO) as GameObject;
-			oVisGO.name = gameObject.name + "-Vis";
-			oVisGO.transform.SetParent(transform);
-			oVisGO.transform.localRotation = new Quaternion();
-			oVisGO.transform.localPosition = new Vector3();
-			oVisGO.transform.localScale = new Vector3(1,1,1);
-		}
+        //=== Create an debug bone visualizer mesh (to visually show the axis rotations) ===
+        //CUtility.InstantiatePrefab<MeshRenderer>("Gizmo/Gizmo-Rotate-Unity", gameObject.name + "-Vis", transform);        //###DEBUG21: Add visual gizmos at bone positions to fully show position / orientation
 
-
-		//=== Extract the DAZ-provided bone limits ===
-        _vecStartingPos         = transform.localPosition;
-        _quatBoneRotationStartup   = transform.localRotation;
+        //=== Extract the DAZ-provided bone limits ===
+        _vecStartingPos             = transform.localPosition;
+        _quatBoneRotationStartup	= transform.localRotation;
 		_XL  = Util_GetLimit('X', true);		//###DESIGN21: Keep these variables?  Go straight to CBoneRot everytime??
 		_XH  = Util_GetLimit('X', false);		//###CHECK21: Some bones (hip) have 180 limits while D6 limit appears to be 177.  Problem??
 		_YHL = Util_GetLimit('Y', false);
 		_ZHL = Util_GetLimit('Z', false);
+        if (_XL > _XH)
+            CUtility.ThrowExceptionF("###EXCEPTION in CBone('{0}').  Invalid min {1} and max {2}", name, _XL, _XH);
 
-		//=== Create the rigid body for our bone ===
-		_oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(gameObject, typeof(Rigidbody));     //###TODO: Add a "CRigidBodyWake"???
-        _oRigidBody.mass = nMass;
-        _oRigidBody.drag = 1.5f;                            //###TODO!! //###DESIGN: Which drag??		//###TUNE!!!!!	###IMPROVE: Different settings for arms & legs???
-        _oRigidBody.angularDrag = 1.5f;                     //###DESIGN:!!! Test the shit of these params... ###TODO22:!!!! implement debug facility to group-set all bones
-        _oRigidBody.sleepThreshold = 0;                     // Ensure the rigid body never sleeps!
-		_oRigidBody.isKinematic = false;					// We are NEVER kinematic.  EVERY bone is PhysX-driven!  (Including root bone 'hip')
-
-
-        //=== Process special handling needed when we are root (we are kinematic and we have no joint to parent) ===
-        if (_oBoneParent == null) {
-
-            //###NOTE: If we have no parent then we are the root bone (hip).  While we have no outgoing joint we will have two D6 joints pointing to us (pelvis and abdomenLower) forming an uninterupted PhysX bone chain).  So nothing to do...
-
-        } else {
+        //=== Create the rigid body for our bone ===
+        if (_nMass > 0) { 
+            _oRigidBody = (Rigidbody)CUtility.FindOrCreateComponent(gameObject, typeof(Rigidbody));     //###TODO: Add a "CRigidBodyWake"???
+            _oRigidBody.mass = _nMass;
+            _oRigidBody.drag = 0;                               // Both these SUPER important settings are pushed in by CGame at startup.
+            _oRigidBody.angularDrag = 0;
+            _oRigidBody.sleepThreshold = 0;                     // Ensure the rigid body never sleeps!
+		    _oRigidBody.isKinematic = false;					// We are NEVER kinematic.  EVERY bone is PhysX-driven!  (Including root bone 'hip')
+            _oRigidBody.useGravity = _oActor.GetType().IsSubclassOf(typeof(CActorLimb));        // Only the limbs have gravity turned on.  Torso bones needlessly weight the pins down
 
 
-            //=== Create the D6 configurable joint between our parent and us ===
-		    _oConfJoint = (ConfigurableJoint)CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
-		    _oConfJoint.connectedBody = _oBoneParent._oRigidBody;
+            //=== Process special handling needed when we are root (we are kinematic and we have no joint to parent) ===
+            if (_oBoneParent == null) {
 
-            //=== Set joint axis defaults (before overriding some of them) ===
-            _oConfJoint.xMotion = _oConfJoint.yMotion = _oConfJoint.zMotion = ConfigurableJointMotion.Locked;							// Bone joints *never* move from their axis point... they only rotate!
-		    _oConfJoint.angularXMotion = _oConfJoint.angularYMotion = _oConfJoint.angularZMotion = ConfigurableJointMotion.Limited;		//###DESIGN? Limited vs Free?
+                //###NOTE: If we have no parent then we are the root bone (hip).  While we have no outgoing joint we will have two D6 joints pointing to us (pelvis and abdomenLower) forming an uninterupted PhysX bone chain).  So nothing to do...
 
-            //=== Lock the axis that cannot move ===
-		    if (_XL == 0f && _XH == 0f) _oConfJoint.angularXMotion = ConfigurableJointMotion.Locked;		// If an axis is unused set it //free to reduce PhysX workload  ###CHECK: Is this ever invoked?  Does it make joint fail if not all three axis driven??
-		    if (_YHL == 0f)             _oConfJoint.angularYMotion = ConfigurableJointMotion.Locked;		//###DESIGN: Verify unsetting!
-		    if (_ZHL == 0f)             _oConfJoint.angularZMotion = ConfigurableJointMotion.Locked;		//###NOTE: SLERP needs all three axis by definition... But Limited of little / no use if we drive all the time (less PhysX overhead))
-		
-            //=== Set the joint limits as per our arguments ===
-		    SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
-			oJL.bounciness = 0;					//###INFO: "When the joint hits the limit, it can be made to bounce off it. Bounciness determines how much to bounce off an limit. range { 0, 1 }."
-			oJL.contactDistance = 10f;			//###IMPROVE: Make relative to angle! //###INFO: "Determines how far ahead in space the solver can "see" the joint limit" (in degrees) See https://docs.unity3d.com/510/Documentation/ScriptReference/SoftJointLimit-contactDistance.html
-			bool bInvert = (_XL > _XH);			//###DEV21:!!! Check!!!
-		    oJL.limit = bInvert ? _XH : _XL;	_oConfJoint. lowAngularXLimit = oJL;		// X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
-		    oJL.limit = bInvert ? _XL : _XH;	_oConfJoint.highAngularXLimit = oJL;
-		    oJL.limit = _YHL;					_oConfJoint.    angularYLimit = oJL;        //###NOTE! Hugely inconvenient feature of D6 joint is Y & Z must be symmetrical!!  Make sure bone is oriented so X is used for the assymetrical rotation!!
-		    oJL.limit = _ZHL;					_oConfJoint.    angularZLimit = oJL;
+            } else {
 
-            //=== Set the configurable joint drive strength ===
-		    JointDrive oDrive = new JointDrive();
-		    oDrive.positionSpring = _nDriveStrengthMult * CGame.INSTANCE.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
-            oDrive.positionDamper = 0;                          //###TODO!!!!! ###TUNE?
-			oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
-		    _oConfJoint.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
-		    _oConfJoint.slerpDrive = oDrive;
+                //=== Create the D6 configurable joint between our parent and us ===
+		        _oJointD6 = (ConfigurableJoint)CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint));		//###TODO: Add a "CRigidBodyWake"???
+			    //_oJoint.autoConfigureConnectedAnchor = false;
+			    //_oJoint.connectedAnchor = new Vector3();
+			    _oJointD6.connectedBody = _oBoneParent._oRigidBody;
 
-            //=== If we're a node on the right side, copy the collider defined on our twin node on the left side ===
-            if (_oActor._eBodySide == EBodySide.Right) {
-			    Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(transform.gameObject);
-				gameObject.layer = oNodeSrc.gameObject.layer;				// Give this side of the body the same collider layer as the 'source side'
-                Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
-				if (oColBaseSrc != null) {
-					if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
-						CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
-						CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(transform, typeof(CapsuleCollider));
-						oColDst.center = oColSrc.center;
-						oColDst.radius = oColSrc.radius;
-						oColDst.height = oColSrc.height;
-						oColDst.direction = oColSrc.direction;
-					} else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
-						BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
-						BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
-						oColDst.center = oColSrc.center;
-						oColDst.size = oColSrc.size;
-					} else if (oColBaseSrc.GetType() == typeof(Collider)) {
-						//###CHECK:??? Collider type = No Collider???
-					} else {
-						CUtility.ThrowExceptionF("###EXCEPTION: CBone.ctor() could not port collider of type '{0}' on bone '{1}'", oColBaseSrc.GetType().Name, gameObject.name);
-					}
-				} else {
-					Debug.LogWarningFormat("#WARNING: CBone.Initialize() finds null collider on bone '{0}'", gameObject.name);		//###IMPROVE23: No collider on toe and metatarsals... fix
-				}
+			    //=== Set joint axis defaults (before overriding some of them) ===
+			    _oJointD6.xMotion = _oJointD6.yMotion = _oJointD6.zMotion = ConfigurableJointMotion.Locked;							// Bone joints *never* move from their axis point... they only rotate!
+		        _oJointD6.angularXMotion = _oJointD6.angularYMotion = _oJointD6.angularZMotion = ConfigurableJointMotion.Limited;   // Angular motions are limited unless they have zero limits in which case we lock them
+
+                //=== Lock the axis that cannot move ===
+                if (_XL == 0f && _XH == 0f) _oJointD6.angularXMotion = ConfigurableJointMotion.Locked;		// If an axis is unused set it //free to reduce PhysX workload  ###CHECK: Is this ever invoked?  Does it make joint fail if not all three axis driven??
+		        if (_YHL == 0f)             _oJointD6.angularYMotion = ConfigurableJointMotion.Locked;		//###DESIGN: Verify unsetting!
+		        if (_ZHL == 0f)             _oJointD6.angularZMotion = ConfigurableJointMotion.Locked;		//###NOTE: SLERP needs all three axis by definition... But Limited of little / no use if we drive all the time (less PhysX overhead))
+
+                //=== Set the joint limits as per our arguments ===
+                SoftJointLimit oJL = new SoftJointLimit();              //###IMPROVE: Has other fields that could be of use?
+			    oJL.bounciness = 0;					//###INFO: "When the joint hits the limit, it can be made to bounce off it. Bounciness determines how much to bounce off an limit. range { 0, 1 }."
+			    oJL.contactDistance = 0;			//###IMPROVE: Make relative to angle! //###INFO: "Determines how far ahead in space the solver can "see" the joint limit" (in degrees) See https://docs.unity3d.com/510/Documentation/ScriptReference/SoftJointLimit-contactDistance.html
+		        oJL.limit = _XL;	_oJointD6. lowAngularXLimit = oJL;        // X is the high-functionality axis with separately-defined Xmin and Xmax... Y and Z only have a +/- range around zero, so we are forced to raise the lower half to match the other side
+                oJL.limit = _XH;    _oJointD6.highAngularXLimit = oJL;        //###INFO: Check out http://quaternions.online/ for visualization of quaternions!
+                oJL.limit = _YHL;	_oJointD6.    angularYLimit = oJL;        //###NOTE! Hugely inconvenient feature of D6 joint is Y & Z must be symmetrical!!  Make sure bone is oriented so X is used for the assymetrical rotation!!
+		        oJL.limit = _ZHL;	_oJointD6.    angularZLimit = oJL;
+
+                //=== Add soft springs to the 'Limited' bone rotations.  Helps to stabilize the bone rig by giving a little extra angular room for conversion (instead of rigid stops that can causes bouncing)
+                //SoftJointLimitSpring oLimitSpring = new SoftJointLimitSpring();
+                //oLimitSpring.spring = 1000000;            //###TUNE #DEV26: Try again??
+                //oLimitSpring.damper = 100;
+                //if (_oJointD6.angularXMotion == ConfigurableJointMotion.Limited)
+                //    _oJointD6.angularXLimitSpring  = oLimitSpring;
+                //if (_oJointD6.angularYMotion == ConfigurableJointMotion.Limited || _oJointD6.angularZMotion == ConfigurableJointMotion.Limited)
+                //    _oJointD6.angularYZLimitSpring = oLimitSpring;
+
+                //=== Set the configurable joint drive strength ===
+                JointDrive oDrive = new JointDrive();
+		        oDrive.positionSpring = 0;                  // Both of these SUPER important settings are pushed in by CGame at startup.
+                oDrive.positionDamper = 0;                          
+                oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
+		        _oJointD6.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
+		        _oJointD6.slerpDrive = oDrive;
             }
         }
+
+        //=== If we're a node on the right side, copy the collider defined on our twin node on the left side ===
+        if (_oActor._eBodySide == EBodySide.Right) {
+			Transform oNodeSrc = CUtility.FindSymmetricalBodyNode(transform.gameObject);
+			gameObject.layer = oNodeSrc.gameObject.layer;				// Give this side of the body the same collider layer as the 'source side'
+            Collider oColBaseSrc = oNodeSrc.GetComponent<Collider>();
+            //oColBaseSrc.material = CGame._oPhysMat_Friction_Lowest;      //###DESIGN: Default PhysX material??
+
+			if (oColBaseSrc != null) {
+				if (oColBaseSrc.GetType() == typeof(CapsuleCollider)) {
+					CapsuleCollider oColSrc = (CapsuleCollider)oColBaseSrc;
+					CapsuleCollider oColDst = (CapsuleCollider)CUtility.FindOrCreateComponent(transform, typeof(CapsuleCollider));
+					oColDst.center = new Vector3(-oColSrc.center.x, oColSrc.center.y, oColSrc.center.z);        // Negate the X center
+					oColDst.radius = oColSrc.radius;
+					oColDst.height = oColSrc.height;
+					oColDst.direction = oColSrc.direction;
+                    //oColDst.material = CGame._oPhysMat_Friction_Lowest;
+                } else if (oColBaseSrc.GetType() == typeof(SphereCollider)) {
+                    SphereCollider oColSrc = (SphereCollider)oColBaseSrc;
+                    SphereCollider oColDst = (SphereCollider)CUtility.FindOrCreateComponent(transform, typeof(SphereCollider));
+                    oColDst.center = new Vector3(-oColSrc.center.x, oColSrc.center.y, oColSrc.center.z);        // Negate the X center
+                    oColDst.radius = oColSrc.radius;
+                    //oColDst.material = CGame._oPhysMat_Friction_Lowest;
+				} else if (oColBaseSrc.GetType() == typeof(BoxCollider)) {
+					BoxCollider oColSrc = (BoxCollider)oColBaseSrc;
+					BoxCollider oColDst = (BoxCollider)CUtility.FindOrCreateComponent(transform, typeof(BoxCollider));
+					oColDst.center = new Vector3(-oColSrc.center.x, oColSrc.center.y, oColSrc.center.z);        // Negate the X center
+                    oColDst.size = oColSrc.size;
+                    //oColDst.material = CGame._oPhysMat_Friction_Lowest;
+                } else if (oColBaseSrc.GetType() == typeof(Collider)) {
+					//###CHECK:??? Collider type = No Collider???
+				} else {
+					CUtility.ThrowExceptionF("###EXCEPTION: CBone.ctor() could not port collider of type '{0}' on bone '{1}'", oColBaseSrc.GetType().Name, gameObject.name);
+				}
+			//} else {
+				//Debug.LogWarningFormat("#WARNING: CBone.Initialize() finds null collider on bone '{0}'", gameObject.name);		//###IMPROVE23: No collider on toe and metatarsals... fix
+			}
+        }
+    }
+
+    void Update() {             //#DEV26: Only in a debug build?
+        if (_XP != _XP2) _XP = _XP2 = RotateX(_XP);
+        if (_YP != _YP2) _YP = _YP2 = RotateY(_YP);
+        if (_ZP != _ZP2) _ZP = _ZP2 = RotateZ(_ZP);
     }
 
 
 
+	//---------------------------------------------------------------------------	PROPERTY HANDLERS
 
+	//=== Rotation where source value goes from -100% to 100% ===
+	public float RotateX(float nAnglePercent) {
+        nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f);
+        _X = _X2 = (nAnglePercent/100f) * ((nAnglePercent<0) ? -_XL : _XH);     //###DESIGN!!!: Not linear if low and high are not opposite... the desired behavior??
+        UpdateRotation();
+        return nAnglePercent;
+    }       
+	public float RotateY(float nAnglePercent) {
+        nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f);
+        _Y = _Y2 = (nAnglePercent/100f) * _YHL;
+        UpdateRotation();
+        return nAnglePercent;
+    }
+	public float RotateZ(float nAnglePercent) {
+        nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f);
+        _Z = _Z2 = (nAnglePercent/100f) * _ZHL;
+        UpdateRotation();
+        return nAnglePercent;
+    }
 
-
-
-
-
-    //=== Rotation where source value goes from -100% to 100% ===
-    public void RotateX2(float nAnglePercent) { nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f); _X = _X2 = (nAnglePercent/100f) * ((nAnglePercent<0) ? -_XL : _XH); UpdateRotation(); }       //###DESIGN!!!: Not linear if low and high are not opposite... the desired behavior??
-	public void RotateY2(float nAnglePercent) { nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f); _Y = _Y2 = (nAnglePercent/100f) * _YHL; UpdateRotation(); }       // Low and high are symmetrical, so simpler than X
-	public void RotateZ2(float nAnglePercent) { nAnglePercent = Mathf.Clamp(nAnglePercent, -100f, 100f); _Z = _Z2 = (nAnglePercent/100f) * _ZHL; UpdateRotation(); }
-
-	public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {
+    public void OnChangeGameMode(EGameModes eGameModeNew, EGameModes eGameModeOld) {        //#DEV26: ###OBS?
 		// Joint becomes kinematic and reverts to starting position upon configure mode, becomes PhysX-simulated during gameplay
 		switch (eGameModeNew) {
 			case EGameModes.MorphBody:
@@ -263,11 +288,11 @@ public class CBone : MonoBehaviour {
 				transform.localRotation = _quatBoneRotationStartup;
 				break;
 			case EGameModes.Play:
-                if (_oConfJoint != null) { 
-                    JointDrive oDrive = _oConfJoint.slerpDrive;
-                    oDrive.positionSpring = _nDriveStrengthMult * CGame.INSTANCE.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
-                    _oConfJoint.slerpDrive = oDrive;
-                }
+                //if (_oJointD6 != null) { 
+                //    JointDrive oDrive = _oJointD6.slerpDrive;
+                //    oDrive.positionSpring = _nJointSlerpSpringMult * CGame.BoneDriveStrength;   // Final spring strength is the global constant multiplied by the provided multiplier... makes it easy to adjust whole-body drive strength
+                //    _oJointD6.slerpDrive = oDrive;
+                //}
                 _oRigidBody.isKinematic = false;
                 _X = _Y = _Z = 0;
                 UpdateRotation();
@@ -275,9 +300,18 @@ public class CBone : MonoBehaviour {
 		}
 	}
 
-	void UpdateRotation() {     // Update X, Y, Z rotation			//###TODO21:!!!!!
-        if (_oConfJoint != null)
-		    _oConfJoint.targetRotation = Quaternion.Euler(_X, _Y, _Z);      //###INFO: Unity's Eulers *always* rotate in z, x, y in that order  (Blender can have all 6 possible Euler permutations)
+    public void DEV_ResetToStartupPosRot() {        //#DEV26:???
+        transform.localPosition = _vecStartingPos;              // Restore the joint to its startup position / orientation
+        transform.localRotation = _quatBoneRotationStartup;
+    }
+
+    void UpdateRotation() {     // Update X, Y, Z rotation			//###TODO21:!!!!!
+        Quaternion quatRot = Quaternion.Euler(_X, _Y, _Z);
+        if (_oJointD6 != null) {
+            _oJointD6.targetRotation = quatRot;      //###INFO: Unity's Eulers *always* rotate in z, x, y in that order  (Blender can have all 6 possible Euler permutations)
+        } else {            // If we have no joint then we have no rigid body either... so we just set our localRotation straight up.
+            transform.localRotation = _quatBoneRotationStartup * quatRot;
+        }
     }
 
 
@@ -308,10 +342,30 @@ public class CBone : MonoBehaviour {
 	}
 
 
+	//---------------------------------------------------------------------------	LOAD / SAVE
 
-	//======================================================================	STATIC BONE UPDATERS
+	public void Load(BinaryReader oBR) {
+        if (_oJointD6 == null)            //#DEV26: how come??
+            return;     
+        //#DEV27: We need to save both fucking angles as they are NOT ALWAYS compatible!!  (Some axis rotation on some of them)  WHY??
+        CGame.INSTANCE.s_quatUtility = CUtility.LoadBinary_QuaternionAsEuler(oBR);
+        transform.localRotation = CGame.INSTANCE.s_quatUtility;      // Set both the bone angle and the joint angle right away.
+        CGame.INSTANCE.s_quatUtility = CUtility.LoadBinary_QuaternionAsEuler(oBR);
+        _oJointD6.targetRotation = CGame.INSTANCE.s_quatUtility;     // (Greatly helps pose loading snap to proper position right away without explosion!)
+    }
 
-	public static void BoneUpdate_UpdateFromBlender(string sSex) {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
+    public void Save(BinaryWriter oBW) {
+        if (_oJointD6 == null)            //#DEV26: how come??
+            return;
+        CUtility.SaveBinary_QuaternionAsEuler(oBW, transform.localRotation);
+        CUtility.SaveBinary_QuaternionAsEuler(oBW, _oJointD6.targetRotation);
+    }
+
+
+
+    //======================================================================	STATIC BONE UPDATERS
+
+    public static void BoneUpdate_UpdateFromBlender(string sSex) {                      // Update our body's bones from the current Blender structure... Launched at edit-time by our helper class CBodyEd
         //StartBlender();
 		//###BROKEN: Now part of CBody but we don't have that instance?
   //      GameObject oResourcesGO = GameObject.Find("Resources");
@@ -353,4 +407,178 @@ public class CBone : MonoBehaviour {
 		for (int nBoneChild = 0; nBoneChild < nBoneChildren; nBoneChild++)
 			CBone.BoneUpdate_ReadBone_RECURSIVE(ref oBA, oBoneT);
 	}
+
+
+
+    public void CreateTriggerChild(float nSize, Vector3 vecOffset) {
+        _oTrigger = CTrigger.Create(this, nSize, vecOffset);
+    }
+
+    public void OnChildTriggerEnter(CTrigger oTrigger, Collider oCol) {     //@#
+        float nRot = 40;
+        if (_oActor._eBodySide == EBodySide.Left)           //#DEV26: ###HACK:!!!
+            nRot = -nRot;
+        RotateX(nRot);
+    }
+    public void OnChildTriggerExit(CTrigger oTrigger, Collider oCol) {
+        RotateX(0);
+    }
+
+
+
+    //---------------------------------------------------------------------------	VR WAND MOVEMENT
+
+    public virtual Transform VrWandMove_Begin(CVrWand oVrWand, bool bStartAction1, bool bStartAction2) {
+        return transform;
+    }
+    public virtual void VrWandMove_End(CVrWand oVrWand) { }
+    public virtual void VrWandMove_Update(CVrWand oVrWand) {
+        //=== If object being moved is a bone the 'bake' the angles up the bone tree so the current shape 'takes' ===
+        CBone oBoneIterator = this;
+        if (oBoneIterator != null) {
+            Transform oBoneIteratorT = oBoneIterator.transform;
+            while (oBoneIterator != null) {         //#DEV26!!!!! Where to stop?  Anything downstream?
+                oBoneIterator.BakeCurrentBoneRotationIntoJointRotation();
+                oBoneIteratorT = oBoneIteratorT.parent;
+                oBoneIterator = oBoneIteratorT.GetComponent<CBone>();
+            }
+        }
+    }
+    public virtual void VrWandMove_UpdatePositionAndRotation(Transform oNodeT) {
+        transform.position = oNodeT.position;
+        transform.rotation = oNodeT.rotation;
+    }
+
+
+
+    //---------------------------------------------------------------------------	MISC
+    public enum EBoneType {
+        Default,                // Bone is default with no particular distiction.
+        ArmCollar,              // Bone is the arm collar.  This ones has its own type as it is particularly touchy to balance against gravity and still react property to arm pulls
+        Bender,                 // Bone is a primary 'bender' that is meant to bend the most (e.g. elbow, knee, shoulder)
+        Twister,                // Bone is a 'twister' such as forearm twist, arm twist, tight twist = fairly loose
+        Extremity,              // Bone is an 'extremity' such as hand or feet = fairly soft so pin uses entire dynamic range movement without reaching limits too often
+        Finger,                 // Bone is a finger
+    }
 }
+
+
+
+
+public class CBoneRot {				//###MOVE21:??
+	public CBone		_oBone;					// Our parent bone.  Manages / owns this bone rotation definition
+
+	public char			_chAxis;				// Axis of rotation about our owning bone.  Must be 'X', 'Y' or 'Z'
+	public char			_chAxisDAZ;				// Axis of rotation about our owning bone in the DAZ domain.  (Enables us to test proper bone angles by importing raw DAZ pose dumps that contain DAZ-domain bone rotation axis)
+	public bool			_bAxisNegated;			// If true _chAxis is negated instead of positive
+	public byte			_nAxis;					// 0 for X, 1 for Y, 2 for Z (Same info as _chAxis)
+	public string		_sNameRotation;			// The human-friendly name of this bone rotation
+	public float		_nMin;					// The min / max value this bone rotation can have.  Note that only bone rotations assigned to the 'X' D6 joint can have a different min/max!
+	public float		_nMax;
+	public float        _nValue;				//###DESIGN: Keep??
+
+	public CBoneRot(CBone oBone, string sRotationSerialization) {		// Creates a bone rotation from a Blender-provided 'serialization string' statically stored in CBone
+		_oBone = oBone;
+		sRotationSerialization = "[" + sRotationSerialization + "]";			//###WEAK20: SplitCommaSeparatedPythonListOutput() expects a string wrapped by Python's '[' / ']'.  Wrap our csv string for it to work without clipping our parameters
+		string[] aRotationsParams = CUtility.SplitDelimiterString_Python(sRotationSerialization);
+		string sAxisAndDirection = aRotationsParams[0];				// Looks like 'X+', 'Z-', 'Y+', etc: the axis of rotation and wheter it is positive or negated
+		_chAxis				= sAxisAndDirection[0];
+		_bAxisNegated		= (sAxisAndDirection[1] == '-');	// Flags if axis is negated or not
+		_nAxis				= (byte)(_chAxis - 'X');			// Break down X,Y,Z axis character into axis number (0 = X, 1 = Y, 2 = Z)
+		_chAxisDAZ			= aRotationsParams[1][0];
+		_sNameRotation		= aRotationsParams[2];
+        _nMin				= float.Parse(aRotationsParams[3]);
+        _nMax				= float.Parse(aRotationsParams[4]);
+        if (_nAxis == 0 && _bAxisNegated == false) {                    //#DEV26: ###HACK:!!!!!! Horrible hack with Blender-to-Unity conversion.  Read https://answers.unity.com/questions/503407/need-to-convert-to-right-handed-coordinates.html or https://answers.unity.com/storage/temp/12048-lefthandedtorighthanded.pdf
+            _nMin               = -float.Parse(aRotationsParams[4]);
+            _nMax               = -float.Parse(aRotationsParams[3]);
+        }
+        if (_chAxis == 'Z')                                     //###WEAK: It appears from observation that all Z rotations are meant to go the other direction... Verify this!  Is this caused because Blender (& DAZ) are Right-handed while Unity is left-handed??
+            _bAxisNegated = !_bAxisNegated;
+
+        if (_nMin > _nMax)
+            CUtility.ThrowExceptionF("###EXCEPTION: CBone '{0}' Rot '{1}' has a min of {2} and max of {3}", _oBone.name, _chAxis, _nMin, _nMax);
+
+        ////_nMin				= float.Parse(aRotationsParams[3]);			//###HACK21:!!!!!!! Why the heck does min/max interchange seem to work???
+        ////_nMax				= float.Parse(aRotationsParams[4]);
+        //_nMin               = -float.Parse(aRotationsParams[4]);
+        //_nMax               = -float.Parse(aRotationsParams[3]);
+        //if (_chAxis == 'Z')                                     //###WEAK: It appears from observation that all Z rotations are meant to go the other direction... Verify this!  Is this caused because Blender (& DAZ) are Right-handed while Unity is left-handed??
+        //    _bAxisNegated = !_bAxisNegated;
+        //Debug.LogFormat("-CBoneRot {0}  '{1}'   {2} - {3} ", sAxisAndDirection, _sNameRotation, _nMin, _nMax);
+    }
+
+    //---------------------------------------------------------------------------	BONE ANGLE GET / SET
+
+    public float BoneRotationAngle_Get() {			// Get the bone rotation angle (in degrees) straight from the owner's bone D6 joint
+		Vector3 eulRot = _oBone._oJointD6.targetRotation.eulerAngles;
+		switch (_chAxis) {
+			case 'X':	return eulRot.x;
+			case 'Y':	return eulRot.y;
+			case 'Z':	return eulRot.z;
+			default:	return -1;
+		}
+	}
+
+    public void BoneRotationAngle_Set(float nBoneRotationAngle) {       // Set the bone rotation angle (in degrees) straight into the owner's bone D6 joint
+        Vector3 eulRot = _oBone._oJointD6.targetRotation.eulerAngles;
+        switch (_chAxis) {
+            case 'X': eulRot.x = nBoneRotationAngle; break;
+            case 'Y': eulRot.y = nBoneRotationAngle; break;
+            case 'Z': eulRot.z = nBoneRotationAngle; break;
+        }
+        _oBone._oJointD6.targetRotation = Quaternion.Euler(eulRot);
+    }
+}
+
+
+//public void SetBoneRotationAngle(Vector3 eulRotIn, ref Vector3 eulRotOut) {
+//	// Set our value from element from 'quatRot' that is pertinent to this bone rotation.  Mapping of D6 X/Y/Z to Unity transform's X,Y,Z changes from bone to bone preventing a direct angle setting of all bone rotations in one command
+//	switch (_chAxis) {
+//		case 'X':	eulRotOut.x = _nValue = Mathf.Clamp(eulRotIn.x, _nMin, _nMax); break;
+//		case 'Y':	eulRotOut.y = _nValue = Mathf.Clamp(eulRotIn.y, _nMin, _nMax); break;
+//		case 'Z':	eulRotOut.z = _nValue = Mathf.Clamp(eulRotIn.z, _nMin, _nMax); break;
+//	}
+//}
+
+
+
+//---------------------------------------------------------------------------	LOAD / SAVE
+//public void Load(System.IO.StreamReader oStreamReader) {
+//	string sLine = oStreamReader.ReadLine();
+//	string[] aLineFields = sLine.Split('\t');           // Properties file is a very simple text file with 'value' + <TabCharacter> + 'name' format
+//	string sPropValue = aLineFields[0];
+//	string sName = aLineFields[1];
+//	if (sName == _sNameRotation) {
+//		float nPropValue = 0;
+//		float.TryParse(sPropValue, out nPropValue);
+//		BoneRotationAngle_Set(nPropValue);
+//	} else {
+//		Debug.LogWarningFormat("#Warning: CBone.Load() found bone rotation '{0}' but was expecting '{1}'", _sNameRotation, sName);      //###DESIGN: Keep this verbose entry in our files??
+//	}
+//}
+//public void Save(System.IO.StreamWriter oStreamWrite) {
+//	string sLine = string.Format("{0:F6}\t{1}", BoneRotationAngle_Get(), _sNameRotation);       //#DEV26:Keep name?
+//	oStreamWrite.WriteLine(sLine);
+//}
+//foreach (CBoneRot oBoneRot in _aBoneRots) {
+//	if (oBoneRot != null)
+//		oBoneRot.Save(oStreamWrite);
+//}
+
+
+        //string sLine = oStreamReader.ReadLine();
+        //string[] aLineFields = sLine.Split(',');           // Properties file is a very simple text file with x,y,z,name ordering
+        //if (aLineFields[3] == transform.name) {
+        //	Vector3 eulRot = new Vector3();
+        //	float.TryParse(aLineFields[0], out eulRot.x);
+        //	float.TryParse(aLineFields[1], out eulRot.y);
+        //	float.TryParse(aLineFields[2], out eulRot.z);
+        //	_oJoint.targetRotation = Quaternion.Euler(eulRot);
+        //} else {
+        //	CUtility.ThrowExceptionF("###EXCEPTION in CBone.Load().  Expected bone name '{0}' but found bone '{1}'", transform.name, aLineFields[3]);
+        //}
+
+        //Vector3 eulRot = _oJoint.targetRotation.eulerAn   gles;
+        //string sLine = string.Format("{0:000.000},{1:000.000},{2:000.000},{3}", eulRot.x, eulRot.y, eulRot.z, transform.name);		//###INFO: How to pad with zero.  Use '#' instead to trim non-needed mantissa
+        //oStreamWrite.WriteLine(sLine);

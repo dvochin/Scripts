@@ -42,7 +42,7 @@ public class CHandTarget : MonoBehaviour, IHotSpotMgr {		// CHandTarget: A desti
 		//}
 
 		//###DESIGN: Hotspots of hands with no name??
-		//###BROKEN: _oHotSpot = CHotSpot.CreateHotspot(this, transform, /*transform.name*/ "", true, Vector3.zero, 1.0f, CCursor.C_Layer_HotSpotHands);		// Create our hotspot on the hand layer for special filtering by CCursor
+		//###BROKEN: _oHotSpot = CHotSpot.CreateHotspot(this, transform, /*transform.name*/ "", true, Vector3.zero, 1.0f, G.C_Layer_HotSpotHands);		// Create our hotspot on the hand layer for special filtering by CCursor
 	}
 
 	public static CHandTarget FindOrCreateRightSideHandTarget(CHandTarget oHandTargetL) {	// Find or create a 'right side mirrored copy' of design-time-defined left-side hand target.   Bone structure only has hand targets defined for the left body side to prevent duplication.  Mirror the left node into a mirrored right node for processing of the right body side
@@ -79,47 +79,47 @@ public class CHandTarget : MonoBehaviour, IHotSpotMgr {		// CHandTarget: A desti
 
 	public void ConnectHandToHandTarget(CActorArm oActorArm) {
 		//###IMPROVE: smooth progression to target (sin)
-
-		_oActorArm = oActorArm;
-		//_nTimeNextPosChange = -1;
-		if (_oActorArm != null) {
-			oActorArm.transform.parent = transform;					// Reparent to the hand target's node so we move/rotate along with the node
-			oActorArm.transform.localPosition = Vector3.zero;
-			oActorArm.transform.localRotation = Quaternion.identity;
-			oActorArm._oObj.PropSet(0, EActorArm.Pinned, 1);			// Hand target now in requested position.  Pin to make it move
-			//GetNextRandomVector();
-			enabled = true;
-		} else {
-			enabled = false;
-		}
+		//###BROKEN
+		//_oActorArm = oActorArm;
+		////_nTimeNextPosChange = -1;
+		//if (_oActorArm != null) {
+		//	oActorArm.transform.parent = transform;					// Reparent to the hand target's node so we move/rotate along with the node
+		//	oActorArm.transform.localPosition = Vector3.zero;
+		//	oActorArm.transform.localRotation = Quaternion.identity;
+		//	oActorArm._oObj.Set(0, EActorArm.Pinned, 1);			// Hand target now in requested position.  Pin to make it move
+		//	//GetNextRandomVector();
+		//	enabled = true;
+		//} else {
+		//	enabled = false;
+		//}
 	}
 
 	//void GetNextRandomVector() {		###CLEANUP?
 	//	_vecRandomLast = _vecRandom;
-	//	_vecRandom.x = ((float)CGame.INSTANCE._oRnd.NextDouble()) * 2.0f - 1.0f;		// Seed the next random anywhere in -1..1 range...
-	//	_vecRandom.y = ((float)CGame.INSTANCE._oRnd.NextDouble()) * 2.0f - 1.0f;
-	//	_vecRandom.z = ((float)CGame.INSTANCE._oRnd.NextDouble()) * 2.0f - 1.0f;
+	//	_vecRandom.x = ((float)CGame._oRnd.NextDouble()) * 2.0f - 1.0f;		// Seed the next random anywhere in -1..1 range...
+	//	_vecRandom.y = ((float)CGame._oRnd.NextDouble()) * 2.0f - 1.0f;
+	//	_vecRandom.z = ((float)CGame._oRnd.NextDouble()) * 2.0f - 1.0f;
 	//}
 
 	//void FixedUpdate () {		// Hook into global update to animate hand if we're connected  ###DESIGN: hand / arm actor doesn't have a OnUpdate which is why we do from this end... revisit??
 	//	if (_oActorArm != null) {
 	//		float nTime = Time.time;
 	//		if (nTime > _nTimeNextPosChange) {
-	//			_nTimeNextPosChange = nTime + 1.0f;// +(float)CGame.INSTANCE._oRnd.NextDouble() * 1.0f;		//###IMPROVE: Export change of pose timeout
+	//			_nTimeNextPosChange = nTime + 1.0f;// +(float)CGame._oRnd.NextDouble() * 1.0f;		//###IMPROVE: Export change of pose timeout
 
 	//			//=== Choose a new random target point within our animation area ===
-	//			//_vecRandom.x = 1.0f - Mathf.Cos(((float)CGame.INSTANCE._oRnd.NextDouble() - 0.5f) * Mathf.PI);		// Gives a curve that promotes the ends of the -1..1 range
-	//			//_vecRandom.y = 1.0f - Mathf.Cos(((float)CGame.INSTANCE._oRnd.NextDouble() - 0.5f) * Mathf.PI);
-	//			//_vecRandom.z = 1.0f - Mathf.Cos(((float)CGame.INSTANCE._oRnd.NextDouble() - 0.5f) * Mathf.PI);
+	//			//_vecRandom.x = 1.0f - Mathf.Cos(((float)CGame._oRnd.NextDouble() - 0.5f) * Mathf.PI);		// Gives a curve that promotes the ends of the -1..1 range
+	//			//_vecRandom.y = 1.0f - Mathf.Cos(((float)CGame._oRnd.NextDouble() - 0.5f) * Mathf.PI);
+	//			//_vecRandom.z = 1.0f - Mathf.Cos(((float)CGame._oRnd.NextDouble() - 0.5f) * Mathf.PI);
 
 				
 	//			//_vecDistToFurthestExtremity.x = _vecRandomLast.x > 0 ? -1.0f - _vecRandomLast.x : 1.0f - _vecRandomLast.x;		// Calculate the maximum distance possible to travel to the furthest extremity (we will go in that direction)
 	//			//_vecDistToFurthestExtremity.y = _vecRandomLast.y > 0 ? -1.0f - _vecRandomLast.y : 1.0f - _vecRandomLast.y;
 	//			//_vecDistToFurthestExtremity.z = _vecRandomLast.z > 0 ? -1.0f - _vecRandomLast.z : 1.0f - _vecRandomLast.z;
 
-	//			//_vecRandom.x = ((float)CGame.INSTANCE._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
-	//			//_vecRandom.y = ((float)CGame.INSTANCE._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
-	//			//_vecRandom.z = ((float)CGame.INSTANCE._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
+	//			//_vecRandom.x = ((float)CGame._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
+	//			//_vecRandom.y = ((float)CGame._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
+	//			//_vecRandom.z = ((float)CGame._oRnd.NextDouble()) * _vecDistToFurthestExtremity.x;
 	//			//Debug.Log("Rnd: " + _vecRandom.x + "," + _vecRandom.y + "," + _vecRandom.z);
 
 	//			//_vecRandomLast = _vecRandom;
@@ -157,7 +157,7 @@ public class CHandTarget : MonoBehaviour, IHotSpotMgr {		// CHandTarget: A desti
 	}
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		if (eHotSpotEvent == EHotSpotEvent.Activation) {
-			ConnectHandToHandTarget(CGame.GetSelectedBody()._oActor_ArmL);
+			ConnectHandToHandTarget(CGame.GetSelectedBody()._oBodyBase._oActor_ArmL);
 		} else if (eHotSpotEvent == EHotSpotEvent.Deactivation) {
 			ConnectHandToHandTarget(null);
 		}

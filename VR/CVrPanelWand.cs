@@ -50,25 +50,45 @@
 
 using UnityEngine;
 
-public class CVrPanelWand {
-	public CVrWand	_oVrWand;
-	public CUICanvas		_oCanvas;		
+public class CVrPanelWand {     //###OBS:??
+    public CVrWand  _oVrWand;
+    public CBrowser _oBrowser;
+    Transform _oModelAttachParentT;
+    const float C_SizeBrowser = 0.25f;
+    const float C_AspectRatio_WidthDivHeight = 0.5f;
+    const int C_BrowserPixelWidth = 300;
 
-	public CVrPanelWand(CVrWand oVrWand, Transform oModelAttachParentT) {
-		_oVrWand = oVrWand;
-		_oCanvas = CUICanvas.Create(_oVrWand.transform);
-		_oCanvas.transform.SetParent(oModelAttachParentT);					// Attach the canvas to the provided attach point on the wand model...
-		_oCanvas.transform.localPosition = new Vector3(0, 0.015f, 0.07f);		//... and give it a small offset so it doesn't collider with wand 3D model.
-		_oCanvas.transform.localRotation = Quaternion.Euler(90, 0, 0);
-		_oCanvas.gameObject.name = "CUICanvas-VrWand";
-
-		//###HACK:!!!!!! While waiting for our object selection functionality we hardcode direct access
-		//CObject oObj = CGame.INSTANCE._aBodyBases[0]._oBody.Breasts;
-		//CObject oObj = CGame.INSTANCE._aBodyBases[0]._oBody._oObj;
-		CObject oObj = null;
-		if (CGame.INSTANCE._aBodyBases[0] != null && CGame.INSTANCE._aBodyBases[0]._oBody != null)
-			oObj = CGame.INSTANCE._aBodyBases[0]._oBody.Penis;
-		if (oObj != null)
-			CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { oObj }, "Wand Menu");	//###IMPROVE: Menu name based on wand name
-	}
+    public CVrPanelWand(CVrWand oVrWand, Transform oModelAttachParentT) {       //#DEV26: Need this class??  Have browser owned by wand directly??
+        _oVrWand = oVrWand;
+        _oModelAttachParentT = oModelAttachParentT;
+         CBrowser.Create(out _oBrowser);
+        //#DEV27A:??? CGame.INSTANCE._oBrowser_HACK = _oBrowser;
+        _oBrowser.transform.localScale = new Vector3(C_SizeBrowser/2, C_SizeBrowser, 0.001f);      //###INFO: Raycasting won't be able to hit the browser if the z axis is zero.
+        _oBrowser.transform.localRotation = Quaternion.Euler(60, 0, 0);        // Root wand transform need some rotation to avoid bending the user's wrist.  ###IMPROVE: Can get a sub-node from children?
+        _oBrowser.Resize(C_BrowserPixelWidth, (int)(C_BrowserPixelWidth / C_AspectRatio_WidthDivHeight));
+    }
 }
+
+//public class CVrPanelWand {
+//    public CVrWand  _oVrWand;
+//    public CBrowser _oBrowser;
+//    Transform _oModelAttachParentT;
+//    const float C_SizeBrowser = 0.25f;
+//    const float C_AspectRatio_WidthDivHeight = 0.5f;
+//    const int C_BrowserPixelWidth = 300;
+
+
+//    public CVrPanelWand(CVrWand oVrWand, Transform oModelAttachParentT) {       //#DEV26: Need this class??  Have browser owned by wand directly??
+//        _oVrWand = oVrWand;
+//        _oModelAttachParentT = oModelAttachParentT;
+//        CreateBrowser();
+//    }
+
+//    public void CreateBrowser() {
+//        CGame._oBrowser_HACK = _oBrowser = CUtility.InstantiatePrefab<CBrowser>("Prefabs/ZenBrowser/CBrowser", "Browser-VrWand", _oModelAttachParentT);
+//        _oBrowser.transform.localScale = new Vector3(C_SizeBrowser/2, C_SizeBrowser, 0.001f);      //###INFO: Raycasting won't be able to hit the browser if the z axis is zero.
+//        _oBrowser.transform.localRotation = Quaternion.Euler(60, 0, 0);        // Root wand transform need some rotation to avoid bending the user's wrist.  ###IMPROVE: Can get a sub-node from children?
+//        _oBrowser.Initialize();
+//        _oBrowser.Resize(C_BrowserPixelWidth, (int)(C_BrowserPixelWidth / C_AspectRatio_WidthDivHeight));
+//    }
+//}

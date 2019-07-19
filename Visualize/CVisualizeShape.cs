@@ -5,18 +5,18 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
     public bool			_Selected;
     public int			_ShapeID;
     public Color		_Color;
-    CSoftBody	_oSoftBody;
+    CVisualizeFlex      _oVisualizeFlex;
     Dictionary<int, LineRenderer> _mapLines;
 
 
-    public void Initialize(CSoftBody oSoftBody, int nShapeID) {
-        _oSoftBody = oSoftBody;
+    public void Initialize(CVisualizeFlex oVisualizeFlex, int nShapeID) {
+        _oVisualizeFlex = oVisualizeFlex;
         _ShapeID = nShapeID;
         _Color = CUtility.GetRandomColor();
         gameObject.SetActive(true);
         name = string.Format("Shape{0}", _ShapeID);
-		GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ShapeDefault;
-        transform.SetParent(_oSoftBody.transform);
+		GetComponent<MeshRenderer>().material.color = CSoftBody._color_ShapeDefault;
+        transform.SetParent(_oVisualizeFlex.transform);
     }
 
 	public void Select_Toggle() {
@@ -34,12 +34,12 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
 			_mapLines = new Dictionary<int, LineRenderer>();
 
             //=== Obtain the beginning and end of where the particle IDs are stored for this shape ===
-            int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
-            int nShapeParticleLookupEnd    = _oSoftBody._oFlexShapeMatching.m_shapeOffsets[_ShapeID];
+            int nShapeParticleLookupBegin  = (_ShapeID == 0) ? 0 : _oVisualizeFlex._oFlexShapeMatching.m_shapeOffsets[_ShapeID - 1];
+            int nShapeParticleLookupEnd    = _oVisualizeFlex._oFlexShapeMatching.m_shapeOffsets[_ShapeID];
 
             //=== Iterate through all the particles associated with this shape to draw them ===
             for (int nShapeParticleLookup = nShapeParticleLookupBegin; nShapeParticleLookup < nShapeParticleLookupEnd; nShapeParticleLookup++) {
-                int nParticle = _oSoftBody._oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
+                int nParticle = _oVisualizeFlex._oFlexShapeMatching.m_shapeIndices[nShapeParticleLookup];
                 string sLineKey = "S" + _ShapeID.ToString() + "-P" + nParticle.ToString();      //###IDEA: Make globally unique with bodyID & soft body id?
                 LineRenderer oLR = CGame.Line_Add(sLineKey);
 				if (nShapeParticleLookup == nShapeParticleLookupBegin)
@@ -61,7 +61,7 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
 	public void Select_Clear() { 
         if (_Selected) {
             Debug.LogFormat("Debug Shape {0} unselected", _ShapeID);
-			GetComponent<MeshRenderer>().material.color = _oSoftBody._color_ShapeDefault;
+			GetComponent<MeshRenderer>().material.color = CSoftBody._color_ShapeDefault;
 
             if (_mapLines != null) {
                 foreach (LineRenderer oLR in _mapLines.Values)
@@ -73,16 +73,17 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
     }
 
     public void DoUpdate() {
-		transform.position = _oSoftBody._oFlexShapeMatching.m_shapeTranslations[_ShapeID] + _oSoftBody._vecVisualiserOffset;
-		transform.rotation = _oSoftBody._oFlexShapeMatching.m_shapeRotations   [_ShapeID];
-        transform.localScale = _oSoftBody._vecSizeShapes;
+        Vector3 vecVisualizerOffset = _oVisualizeFlex._iVisualizeFlex.GetVisualiserOffset();
+		transform.position = _oVisualizeFlex._oFlexShapeMatching.m_shapeTranslations[_ShapeID] + vecVisualizerOffset;
+		transform.rotation = _oVisualizeFlex._oFlexShapeMatching.m_shapeRotations   [_ShapeID];
+        transform.localScale = _oVisualizeFlex._vecSizeShapes;
 
         if (_mapLines != null) {                // Update the position of all lines we have defined.
             foreach (int nParticle in _mapLines.Keys) {         //###IDEA: Pass the two transforms for each line to CGame and have it update (and auto-destroy) the lines at each frame.
                 LineRenderer oLR = _mapLines[nParticle];
                 oLR.transform.position = transform.position;
                 oLR.SetPosition(0, transform.position);
-                oLR.SetPosition(1, _oSoftBody._oFlexParticles.m_particles[nParticle].pos + _oSoftBody._vecVisualiserOffset);
+                oLR.SetPosition(1, _oVisualizeFlex._oFlexParticles.m_particles[nParticle].pos + vecVisualizerOffset);
             }
         }
     }
@@ -97,7 +98,7 @@ public class CVisualizeShape : MonoBehaviour {      // CVisualizeShape: Renders 
 		}
 	}
 	private void OnTriggerExit(Collider other) {				
-		if (other.gameObject.name == "VrWand-Left") {
+		if (other.gameObject.name == "VrWand-Left") {       //#Vis: Broken collider
 			Select_Clear();
 		}
 	}

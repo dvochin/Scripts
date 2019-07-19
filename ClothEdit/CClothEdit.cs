@@ -60,7 +60,7 @@
 
 === WISHLIST ===
 - Need central editing functionality: A central game mode combobox followed by what to edit (e.g. which cloth) and what to sub-edit (e.g. which curve)
-	- Detail pane fills up from CObject enumeration from there.
+	- Detail pane fills up from CObj enumeration from there.
 	- Q: What to do about 'commit' button?  How does that flow with top-level editing framework?
 	- Q: How to select multiple clothing? (idea: have a slot for all possible clothing with default being nothing populated?)
 	- Q: How to save the whole thing?
@@ -76,10 +76,10 @@
 # We currently scan seam chains for L/R... given our simplifying assumptions do we keep overhead of right side?
 # Need to redo bodysuit to new body.  Redo UVs too.
 
-#- Unity edits CProps of CCloth at the global level (for cloth types, curve types, meta props like nipple X/Y, bra strap pos / width, etc)
+#- Unity edits CObjs of CCloth at the global level (for cloth types, curve types, meta props like nipple X/Y, bra strap pos / width, etc)
 #- User can edit only one curve at a time in a parent / child with CCloth / CCurve.  User picks by radio button one only.
     #- User adjusts sliders and Unity renders the cutting curves onto bodysuit (and cuts when user presses 'Cut' button)
-#- CCurve has derived superclasses such as CCurveNeck, CCurveLegs, CCurveBottom, CCurveArms, etc which contains its own CObject / CProps for Unity editing / cloth loading/saving
+#- CCurve has derived superclasses such as CCurveNeck, CCurveLegs, CCurveBottom, CCurveArms, etc which contains its own CObj / CObjs for Unity editing / cloth loading/saving
 #- Have to remove the old single-side source mesh, cut mesh, etc and its behavior (duplicate before batch cut)
 #- Folder positions of cloth stuff... a new parent node?
 
@@ -125,17 +125,18 @@ public class CClothEdit {            // CClothEdit: Helper class hosted by CBody
 		Create_EditingCloth();
 
 		//=== Create the managing object and related hotspot ===
-		CObject _oObj = new CObject(_oMeshFlex_Editing, "Cloth Cutting", "Cloth Cutting");
-		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue_EditingMode;
-		for (int nCurve = 0; nCurve < 3; nCurve++) {
-			string sBlenderAccessString_Curve = string.Format("{0}{1}.aCurves[{2}].oObj", _oBodyBase._sBlenderInstancePath_CBodyBase, _sBlenderAccessString_ClothInCollection, nCurve);
-			CPropGrpBlender oPropGrpBlender = new CPropGrpBlender(_oObj, "", sBlenderAccessString_Curve);
-		}
+		//###BROKEN:
+		//CObjBlender _oObj = new CObjBlender(_oMeshFlex_Editing, "Cloth Cutting", "Cloth Cutting", _oBodyBase._oObj);
+		//_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue_EditingMode;
+		//for (int nCurve = 0; nCurve < 3; nCurve++) {
+		//	string sBlenderAccessString_Curve = string.Format("{0}{1}.aCurves[{2}].oObj", _oBodyBase._sBlenderInstancePath_CBodyBase, _sBlenderAccessString_ClothInCollection, nCurve);
+		//	CObjBlender oObjGrpBlender = new CObjBlender(_oObj, "", sBlenderAccessString_Curve);
+		//}
 
 		//=== Create Canvas for GUI for this mode ===
-		_oCanvas = CUICanvas.Create(_oBodyBase._oBodyRootGO.transform);				//###CHECK19: What root??
-		_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
-		_oCanvas.CreatePanel("Cloth Cutting", null, _oObj);
+		//_oCanvas = CUICanvas.Create(_oBodyBase._oBodyRootGO.transform);				//###CHECK19: What root??
+		//_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
+		//_oCanvas.CreatePanel("Cloth Cutting", _oObj);
 	}
 
 	//------------------------------------------------------------------	CREATE / DESTROY
@@ -190,7 +191,7 @@ public class CClothEdit {            // CClothEdit: Helper class hosted by CBody
 	//------------------------------------------------------------------	EVENTS
 	void Event_PropertyChangedValue_EditingMode(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
 		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
-		Debug.LogFormat("CClothEdit updates on body'{0}' because property '{1}' changed to value {2}", _oBodyBase._sBodyPrefix, oArgs.PropertyName, oArgs.ValueNew);
+		Debug.LogFormat("CClothEdit updates on body'{0}' because property '{1}' changed to value {2}", _oBodyBase._sBodyPrefix, oArgs.CObj._sNameInCodebase, oArgs.CObj._nValue);
 
 		Destroy_EditingCloth();			// Destroy and re-create editing cloth so we get the freshly recut mesh from Blender
 		Create_EditingCloth();

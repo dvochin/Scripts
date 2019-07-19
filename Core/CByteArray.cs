@@ -24,21 +24,34 @@ public class CByteArray {							// Unity equivalent of Blender's CByteArray clas
 	}
 
 
-	//---------------------------------------------------------------------------	STATIC HOMOGENOUS ARRAY RETRIEVAL
-	public static List<ushort> GetArray_USHORT(string sNameBlenderModule, string sBlenderAccessString) {        // Deserialize a Blender mesh's previously-created array
-		CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);
-		int nArrayElements = oByteArray.GetLengthPayload() / sizeof(ushort);
-		List<ushort> aBlenderArray = new List<ushort>(nArrayElements);									//###WEAK:!!!! Entire codebase allocates and we allocate here...  one or the other... go through code!!
-		if (nArrayElements > 0) {
-			for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++)
-				aBlenderArray.Add(oByteArray.ReadUShort());
-		} else {
-			Debug.LogWarningFormat("###WARNING: CByteArray.GetArray() gets zero-sided array on '{0}'", oByteArray._sBlenderAccessString);
-		}
-		return aBlenderArray;
-	}
+    //---------------------------------------------------------------------------	STATIC HOMOGENOUS ARRAY RETRIEVAL
+    public static List<byte> GetArray_BYTE(string sNameBlenderModule, string sBlenderAccessString) {        // Deserialize a Blender mesh's previously-created array
+        CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);
+        int nArrayElements = oByteArray.GetLengthPayload() / sizeof(byte);
+        List<byte> aBlenderArray = new List<byte>(nArrayElements);
+        if (nArrayElements > 0) {
+            for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++)
+                aBlenderArray.Add(oByteArray.ReadByte());
+        } else {
+            Debug.LogWarningFormat("###WARNING: CByteArray.GetArray() gets zero-sided array on '{0}'", oByteArray._sBlenderAccessString);
+        }
+        return aBlenderArray;
+    }
 
-	public static List<int> GetArray_INT(string sNameBlenderModule, string sBlenderAccessString) {
+    public static List<ushort> GetArray_USHORT(string sNameBlenderModule, string sBlenderAccessString) {        // Deserialize a Blender mesh's previously-created array
+        CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);               //###IMPROVE: Can switch to templates??
+        int nArrayElements = oByteArray.GetLengthPayload() / sizeof(ushort);
+        List<ushort> aBlenderArray = new List<ushort>(nArrayElements);                                  //###WEAK:!!!! Entire codebase allocates and we allocate here...  one or the other... go through code!!
+        if (nArrayElements > 0) {
+            for (int nArrayElement = 0; nArrayElement  < nArrayElements; nArrayElement++)
+                aBlenderArray.Add(oByteArray.ReadUShort());
+        } else {
+            Debug.LogWarningFormat("###WARNING: CByteArray.GetArray() gets zero-sided array on '{0}'", oByteArray._sBlenderAccessString);
+        }
+        return aBlenderArray;
+    }
+
+    public static List<int> GetArray_INT(string sNameBlenderModule, string sBlenderAccessString) {
 		CByteArray oByteArray = new CByteArray(sNameBlenderModule, sBlenderAccessString);
 		int nArrayElements = oByteArray.GetLengthPayload() / sizeof(int);
 		List<int> aBlenderArray = new List<int>(nArrayElements);

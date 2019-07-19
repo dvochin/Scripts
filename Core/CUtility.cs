@@ -10,6 +10,7 @@ using System.IO;
 #pragma warning disable 162         // "Unreacheable Code Detected"
 
 public class CUtility {         // Collection of static utility functions
+    #region === Colors ===
     static Color[] _aColorsForDebug = {     //###IMPROVE: Add more RBG colors
             Color.red,
             Color.green,
@@ -25,58 +26,70 @@ public class CUtility {         // Collection of static utility functions
             //Color.white,
         };
     static int _nLastRandomColorProvided = 0;
+    #endregion
 
     #region === Node / Component Creation ===
     public static Component FindOrCreateNode(GameObject oParentGO, string sName, Type oType) {
-		if (oParentGO == null)
-			CUtility.ThrowException("*E: FindOrCreateNode() called with no parent GameObject!");
-		return CUtility.FindOrCreateNode(oParentGO.transform, sName, oType);
-	}
+        if (oParentGO == null)
+            CUtility.ThrowException("*E: FindOrCreateNode() called with no parent GameObject!");
+        return CUtility.FindOrCreateNode(oParentGO.transform, sName, oType);
+    }
 
-	public static Component FindOrCreateNode(Transform oNodeParent, string sName, Type oType) {
-		if (oNodeParent == null)
-			CUtility.ThrowException("*E: FindOrCreateNode() called with no parent Transform!");
-		Transform oChildTran = oNodeParent.Find(sName);
-		if (oChildTran == null) {
-			GameObject oChildGO = (oType != null) ? new GameObject(sName, oType) : new GameObject(sName);
-			oChildTran = oChildGO.transform;
-			oChildTran.SetParent(oNodeParent.transform);
-		}
-		return (oType != null) ? oChildTran.GetComponent(oType) : oChildTran.transform;
-	}
+    public static Component FindOrCreateNode(Transform oNodeParent, string sName, Type oType) {
+        if (oNodeParent == null)
+            CUtility.ThrowException("*E: FindOrCreateNode() called with no parent Transform!");
+        Transform oChildTran = oNodeParent.Find(sName);
+        if (oChildTran == null) {
+            GameObject oChildGO = (oType != null) ? new GameObject(sName, oType) : new GameObject(sName);
+            oChildTran = oChildGO.transform;
+            oChildTran.SetParent(oNodeParent.transform);
+        }
+        return (oType != null) ? oChildTran.GetComponent(oType) : oChildTran.transform;
+    }
 
-	public static Component FindOrCreateComponent(GameObject oGO, Type oType) {
-		if (oGO != null) {
-			Component oComp = oGO.GetComponent(oType);
-			if (oComp == null)
-				oComp = oGO.AddComponent(oType);
-			return oComp;
-		} else {
-			CUtility.ThrowException("*Err: FindOrCreateComponent() was called with a null gameObject!");
-			return null;
-		}
-	}
-	public static Component FindOrCreateComponent(Transform oNode, Type oType) {
-		if (oNode != null) {
-			return FindOrCreateComponent(oNode.gameObject, oType);
-		} else {
-			CUtility.ThrowException("*Err: FindOrCreateComponent() was called with a null transform!");
-			return null;
-		}
-	}
+    public static Component FindOrCreateComponent(GameObject oGO, Type oType) {
+        if (oGO != null) {          //###OBS: Switch to template form!
+            Component oComp = oGO.GetComponent(oType);
+            if (oComp == null)
+                oComp = oGO.AddComponent(oType);
+            return oComp;
+        } else {
+            CUtility.ThrowException("*Err: FindOrCreateComponent() was called with a null gameObject!");
+            return null;
+        }
+    }
+    public static T FindOrCreateComponent<T>(GameObject oGO) where T : Component {
+        if (oGO != null) {          
+            T oComp = oGO.GetComponent<T>();
+            if (oComp == null)
+                oComp = oGO.AddComponent<T>();
+            return oComp;
+        } else {
+            CUtility.ThrowException("*Err: FindOrCreateComponent() was called with a null gameObject!");
+            return null;
+        }
+    }
+    public static Component FindOrCreateComponent(Transform oNode, Type oType) {
+        if (oNode != null) {
+            return FindOrCreateComponent(oNode.gameObject, oType);
+        } else {
+            CUtility.ThrowException("*Err: FindOrCreateComponent() was called with a null transform!");
+            return null;
+        }
+    }
 
-	public static Component FindComponentInParents(Transform oNodeStart, Type oTypeComponent, string sCallingCodeName) {		// Iterate up the parent chain to return the first ancestor with a component of the provided type
-		Transform oNode = oNodeStart;
-		while (oNode != null) {
-			Component oComp = oNode.GetComponent(oTypeComponent);
-			if (oComp != null)
-				return oComp;
-			oNode = oNode.parent;
-		}
-		if (sCallingCodeName != null)
-			CUtility.ThrowException("FindComponentInParents() could not find component " + oTypeComponent + " in " + sCallingCodeName);
-		return null;
-	}
+    public static Component FindComponentInParents(Transform oNodeStart, Type oTypeComponent, string sCallingCodeName) {        // Iterate up the parent chain to return the first ancestor with a component of the provided type
+        Transform oNode = oNodeStart;
+        while (oNode != null) {
+            Component oComp = oNode.GetComponent(oTypeComponent);
+            if (oComp != null)
+                return oComp;
+            oNode = oNode.parent;
+        }
+        if (sCallingCodeName != null)
+            CUtility.ThrowException("FindComponentInParents() could not find component " + oTypeComponent + " in " + sCallingCodeName);
+        return null;
+    }
 
     public static void DestroyComponent(Component oComponent) {
         if (oComponent == null)
@@ -97,21 +110,52 @@ public class CUtility {         // Collection of static utility functions
         oFlexParticles.m_colour = oColor;
         oFlexParticles.m_interactionType = nFlexInterationType;				// The simulated particles collide with everything (other than ourselves)
         oFlexParticles.m_collisionGroup = -1;								// Flex runtime will allocate to its own collision group to collide with everything
-        oFlexParticles.m_bounds.SetMinMax(new Vector3(-1,-1,-1), new Vector3(1,1,1));        //###CHECK: Better with some reasonable values than zero?
+        oFlexParticles.m_bounds.SetMinMax(new Vector3(-1, -1, -1), new Vector3(1, 1, 1));        //###CHECK: Better with some reasonable values than zero?
 
         ////=== Add particle renderer component for debug visualization ===
         //uFlex.FlexParticlesRenderer oFlexPartRend = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexParticlesRenderer)) as uFlex.FlexParticlesRenderer;
-        //oFlexPartRend.m_size = CGame.INSTANCE.particleSpacing;
+        //oFlexPartRend.m_size = CGame.particleSpacing;
         //oFlexPartRend.m_radius = oFlexPartRend.m_size / 2.0f;
         //oFlexPartRend.enabled = false;           // Hidden by default
 
-		//=== Create Flex Processor so we can update particles ===
-		if (iFlexProcessor != null) {
-			uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
-			oFlexProc._oFlexProcessor = iFlexProcessor;
-		}
-		return oFlexParticles;
+        //=== Create Flex Processor so we can update particles ===
+        if (iFlexProcessor != null) {
+            uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(oGO, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
+            oFlexProc._oFlexProcessor = iFlexProcessor;
+        }
+        return oFlexParticles;
     }
+
+    public static T InstantiatePrefab<T>(string sPathResource, string sNameGO = null, Transform oParentT = null) where T : Component {
+        //###INFO: Use more of these generic types with the 'where' clause
+        // Instantiate the prefab at resource path 'sPathResource'.  We assume component 'T' is in the prefab!
+        //###IMPROVE: Use: GameObject prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/uFlex/Prefabs/Flex.prefab");
+        GameObject oNodeGOT = Resources.Load(sPathResource) as GameObject;          //###IMPROVE: We're supposedly not supposed to place stuff in Resources for performance... but so handy!  What is the better alternative??
+        if (oNodeGOT == null)
+            CUtility.ThrowExceptionF("###EXCEPTION in InstantiatePrefab<{0}>() Cannot find prefab '{1}'.    (Name: '{2}'  Parent: '{3}')", typeof(T).Name, sPathResource, sNameGO, oParentT.name);
+        GameObject oNodeGO = GameObject.Instantiate(oNodeGOT) as GameObject;        //###TODO: Turn most of these helper functions into template-based ones!
+        if (oNodeGO == null)
+            CUtility.ThrowExceptionF("###EXCEPTION in InstantiatePrefab<{0}>() Cannot instantiate object!   Path: '{1}'    (Name: '{2}'  Parent: '{3}')", typeof(T).Name, sPathResource, sNameGO, oParentT.name);
+        oNodeGO.SetActive(true);           // Some prefabs saved de-activated.  Make sure each instantiation is activated!
+        if (sNameGO != null)
+            oNodeGO.name = sNameGO;
+        else
+            oNodeGO.name = oNodeGOT.name;
+        Transform oNodeT = oNodeGO.transform;
+        if (oParentT)
+            oNodeT.SetParent(oParentT);
+        //else
+        //    oNodeT.SetParent(CGame.transform);     // Put as child of CGame if no parent set to avoid polluting root space.  ###MOVE?
+        oNodeT.localPosition = Vector3.zero;
+        oNodeT.localRotation = Quaternion.identity;
+        oNodeT.localScale = Vector3.one;
+        //T oComponent = oNodeGO.GetComponent<T>();
+        T oComponent = CUtility.FindOrCreateComponent<T>(oNodeGO);
+        if (oComponent == null)
+            CUtility.ThrowExceptionF("###EXCEPTION in InstantiatePrefab<{0}>() Cannot find component '{0}'    (Path: '{1}'  Name: '{2}'  Parent: '{3}')", typeof(T).Name, sPathResource, sNameGO, oParentT.name);
+        return oComponent;
+    }
+
     #endregion
 
     #region === Find ===
@@ -194,59 +238,72 @@ public class CUtility {         // Collection of static utility functions
 			CUtility.ThrowException("**Err: FindSymmetricalBodyNode() could not find symmetry node for " + oNodeSrc.name);
 		return oNodeDst;
 	}
-	#endregion
+    #endregion
 
-	#region === Value Changes ===
-	//public static bool CheckIfChanged(ref float nValueNew, ref float nValueOld, float nMin, float nMax, string sMsg) {			// Simple utility function that checks if the values have changed and if so
-	//	nValueNew = Mathf.Clamp(nValueNew, nMin, nMax);
-	//	if (nValueOld == nValueNew)
-	//		return false;
-	//	nValueOld = nValueNew;
-	//	if (G.C_DisplayOnCheckIfChanged)
-	//		Debug.Log("Changed: " + sMsg + "=" + nValueNew + " (from " + nValueOld + ")");
-	//	return true;
-	//}
+    #region === PhysX Joints ===
+    public static void Joint_SetSlerpPositionSpring(ConfigurableJoint oJoint, float nValue) {
+        JointDrive oJD = oJoint.slerpDrive;
+        oJD.positionSpring = nValue;
+        oJoint.slerpDrive = oJD;
+    }
+    public static void Joint_SetSlerpPositionDamper(ConfigurableJoint oJoint, float nValue) {
+        JointDrive oJD = oJoint.slerpDrive;
+        oJD.positionDamper = nValue;
+        oJoint.slerpDrive = oJD;
+    }
+    #endregion
 
-	//public static bool CheckIfChanged(bool nValueNew, ref bool nValueOld, string sMsg) {
-	//	if (nValueOld == nValueNew)
-	//		return false;
-	//	nValueOld = nValueNew;
-	//	if (G.C_DisplayOnCheckIfChanged)
-	//		Debug.Log("Changed: " + sMsg + "=" + nValueNew + " (from " + nValueOld + ")");
-	//	return true;
-	//}
-	#endregion
+    #region === Value Changes ===
+    //public static bool CheckIfChanged(ref float nValueNew, ref float nValueOld, float nMin, float nMax, string sMsg) {			// Simple utility function that checks if the values have changed and if so
+    //	nValueNew = Mathf.Clamp(nValueNew, nMin, nMax);
+    //	if (nValueOld == nValueNew)
+    //		return false;
+    //	nValueOld = nValueNew;
+    //	if (G.C_DisplayOnCheckIfChanged)
+    //		Debug.Log("Changed: " + sMsg + "=" + nValueNew + " (from " + nValueOld + ")");
+    //	return true;
+    //}
 
-	#region === Materials ===
-	//public static int FindMaterialIndexByMaterialName(ref SkinnedMeshRenderer oSkinMeshRend, string sMaterialName) {
-	//	string sMatNamePlusInstancePostFix = sMaterialName + " (Instance)";			//###WEAK? Frequently Unity will INSTANCE material and append this prefix... look into why??
-	//	for (int nMat = 0; nMat < oSkinMeshRend.sharedMaterials.Length; nMat++) {
-	//		Material oMat = oSkinMeshRend.sharedMaterials[nMat];
-	//		if (oMat.name == sMaterialName || oMat.name == sMatNamePlusInstancePostFix)
-	//			return nMat;
-	//	}
-	//	CUtility.ThrowException("FindMaterialIndexByMaterialName() could not find material " + sMaterialName + " on skinned mesh " + oSkinMeshRend.transform.name);
-	//}
-	//public static void CopyMaterial(Material oMatSrc, ref Material oMatDst) {
-	//	oMatDst.CopyPropertiesFromMaterial(oMatSrc);		//###INFO: How to copy a material	//###WEAK: Not transfering material names!
-	//	oMatDst.name = oMatSrc.name;
-	//}
-	#endregion
+    //public static bool CheckIfChanged(bool nValueNew, ref bool nValueOld, string sMsg) {
+    //	if (nValueOld == nValueNew)
+    //		return false;
+    //	nValueOld = nValueNew;
+    //	if (G.C_DisplayOnCheckIfChanged)
+    //		Debug.Log("Changed: " + sMsg + "=" + nValueNew + " (from " + nValueOld + ")");
+    //	return true;
+    //}
+    #endregion
 
-	#region === Debug Rendering ===
-	//public static void BakeSkinnedMeshAndShow(Transform oNodeParent, string sNodeName, ref Mesh oMesh, Material oMat, bool bMakeVisible) {		//###OBS?
-	//	//###INFO: This will draw what is baked...  Useful for debugging!	
-	//	GameObject oMeshBakedDumpGO = new GameObject(sNodeName, typeof(MeshFilter), typeof(MeshRenderer));
-	//	oMeshBakedDumpGO.transform.SetParent(oNodeParent);
-	//	oMeshBakedDumpGO.GetComponent<MeshFilter>().mesh = oMesh;
-	//	MeshRenderer oMeshRend = oMeshBakedDumpGO.GetComponent<MeshRenderer>();
-	//	int nNumMaterials = 25;						// Give plenty of materials so every submesh is drawn
-	//	oMeshRend.sharedMaterials = new Material[nNumMaterials];			//###CHECK!
-	//	for (int nMat = 0; nMat < nNumMaterials; nMat++)
-	//		oMeshRend.sharedMaterials[nMat] = oMat;
-	//	oMeshRend.enabled = bMakeVisible;
-	//	Debug.Log("BakeSkinnedMeshAndShow() created: " + sNodeName);
-	//}
+    #region === Materials ===
+    //public static int FindMaterialIndexByMaterialName(ref SkinnedMeshRenderer oSkinMeshRend, string sMaterialName) {
+    //	string sMatNamePlusInstancePostFix = sMaterialName + " (Instance)";			//###WEAK? Frequently Unity will INSTANCE material and append this prefix... look into why??
+    //	for (int nMat = 0; nMat < oSkinMeshRend.sharedMaterials.Length; nMat++) {
+    //		Material oMat = oSkinMeshRend.sharedMaterials[nMat];
+    //		if (oMat.name == sMaterialName || oMat.name == sMatNamePlusInstancePostFix)
+    //			return nMat;
+    //	}
+    //	CUtility.ThrowException("FindMaterialIndexByMaterialName() could not find material " + sMaterialName + " on skinned mesh " + oSkinMeshRend.transform.name);
+    //}
+    //public static void CopyMaterial(Material oMatSrc, ref Material oMatDst) {
+    //	oMatDst.CopyPropertiesFromMaterial(oMatSrc);		//###INFO: How to copy a material	//###WEAK: Not transfering material names!
+    //	oMatDst.name = oMatSrc.name;
+    //}
+    #endregion
+
+    #region === Debug Rendering ===
+    //public static void BakeSkinnedMeshAndShow(Transform oNodeParent, string sNodeName, ref Mesh oMesh, Material oMat, bool bMakeVisible) {		//###OBS?
+    //	//###INFO: This will draw what is baked...  Useful for debugging!	
+    //	GameObject oMeshBakedDumpGO = new GameObject(sNodeName, typeof(MeshFilter), typeof(MeshRenderer));
+    //	oMeshBakedDumpGO.transform.SetParent(oNodeParent);
+    //	oMeshBakedDumpGO.GetComponent<MeshFilter>().mesh = oMesh;
+    //	MeshRenderer oMeshRend = oMeshBakedDumpGO.GetComponent<MeshRenderer>();
+    //	int nNumMaterials = 25;						// Give plenty of materials so every submesh is drawn
+    //	oMeshRend.sharedMaterials = new Material[nNumMaterials];			//###CHECK!
+    //	for (int nMat = 0; nMat < nNumMaterials; nMat++)
+    //		oMeshRend.sharedMaterials[nMat] = oMat;
+    //	oMeshRend.enabled = bMakeVisible;
+    //	Debug.Log("BakeSkinnedMeshAndShow() created: " + sNodeName);
+    //}
 
     public static Color GetRandomColor() {
         //int nColorChoice = (int)(UnityEngine.Random.value * _aColorsForDebug.Length);
@@ -336,37 +393,61 @@ public class CUtility {         // Collection of static utility functions
 		oStream.Read(aBuf, 0, 4);
 		return BitConverter.ToSingle(aBuf, 0);
 	}
-	#endregion
+    #endregion
 
-	#region === Serialize Actors ByteArrays (Blender <-> Unity) ###OBS ===
-	//public static string BlenderStream_ReadStringPascal(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
-	//	byte nLen = aBytes[nOffset]; nOffset++;
-	//	StringBuilder strBuilder = new StringBuilder();
-	//	for (byte nChar = 0; nChar < nLen; nChar++) {
-	//		strBuilder.Append((char)aBytes[nOffset]);
-	//		nOffset++;
-	//	}
-	//	return strBuilder.ToString();
-	//}
-	//public static Vector3 ByteArray_ReadVector(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
-	//	Vector3 vec;
-	//	vec.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	vec.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	vec.z = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	return vec;
-	//}
-	//public static Quaternion ByteArray_ReadQuaternion(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
-	//	Quaternion quat;
-	//	quat.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	quat.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	quat.z = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	quat.w = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
-	//	return quat;
-	//}
-	#endregion
+    #region === Serialize Actors ByteArrays (Blender <-> Unity) ###OBS ===
+    //public static string BlenderStream_ReadStringPascal(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
+    //	byte nLen = aBytes[nOffset]; nOffset++;
+    //	StringBuilder strBuilder = new StringBuilder();
+    //	for (byte nChar = 0; nChar < nLen; nChar++) {
+    //		strBuilder.Append((char)aBytes[nOffset]);
+    //		nOffset++;
+    //	}
+    //	return strBuilder.ToString();
+    //}
+    //public static Vector3 ByteArray_ReadVector(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
+    //	Vector3 vec;
+    //	vec.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	vec.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	vec.z = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	return vec;
+    //}
+    //public static Quaternion ByteArray_ReadQuaternion(ref byte[] aBytes, ref int nOffset) {		// Used to serialize strings packed by struct.pack in Blender Python.  (First byte is string length)
+    //	Quaternion quat;
+    //	quat.x = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	quat.y = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	quat.z = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	quat.w = BitConverter.ToSingle(aBytes, nOffset); nOffset += 4;
+    //	return quat;
+    //}
+    #endregion
 
-	#region === Strings ===
-	public static string ConvertCamelCaseToHumanReadableString(string sCamelCase) {		// Returns a string like _MyCamelCaseVariable into "My Camel Case Variable" for GUI display of our internal variable (typically used by reflection)
+    #region === Serialize BinaryWriter / BinearyReader Vector3 and Eulers ===
+    public static void SaveBinary_Vector3(BinaryWriter oBW, Vector3 vec) {
+        oBW.Write(vec.x);
+        oBW.Write(vec.y);
+        oBW.Write(vec.z);
+    }
+    public static Vector3 LoadBinary_Vector3(BinaryReader oBR) {
+        CGame.INSTANCE.s_vecUtility.x = oBR.ReadSingle();
+        CGame.INSTANCE.s_vecUtility.y = oBR.ReadSingle();
+        CGame.INSTANCE.s_vecUtility.z = oBR.ReadSingle();
+        return CGame.INSTANCE.s_vecUtility;
+    }
+    public static void SaveBinary_QuaternionAsEuler(BinaryWriter oBW, Quaternion quat) {
+        SaveBinary_Vector3(oBW, quat.eulerAngles);
+    }
+    public static Quaternion LoadBinary_QuaternionAsEuler(BinaryReader oBR) {
+        CGame.INSTANCE.s_vecUtility = LoadBinary_Vector3(oBR);
+        CGame.INSTANCE.s_quatUtility.eulerAngles = CGame.INSTANCE.s_vecUtility;
+        return CGame.INSTANCE.s_quatUtility;
+    }
+
+
+    #endregion
+
+    #region === Strings ===
+    public static string ConvertCamelCaseToHumanReadableString(string sCamelCase) {		// Returns a string like _MyCamelCaseVariable into "My Camel Case Variable" for GUI display of our internal variable (typically used by reflection)
 		string sHumanReadable = "";
 		foreach (char ch in sCamelCase) {
 			if (ch >= 'A' && ch <= 'Z')
@@ -376,17 +457,21 @@ public class CUtility {         // Collection of static utility functions
 		}
 		return sHumanReadable.Trim();
 	}
-	public static string[] SplitCommaSeparatedPythonListOutput(string sPythonListOutput) {  // Takes the output of python command 'str(aMyList)' that looks like "['foo', 'bar']" and returns a string array containing "foo" and "bar"
-		if (sPythonListOutput.Length < 2) {
-			Debug.LogWarning("#Warning: Invalid string length in SplitCommaSeparatedPythonListOutput()");
-			return null;
-		}
-		sPythonListOutput = sPythonListOutput.Substring(1, sPythonListOutput.Length - 2);		// Remove the [ and ] from the python output
-		string[] aSeparators = new string[] { ", " };       //###IMPROVE: Remove space after comma to save bandwidth??
-		string[] aElements = sPythonListOutput.Split(aSeparators, StringSplitOptions.RemoveEmptyEntries);     // Python str(aMyList) separates each item with comma and a space
-		for (int nElement = 0; nElement < aElements.Length; nElement++)			// Remove the single quotes (') that python inserted at the beginning and end of each element
-			aElements[nElement] = aElements[nElement].Substring(1, aElements[nElement].Length - 2);
+	public static string[] SplitDelimiterString(string sStringDelimited, string sDelimiter) {  // Splits a string like "'foo', 'bar'" and returns a string array containing "foo" and "bar"
+		//if (sStringDelimited.Length < 2) {
+		//	Debug.LogWarning("#Warning: Invalid string length in SplitCommaSeparatedPythonListOutput()");
+		//	return null;
+		//}
+		string[] aDelimiters = new string[] { sDelimiter };       //###IMPROVE: Remove space after comma to save bandwidth??
+		string[] aElements = sStringDelimited.Split(aDelimiters, StringSplitOptions.RemoveEmptyEntries);     // Python str(aMyList) separates each item with comma and a space
+		char[] aTrimChars = new char[] { '\'', '\"' };
+		for (int nElement = 0; nElement < aElements.Length; nElement++)         // Remove the possible single and double quotes (', ") that python inserted at the beginning and end of each element
+			aElements[nElement] = aElements[nElement].Trim(aTrimChars);
 		return aElements;
+	}
+	public static string[] SplitDelimiterString_Python(string sStringDelimited) {		// Takes the output of python command 'str(aMyList)' that looks like "['foo', 'bar']" and returns a string array containing "foo" and "bar"
+		sStringDelimited = sStringDelimited.Substring(1, sStringDelimited.Length - 2);      // Remove the [ and ] from the python output
+		return SplitDelimiterString(sStringDelimited, ", ");
 	}
 	#endregion
 
@@ -494,35 +579,35 @@ public class CUtility {         // Collection of static utility functions
     #endregion
 	
     #region === UI ===
-    public static void WndPopup_Create(CUICanvas oCanvas, EWndPopupType eWndPopupType, CObject[] aObjects, string sNamePopup, float nX = -1, float nY = -1) {
+//    public static void WndPopup_Create(CUICanvas oCanvas, EWndPopupType eWndPopupType, CObj[] aObjects, string sNamePopup, float nX = -1, float nY = -1) {
 
-		oCanvas.CreatePanel("TODO", "TODO", aObjects);			//###DEV21:!!!!!!!
+//		oCanvas.CreatePanel("TODO", "TODO", aObjects);			//###DEV21:!!!!!!!
 
 
   //      //=== Construct the dialog's content dependent on what type of dialog it is ===
   //      CUIPanel oPanel = CUIPanel.Create(oCanvas);           //####DESIGN!  ####SOON ####CLEANUP?
   //      int nRows = 0;
   //      int nPropGrps = 0;
-  //      foreach (CObject oObj in aObjects) {
-  //          foreach (CPropGrp oPropGrp in oObj._aPropGrps) {   //###BUG!: Inserts one extra!  Why??
-  //              oPropGrp._oUIPanel = oPanel;                    //####IMPROVE ####MOVE??
-  //              //////////oPropGrp.CreateWidget(oListBoxContent);
-  //              foreach (int nPropID in oPropGrp._aPropIDs) {
-  //                  CProp oProp = oObj.PropFind(nPropID);
-  //                  nRows += oProp.CreateWidget(oPropGrp);
+  //      foreach (CObj oObj in aObjects) {
+  //          foreach (CObjGrp oObjGrp in oObj._aPropGrps) {   //###BUG!: Inserts one extra!  Why??
+  //              _oObj._oUIPanel = oPanel;                    //####IMPROVE ####MOVE??
+  //              //////////_oObj.CreateWidget(oListBoxContent);
+  //              foreach (int nPropID in _oObj._aPropIDs) {
+  //                  CObj oObj = oObj.Find(nPropID);
+  //                  nRows += oObj.CreateWidget(oObjGrp);
   //              }
   //              nPropGrps++;
   //          }
   //      }
-  //      oCanvas.transform.position = CGame.INSTANCE._oCursor.transform.position;
+  //      oCanvas.transform.position = CGame._oCursor.transform.position;
   //      oCanvas.transform.rotation = Camera.main.transform.rotation;
-    }
+//    }
 
-	public static RaycastHit RaycastToCameraPoint2D(Vector3 vecScreenPoint, uint nLayerMask) {    			
+	public static RaycastHit RaycastToCameraPoint2D(Vector3 vecScreenPoint, int nLayerMask) {    			
 		// Builds a ray from camera point to the viewspace position of the mouse cursor into the 3D scene... Returns the first physics collider it finds in the requested layers
 	    Ray oRay = Camera.main.ScreenPointToRay(vecScreenPoint);
 	    RaycastHit oRayHit;
-	    Physics.Raycast(oRay, out oRayHit, Mathf.Infinity, (int)nLayerMask);		// Casts the ray and get the first game object hit
+	    Physics.Raycast(oRay, out oRayHit, Mathf.Infinity, nLayerMask);		// Casts the ray and get the first game object hit
 		return oRayHit;
 	}
 	#endregion
@@ -537,8 +622,9 @@ public class CUtility {         // Collection of static utility functions
 
 	public static void ThrowExceptionF(string sMsg, params object[] aArgs) {		//###INFO: How to accept and process variable arguments!
 		sMsg = "[EXCEPTION] " + sMsg;
-		//EditorApplication.isPaused = true;
-		Debug.LogErrorFormat(sMsg, aArgs);
+        //EditorApplication.isPaused = true;
+        string sMsgExpanded = string.Format(sMsg, aArgs);
+		Debug.LogError(sMsgExpanded);
 		Debug.Break();
 		Debug.LogError("[PLACE BREAKPOINT HERE]");	//###NOTE: Put breakpoint here to catch all exception and look up stack tree.
 	}

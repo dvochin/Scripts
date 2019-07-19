@@ -5,30 +5,33 @@ using System.Collections.Generic;
 public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that operates on a heavily-reduced 'rim mesh' with a few hundred polygons only at the 'rim' of the skinned mesh to enable fast runtime baking of the needed polygons to 'attach' softbody/clothing parts to a skinned mesh.
 
 	//---------------------------------------------------------------------------	MEMBERS
-	[HideInInspector]	public 	Mesh				_oMeshBaked;
+	                            Mesh				_oMeshBaked;
 	[HideInInspector]	public 	GameObject			_oDebugBakedMeshOutputGO;		// Debug dump of baked skinned mesh.  Used to visualize the shape of what has been baked
+                                uint                _nFrameCount_LastBake;          // Ensure we only bake once per frame
+    //---------------------------------------------------------------------------	INIT
 
-	//---------------------------------------------------------------------------	INIT
+    public virtual void Initialize() {
+		_oMeshBaked = new Mesh();
+        if (GetComponent<Renderer>())
+		    GetComponent<Renderer>().enabled = false;						// Our skinned mesh exists only for providing fast position of our skinned verts and normals... we never display (unless for debugging)
+    }
 
-	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
+    public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
 		base.OnDeserializeFromBlender(aExtraArgs);
-		GetComponent<Renderer>().enabled = false;						// Our skinned mesh exists only for providing fast position of our skinned verts and normals... we never display (unless for debugging)
-		_oMeshBaked = new Mesh();						//###INFO: We can allocate mesh for BakeMesh() at beginning!  Yes!!
+        Initialize();
 	}
 
-
-	//---------------------------------------------------------------------------	FAST SKINNED VERTEX POSITIONING
-
-	//public virtual Vector3 GetSkinnedVertex(int nVert) {			// Much faster function than the manual function above that takes advantage of batch skinning made possible by 'BakeMesh()'
-	//	return _memVerts.L[nVert];									//###OPT: Make inline or remove function?
-	//}
-
-	//public virtual Vector3 GetSkinnedNormal(int nVert) {			// Much faster function than the manual function above that takes advantage of batch skinning made possible by 'BakeMesh()'
-	//	return _memNormals.L[nVert];
-	//}
-
-	public void Baking_UpdateBakedMesh() {
-		_oSkinMeshRendNow.BakeMesh(_oMeshBaked);
+	public Mesh Baking_GetBakedSkinnedMesh() {
+        if (_oSkinMeshRend == null) {           //#DEV26: ###WEAK: Have to hack this super-important class for static colliders to collide properly with fluids... can find another way?
+            MeshCollider oMeshCol = GetComponent<MeshCollider>();
+            return oMeshCol.sharedMesh;
+        } else { 
+            if (_nFrameCount_LastBake != CGame._nFrameCount) {
+                _nFrameCount_LastBake  = CGame._nFrameCount;
+                _oSkinMeshRend.BakeMesh(_oMeshBaked);
+            }
+            return _oMeshBaked;
+        }
 	}
 
 	public void Baking_DumpBakedMeshToDebugGameObject() {
@@ -41,12 +44,6 @@ public class CBSkinBaked : CBSkin {		// An extension of CBSkin skinned mesh that
 		} else {
 			oMF = _oDebugBakedMeshOutputGO.GetComponent<MeshFilter>();
 		}
-		_oSkinMeshRendNow.BakeMesh(oMF.mesh);
-	}
-
-	//---------------------------------------------------------------------------	UPDATE
-
-	public override void OnSimulate() {		//####CHECK: Call base class?       //###OBS!
-		Baking_UpdateBakedMesh();
+        oMF.mesh = Baking_GetBakedSkinnedMesh();
 	}
 }

@@ -1,3 +1,748 @@
+===== DEV =====
+
+- Emitter particle blowup in first few frames.
+- Test trigger c again.
+
+--- New fluid chain
+	- Redo implementation to have particle groups be one slice?
+	- Consecutive pins must be close to one another to avoid long strings
+
+- Particles still going way into skin...
+- Low density filter of particles... with auto culling??
+- Test onto static
+- Make viscosity changes to try to reduce zero-density particles.
+
+- When setting springs magically teleport particles that are too far close to master particle before flattening to plane
+- Need more accurate calc of fluid collision plane that accounts for particle size
+++ Need to prevent crossing under plane!
+- Adjust spring mult and strength
+- Need to clear baked fluid properly... and all pins??
+- Hack with ground particle killing... should glue to a static collider
+- Retest with static colliders
+- Fluid built twice cuz of dump Flex rebuild... keep?
+
+- Collision into fluid stream sucks!
+	- Properly control fluid from the wand!
+
+--- Static collision in both Flex scenes
+	- CFluidParticlePin needs to register itself into fluid baked
+	- Need to bake before start
+	- No need to iterate
+	- Doesn't match bones error... why baking??
+	- Object must be at origin!
+	- Bad hacks in code... subclass??
+							
+- Raycast detection done quickly
+- Why wand moving emitter has collision problems??
+	- New raycasting expensive?  FPS low!  time!
+- Particles glue to legs all over the place!!
+- Fluid packer called 6x!!  Editor??  Needed??
+
+- C_MaxPackedFluidParticles serialized at all frames!!!!!WTF??
+- Hack between pin and particle not having a group... subclass?
+- As we keep groups remove pinning to pins (no longer needing rotation)
+- Springs not destroyed?
+- Use colors properly!
+- We're keeping pins to pin baked ones cuz much less bones... do we really keep groups??
+- Runs out of particles and breaks!
+- WTF wrong with pin UpdatePosition with aVerts??
+
+- Q: Are all particles child of particle groups??
+	- Have subclasses?
+	- CFluidParticlePin has its own particle
+	
+- BUG: Why registered neighbor dissapear on pins?  Who deletes them?
+- InspectParticles obsolete?
+- Have the group FSM can all the particles when it's all done?
+- We currently don't re-used culled particles cuz of grouping.  Add a level of indirection?
+
+
+- Mod debug renderer to draw baked particles
+	- Merge the two 'mergers' together?
+- Create CFluidBaked and change owner to fluid mgr
+- Have capacity to add particles
+- Manual control of P a pain cuz of pins
+- C control doesn't stop it
+
+--- Baked Fluids
+	--- TODO
+		- Find out WTF the performance goes out to!
+			- Debug renderer a lot faster???
+		- Baked skinned mesh done very quickly...  REVISE
+		- Currently only on one body... needs to support multiple body in one baked mesh.
+		- Need to connect to the flow of CParticleGroup to bake and the destroy itself.
+			- Only 'bake' the particles that participate to the image.  Inner particles can be culled at this stage via 'density'.  
+				- Make tests where culled particles are instead pushed an offset amount so we can see what they look like.
+				- No value to our current rendering filter?
+		- Redo 'GetNextParticle' to return next in 'available queue'.  Dismiss simply clears particle and adds to queueu
+		- Because we can cull at renderer perhaps we can change culling design in group?
+		+ Par Group finding the pinning plane by brute force super slow. Switch to PhysX sphere collision test?
+			- Can sync up with some of the work with CMeshSurface?
+	--- IMPROVE
+		- Colors truly useless??  Maybe SSFPro argument can reveal??  If not optimize away!
+		- FlexFluidRendPro has extra properties... test!
+		- ssfpro should be automatically added to any camera and fully configured
+		- Enhance 1/3 weighting to closest?
+		- Would be nice luxury to have some sort of collider being formed around the baked particles
+	--- LATER
+		- Later we can add conversion to mesh via MarchingCubes?
+	--- BUGS
+		- emitter flag off at start is never set by CGame??  Check game starts with nothing emitted
+	--- OPT
+		+ Dumb usage of FindObjectsOfType() killing performance if we have tons of transforms!!!
+		- Put back Flex GPU usage in dump
+		- Switch to an implementation where pinned particles are no longer Flex particles?
+		- Go for 2 bones instead of 3?
+		- Reduce size of real fluid particles (e.g. concept of 'squirts')
+			- Implement new life-cycle management to make this work.
+			- Bake everything before we need the particles?
+		- Remove complex tri springs for group to a single spring to master particle?
+			- Upon initial collision detection, pin master particle under plane by distance 'X' and setup springs to all slaves.
+				- Upon subsequent frames analyze each frames for their distance to master and when they approach 'X' pin them too.
+				- That would make the 'pinned particle bank' obsolete??
+	--- IDEAS
+		- Only convert the fluid particles that are very dense (surrounded by other particles) as out-of-flex.  This way we still get collision working
+		- Have the concept of a 'squirt' where the entire thing is baked before real fluid particles available again?
+			- Would have to change current concept of a particle group as (too granular?)
+		- Modify CFlexFluidParticle to follow all real and baked 'particles' through code (to convert between the modes, etc)
+		? Have a class that manages every particle at all times.
+		? Have smart arrays that store which particle is active, which inactive, etc
+
+	
+--- Finish 26
+	- Bone move no longer working!
+	- 'Menu button' precious and we have two... same or different for each wand??
+	- Design problem with joystick mode... can't return to idle mode so useless!
+	- Double fucking problem on wand pivot!!
+	- Context-sensitive property edit with web panels appearing on the right would be great!
+		- Design multi-panel web structure?
+	- Can't drive hand with xyz rotations in manual mode!!
+	- Need to finalize design of 'menu button' / A / X throughout codebase.
+		- What non-essential feature to give Oculus button B / Y??  (IDEA: Vive implementation can access Oculus button B/Y with long press or double tap?)
+	- Scan through the many DEV26 tags
+	- Pack the best todos from this file into their appropriate code files
+
+--- Leftover 26
+	- What to do about body pinning? (Not moving with body yet)
+		- What to do with old path tracer code?
+		- Need to enhance the body surface areas
+	
+--- Oculus new
+	- Try out the new Oculus Avatar SDK for awesome hands entries!
+	- Move more stuff to headset
+	- GUI interaction broken! (Button B)  Have to remap anyway
+	- Implement double and possibly triple mode on trigger (partly pressed, fully pressed, fully pressed 1 sec) for both Oculus and Vive
+	- Same parent of pivot shit again... FIX!!!
+	- Why spine bones so soft now?
+	- Clean up all the extra Oculus crap Vive can't support (thumb rest, grip axis, A, B buttons into Vive button)
+	- Then... fucking speech recognition!!
+	
+--- VIVE
+	- Headset not reparented!  (gaze broken cuz of this)
+	- Does the ForceUpdate() help??
+		- Keep #defines for abstraction with Oculus / VRTK for SteamVR?
+		- Maybe we can just go back to VRTK if we fix the bad problems we were having with missed controller info?  (bad frame rate?)
+	- How to set start cam pos?
+	- Vive trigger has a 'click' at the end of its motion... can be useful?
+		- Have trigger dual mode?
+	- Wands... how come they stay at origin?  Not subchild??
+	- We had a bunch of hacks in codebase... find them, import its Git code and put back?
+	- Convert touchpad click to 'action 2' given previous 'action 1'
+	- Need to recalibrate cam speed for vive
+	- Why these fucking vive crashes??? Unity keeps running just at 100ms!
+		- FrameEvents.XRBeginFrame.WaitForGPU taking 85ms!!
+	__DEBUG__;__MOD_FLEX__;__VIVExxx__;__OCULUS__;VRTK_DEFINE_OCULUS_UTILITIES_1_12_0_OR_NEWER;VRTK_DEFINE_SDK_OCULUS;VRTK_DEFINE_SDK_OCULUS_AVATAR;VRTK_DEFINE_SDK_STEAMVR;VRTK_DEFINE_STEAMVR_PLUGIN_1_2_1_OR_NEWER;VRTK_DEFINE_STEAMVR_PLUGIN_1_2_2_OR_NEWER;VRTK_VERSION_3_3_0;VRTK_VERSION_3_3_0_OR_NEWER;VRTK_VERSION_3_1_0_OR_NEWER;VRTK_VERSION_3_2_0_OR_NEWER;VRTK_VERSION_3_2_1_OR_NEWER
+
+
+
+	
+--- MISC
+- IDEA: Have ability to freeze only fluid simulator for debugging!
+- IDEA: Have emitter own the particle groups.  Adjust iterators for this.  (Better lifecycle management for squirts?)
+- REMEMBER: Reduce # fluid particles in bank to what we need!
+- IDEA: Use ReSharper to clean up old junk!
+- IDEA: GL.Begin(GL.QUADS); can draw instead of our debug lines!  See https://docs.unity3d.com/ScriptReference/MonoBehaviour.OnPostRender.html
+- IDEA: Need 'phases' in frame udpate for 1) All bones finalized 2) All baking occurs, 3) All baking processing 4) All rendering
+- IDEA: Fallout4VR-style joystick menu for the modes (8-way instead of 12) with menu?
+- IMPROVE: 		allCursors = Resources.Load<Texture2D>("Browser/Cursors");  		var listObj = Resources.Load<TextAsset>("Browser/Cursors");
+- IDEA: Sprite is an efficient way to mark things... re-used to mark on body?
++ RES: Marching cubes on GPU and Unity!!! https://github.com/Scrawk/Marching-Cubes-On-The-GPU
+- RES: Marching cubes on Blender: https://github.com/mutantbob/blender-marching-cubes
+- IDEA: Have speech recognition work as <Verb> <Why Body> <Body Part> <Extra Arguments>
+	- List the most commonly used phrases so we can begin to design the grammar
+- IDEA: Grammar fill and intrepretration in jscript?
+- IDEA: Have user strap a wand to pelvis and track their pelvis movement in game (with him/her selecting what overal)
+- IDEA: Oculus SDK has beautiful hands and hand movements!  Can build caress system on that?  (Then what about Vive?) - SteamVR has beautiful wands for each type... of any use??
+- RES: Streaming Assets!  Read https://docs.unity3d.com/Manual/StreamingAssets.html
+- BUG: Sometime cannot move 'pivoted'!  But grabbing other wand then you can!!  WTF??
+- LEARNED: Having a zero distance in 'limit' = extremely strong joint with no spring
+- IDEA: Hand gestures to wrap around P and B!!
+- IDEA: Use thumb rest to popup the wand window on that wand??
+- IDEA: Start showing cursor when user a long time in joystick select mode??
+- IDEA: Collect stats on when bones are at their limits!
+	- Or print % off center as we test
+- IDEA: Have 'bone types' such as 'Twister', 'PrimaryBender', 'Extremity'
+- BUG: Wand direct move loses its connection!?!  Still in mode but no pos change from wand and sometimes drop!
+	- And still connected to rig!
+
+	
+--- SORT
+- Need to drive hand pin harder in manual mode (and on triple rotate axis too)
+- C too far from hand... reduce fingers more!
+- Manually remove collision between hand flex collider mesh and hands?  (Or keep the layers?)
+- Automated finger stability detection
+
+- Need to fully drive in manual... but how to avoid D6 instability??
+- Sleeping hand on one hand causes other to drop out!! WTF???
+- How come B caress so hot??
+- Collar right off!
+- Need to finalize how we're going to implement hand fingers... with PhysX or straight?
+	- Colliders?
+	- Need good hand shapes... how to draw them?  Props for now
+- Finger gravity?
+- Turned off Right hand
+- Double ObjMover_Start parenting problem
+	
+- Remove extra bone constraints
+- Damping AMAZING!
+- Tune pin angle strength
+- Rot strenght:
+	- Weird: setting it causes joint to converge... wtf???
+- Ang damp
+- How come collar doensn't go lower?
+- Extremity mass is VERY IMPORTANT!!! good at not accelerating too quickly!  (Set gravity off?)  Can find another way (RB damping?)
+	- Set mass more reaponable when not pinned?
+- Bend elbow by default with very small drive
+- Hand drive!!
+- Review the main bones and remove the superfluous axis 
+- Will need to set the default driving angles for most important bones so that body 'folds' properly
+- Complete the work of merging arm and leg into limb!
+
+
+
+
+
+--- Speech Recognition!!
+	- Rely on it for EVERYTHING for now = Only way to get to anything (no keys, buttons, wand buttons, etc)
+		- Once game matures we can build on top of that command system some helper GUIs to go voice-less
+	- Implement a simple model of <WhoDoesIt>.<ActionToPerform>.<ActionArgs>.<[Speed]> where modifiers
+		- Adopt that strict grammar for everything but... also add 'flattened accessors' that translate human-friendly phrases into our needed rigid grammar.
+			- E.g. 'Masturbate' -> 'Character One Masturbate With Right Hand' by filling in info with context, last selected, etc
+
+
+--- New joystick select / action mechanism
+	- Bone mover up mode should select what bone when in action and move that bone in trigger
+- WTF arm shake like that... against torso bones?
+- Wished hand to reach lower!
+- CPin or CSurfacePoint?
+- IDEA: could have both hands moving independently with 2 wands but some shared resource (cursor?) makes this impossible!
+
+?- anchor lost when we re-push?
+- DESIGN: Don't need so much limb stiffness when pinned as kinematic pin responsible for cancelling most of the gravity.
+
+--- PhysX drive test - Lessons learned	
+	- Joint_Slerp_Damper greatly reduces the strength of the spring!  Tune with it at 0!!
+	- RigidBody drag 0.5 goes a long way to avoid endless bouncing
+
+
+
+- PROBLEM: Leaving pin near a softbody will re-enable its static collider and repell / destabilize hand!
+	- Will need to activate kinematic colliders only when caressing and off the rest of the time?
+	- Will change / improve when we separate the softbody mesh collider mesh??
+- Lost the purple vis pin... have to make global anyway
+- Stabilize the fucking hand!  Adjust damping??  Pin strength??
+	- Set the most common properties of arm into menu and tune them!!
+	- shoulder str
+	- Remove y in shoulder rotation
+	- Hand Slerp str way too big!  Other bones??  How come not our constant 10??
+- Improve actor pins to update their position to skin
+	- To store these pins into poses we'll need to have mapping to un-changeable un-morphed source body!
+- Enhance pinning to include objects (floor, bed side, chair arm)
+- Hand Anchor adjustment and C center tracking!
+- Consider driving the pin strength via grip axis??
+
+--- Actor improvements
+	?- Need springs on all bone limits NOW
+	- Need to broadcast bone RB drag and angular drag to tune!
+		- Need a bit of damping on arms
+	- Trigger can get stuck!  Implement some safety?  (e.g. mode knows which button triggers it)
+
+--- Hands: 
+	- Implement several different hand shapes.
+	- Inversions between the hands?
+	- Keep hand kinematic?  
+	- Joint-based hands with no colliders useful to provide some finger movement?
+	- Fix right hand as the left
+	- Pins have to move with body!
+
+--- VR Wand Interaction TODO
+	- Bone move works well with actor pins but can't rotate bones very well... is baking working?
+		- Limb drive strength critical... user adjustable?  Stored in pose??  Fight between pin and baked angles??
+		- Need to finalize how we really move hands... what drive strength on arms &1 legs?  Does strength change?  User setting and stored in pose??  What about tough limb pose like arms up??
+		- Perhaps pulling bones with a spring & anchor instead of the limited wand rotate is best?
+		- Leaving some springs in place (e.g to spread legs or pull elbow up) would be of value?
+		- Bone grip not assigned to its own action...  Use it to set bones by angle instead of pulling pin??
+	- Gaze tracker on in all ops... disable!
+		- Users will need some kind of immersive 3D cursor...
+		- Simplify the many markers.  Color code
+	- Really should separate the softbodies mesh collider so hands can still be repelled properly by main body.
+	
+--- Wand / Browser interaction...
+	- Consider showing GUI (or pointer) when thumb on thumb rest?
+	- Remove VRTK pointer and use only our implementation?
+	- Browser implementation of cursor of any value?
+
+--- Hand movements
+	- Thumb penetrates
+		- Would be more convincing to place thumb more in line?
+	- Can refine hand collider that that basic box.
+	- Finalize hand layers and its name... 'Hands'??
+	- Gaze laser a problem... move into our code!
+	- Make right hand work too
+
+
+--- Misc
+- TODO: Need one damn headset gazer for the whole game!  Remove VRTK gazer, Wand marker and move into CGame!!
+- IDEA: have one button to reposition hands and then another to control it!!
+	- Conflic on trigger button between caress and bone move!  Use another button??
+- IDEA: Wand placing of hands really working and s31uper intuitive!!
+	- Eliminate body areas where hands can't go (e.g. top of head, fine facial features, inner breasts, etc)
+- IDEA: Marking: could use spotlight mounted on headset or point light at skin level?)
++++ PROBLEM: All joints have hard limits!  Set a bit of leeway with a spring for stability??
+- IDEA: IgnoreCollision(Collider collider1, Collider collider2) works between colliders!!
+- WISH: Wish I could trap the last error and display in our GUI!
+- IDEA: Debug.Log colors and context and keys!  Context enables Unity editor to select object!! Debug.Log("<color=red>Fatal error:</color> AssetBundle not found");  https://docs.unity3d.com/ScriptReference/ILogger.html
+- IMPROVE: marker sizes throughout... a constant in CGame?
+- P: Remove moving 'twist' bones (switch to bend)
+
+- Clean-up Actor garbage!!
+- Remove layers on right side and copy at runtime!
+- Can now identify body areas!
+	- Big implementation decisions!  affects wand button remapping, mode, what happens, etc... DESIGN!
+- Do we keep the tracing ability?  Does it need to process surface areas or is it just AI movement?  Need to sync up the code
+- Need to take our area defs all the way to original bodies!
+- Need to duplicate side surface areas
+- CFlexTriCol now derived from CSurfaceMesh but that behavior only needed by fluid scene one!
+- ~CSurfacePoint() working??
+- Rem out hand traversal for now (for 27?)
+- Web Browser 'Cursor Crosshair'?? (not moving!)  Trace into impl!
+
+
+
+
+
+
+
+
+--- Tagging body areas:
+	- Need to identify on collider mesh where N are, P tip, P L/R edges, C etc
+	- Can identify lines of verts (for randomization when going from one group to another)
+	- Need to build a graph on which group can navigate to which
+
+--- Accurate hand-body caress
+	- Hand collider for Phase I: No joints on fingers, 3D box for hand, spheres at end of fingers.  Anchor at palm pulling whole structure toward body collider
+	- Unfortunately we can't have hand / finger PhysX bones collide against BodySurface AND have these body parts in BodySurface!
+		- So... split the arms away from BodySurface mesh and give it yet another layer??
+	- IDEA: Hand doesn't need to be too close.  For now can hover it over by some distance and greatly simplify the fingers
+	- IDEA: Raycast from fingers every now and then to SLOWLY close / open the fingers based on body distance!!
+
+- Put back fingers on D6?
+- Need to cut hands out of main Flex collider?  Shitty!
+
+- Caressing System:
+	- Could have areas where caresses are possible in Blender vert group?
+		- Navmess capacity?
+	- Could store 3D rectangles at various body bones, have the mover code raycast along its new random direction, be caught by these recs, and these are raycast back to the collider for the actual vert path
+	- Could start hand close to body, give it a direction and it raycasts closer to the collider
+	- Could specifify hot areas on UV plane and back-convert to 3D verts
+	- For better randomization could have a system of well filling in equally over time and drained when visited so we visit everything.
+		- Fill speed indicates user's interest in that 'caress area'
+
+- Adopt hinge for feet too?
+	- Need full D6 for torso pins tho... how to implement cleanly?
+- Anchor adjust for palm of hand
+	- Doesn't seem to respond in a proper way... wtf??  connectedAnchor instead??
+- dtor on surface path!
+- Need to differentiate between targetting a softbody versus rigid body
+	- SoftBody:  
+		- We can't move the path with the softbody as it results in circular reference! -> Move with owning bone instead!
+	- RigidBody: 
+		- We'll need working PhysX collisions to work. 
+			- (Could also turn the hand into a softbody? although fingers too thin!)
+--- Design for Phase I - Hot videos
+	- Will need to have a bank of things the hands can do: lift B up/down, stroke P, caress belly, lift arm up, etc
+	- We'll need to quickly select what the wand controls: Hand, Hip, Full Body, B -> Use the joystick?
+	- But how to pick where hand goes... cursor? Joystick and headset gaze?
+	- How to pick which hand... Joystick and headset gaze?
+	
+
+- Need damping throughout
+- Need to change layer??  Now on Hotspot
+- remove d6 on fingers for hinge??
+
+
+--- Accurate full-body path tracing
+	- Set hand pin and have the playback move the hand pin.  Should work well for B but might have to find center for P?
+
+- Raycaster is VRTK for the dot... switch to our VrWand implementation upon trigger touch?
+	- When P is hit, find the opposite side, then center of P
+		- Find center P slice?
+- Fix keyboard!
+- Default pose load. use ListGrid.data.get
+
+--- Hand / P interactions
+	- Create good default pose
+		- Why default pose not loading??
+	- Put back wet P!  Fix damn eyelashes
+	- Put in the carpal bones?
+	- Finalize decision on finger collision. none at all??
+	- Tune finger params... damping useful!
+	- Finger explosion... why with no colliders?  Because of teleport?
+	- Design the different finger poses in code
+		- Auto load the proper poses based on proximity
+		- Auto-match to dick size?
+	- Ditch the CTrigger to auto-close fingers?
+
+-- Wishlist
+	- Start thinking on how to auto stroke cock
+	- How to park hands when not controlled?
+
+	
+- Would be nice to be able to move Flex particles from wand!  (to move P, B, etc)
+- W2U_PoseSet_SetPose not called!
+
+- Really need to trap console errors into visible Unity GUI!
+- Would be nice to have wand being context menu of arm and pinned the full thing
+	- Need a lot of work on browser-window dependencies / ownership.
+- Keyboard not functional right away!
+- Early work on raycast for auto-grip
+- Tune damping
+
+
+--- Small context-sensitive Wand GUI ---
+- Keep flat ID on Unity / Web side?  Go to a ordinal-per-CObj instead?
+- Combobox!!
+- Start entering CActorArm properties that will help phase I
+- Start working on what we need for video and hand / feet pins
+- Foot pins:
+	- For now will just be a child of the root actor
+- Hand pins:
+	- Will need to raycast each finger to fluid collider and then to closest bone?
+
+- Tree on JS-side offers a lot... base our JS implementation on it?  (e.g. sync between that and entire CGame CObj tree)
+- Q: What to strip away?  Toolbar?
+
+
+
+- Keyboard intermittent?
+- Custom log categories not shown in console.  Add programmatically!
+- Remove our dump console?
+- Auto-tab selection from wand angle
+- CBrowser root of all browser (including dependants... proper??)
+
+- Need new mechanism to switch wand context based on what is clicked (e.g. penis angles, fucking control, etc)
+	- Need control remapping and context of what each wand connects to.
+	- Need a (small) context menu for just what is selected
+
+- Auto load first body, first pose
+- Toolbar dissapears??  Cuz of exception??
+- web.CWndPopup created twice!
+
+?- Need key for dev tools in Unity
+?- Need icons for poses now
+
+
+
+--- SmartClient exploration:
+- Debugging: https://www.smartclient.com/smartclient-11.0/isomorphic/system/reference/SmartClient_Reference.html#group..debugging
+- Class.logXXX() better because of auto this... switch to it!  (and own window!0)
+	- Setup log categories
+	- Seeing into source code we can see how it works and how to redirect to our grid
+	- addToMasterLog() // anyone who wants to know when messages are added should observe this method!
+	- Can retrieve messages with Log.getMessages()... do periodically or override?
+- echo, echoAll(), echoLeaf() are all useful!
+- 'Style cells (add style)' for color coding of grid cells
+- 'RollOver Controls' for controls that appear!
+
+
+--- Game Init
+	--- DESIGN:
+		- Welcome screen: Who the two bodies are, gear icon for each, game mode, room selection, buttons for launch, edit pose, sequences, etc
+		- Character config: dual panes appear on each side to display all possible sliders
+
+--- DB Resource Load / Save
+	- Start full pipe to load / save binary resources of any type from Unity to DB!!
+	- From there develop pose load / save with GUI!
+	- Develop similar storage for body morphs with support for parts+
+	
+
+--- VR Wand Bone mover & angle baker:
+	- Make a decision in regards to left / right design differences.  Make each have a unique role or both can do the same??
+	--- Problems:
+		+ Bug with rotation of cam when remote moving!
+	--- Improve:
+		- Would be nice when hovering to have some visual indication of which bone / actor would be affected
+		- Disable some bone moves like twist?
+		- Need to re-weight all bone strengths...
+		- Bone mover strength adjustment??
+		- Cleanup old wand code?
+	--- Wishlist:
+		- Body colliders made of cylinders very coarse.  Break down into convex meshes?  Collide against fluid collider remapped to bones?
+		- Name of bone under 3D cursor?
+		- Transparency during move?  Or pin on overlay?
+	--- Problems:
+	--- Questions:
+		- Gravity during posing??
+		- Why toes so sluggish??
+		- Raycast dot: Existing VRTK implementation with Left Button X ok for everything?  (Add name of what we're editing?)
+		- What to do with arm and leg pins!
+	--- TODO
+		
+--- Context-sensitive VR panel
+	- Mouse pointer enhancements: proper cursor?  3D shape?  Gaze dot??
+	- Toolbar button don't work... need clicked child!
+	- Make cb work to send commands!
+	- Existing game mode bad?
+	- Errors in console about controls and 'remote debugging'
+		- Would be nice to have console in other window!
+	- Menu callback
+	- Create toolbar buttons for the major game modes / body edits (with radio buttons) and create the top-level browser-to-Unity flow
+	- Need to work on master / slave browsers with shared codebase.
+	- What to do about support panels?
+	- Need a mouse cursor?
+	
+--- Browser dev
+- Multi-window browser implementation a must.  Have one panel be the 'master one' that has the game logic and starts / destroys the other ones
+	- Choose the upper-left overlay window as master for the info variables
+- Browser has GUI mode with its own mapping... since VRTK can make it to Unity GUI maybe our mapping code is useless??
+- VR Wand panel a huge mess!  WTF all these components?  Need all that crap? Simplify as much as possible!
+	- What fucking layers?  Pick one and stick to it!
+?- Need to view / edit a CObj no matter what's in it...
+	- How to deal with the new CObj3 in browser editor?  A sub window?  A split grid?
+- Need full CObj property editing... CObj traversal, which CObj have values, callbacks to proper Unity code, etc
+- Explore DB table creation tool 
+- Make Browser windows the needed size in Unity and in web page!  (with handshaking between the two?)  How to have non-square sizes?
+
+	
+----- Phase 1 Simplification: First video -----
+- Need to implement an 'object of interest' selection process to enable a context menu / default action to be performed
+	- IDEA: Speak the modes during video recording
+- Need a small web GUI running on wand with sub-options
+- Need limb positioning and improved pinning
+- Need save / load of actors into server DB:  this includes pin position / orientation, limb configuration and baked angles.
+- Q: What about jscript implementation of game upper layer (CBone and up??)
+	- Where do we put the split?  CActor ported to C#
+- Need to finish cum with the 'baking' of particles as a skinned mesh.
+- Need to implement the top-level mode switching of the game
+	- Need CBody, CBodyBase, proxy implementations in jscript?
+- Need good home environment.
+	- Good lighting
+	- Good colliders
+
+----- Phase 2 Simplification track: Next videos -----
+?- Have recording of selected nodes for playback with different params
+	- Possible because of different dick size?
+	
+--- Creation of new JScript <-> Unity interface ---
+- What to expose to Unity eval?  CGame??  BB??
+- Full duplex comm layers between both sides?
+	- Can browser-side get response from Unity its call?  (Unity can get response from its eval via 'promises')
+
+
+
+
+
+
+--- Reword of Unity <-> Blender pipe
+- Inject strings into python console!
+- Rework communication pipe to include console output, trap errros to an error channel, and the data pipe (as before)
+
+--- VR Headset <-> Browser mouse emulation
+- ZenBrowser offers GUI browser!  Can remove our custom code with VRTK <-> Zen browser working ok?
+	- Mouse coordinates wrong because of optics of headset?
+- 2D arrow in browser or 3D arrow in Unity would be useful!  Does Zen browser have an arrow?
+ 
+- Doesn't cover whole width?>
+- Add visible objects to trace (in GWT?)
+- Huge hack to link the two... use some of the helper objects or subclass to avoid hack in main code?
+
+
+
+
+===== TODO? =====
+- Need Unity-side GUI buttons to make Browser test things happen (like reload)
+- Dump in old java-based implementation really good... port?
+- Would be good to be able to trap console.log to Unity-visible window!
+
+===== QUESTIONS =====
+- Do we list some CObj instances with a fixed ID with company-wide DB record entry?
+	- How to enforce which user gets access to which resource?
+
+===== MISC PROBLEMS =====
+- Enabling quality fluid crashes Unity when searching for objects!
+	
+===== RESOURCES =====
+- SearchCode = wow!!
+- isc has tons of useful stuff... how about its eval??  Use its log?, login? prompt, echo, keys?
+
+===== SORT =====
+
+
+
+
+--- New jscipt-centric design:???
+- Raw bone joints are exported directly to jscript: joint rotation, stiffness, isKinematic, etc
+	- jscript has everything needed to issue legitimate bone rotations within DAZ-defined bounds
+	- IDEA: All bones that have a body side (left/right) also have a third 'centric' bone that represents their common rotation
+		- left / right setting 'adds up' to the centric bone, being of course bound by DAZ boundaries.
+	- Database has the only information on bones joints.  Unity now pulls from that to connect the D6 joints together
+		- Q: What about bone colliders and weights?
+	- IDEA: When moving actor pins have two bone rigs: One invisible one to act as the 'Inverse Kinematic' solver and the presentation rig to 'bake' the angles that the invisible IK rig provides.
+	- IDEA: When moving / rotating the pelvis or chest pin, have the 'other pin' turn into a unmoveable (but rotatable) center with the moving pin moving around it with a spring joint (that keeps its length)
+		- Q: Have another bone indirection to service easy pelvic trusts for AI penetration?
+- New CObj and CObj design
+		- IDEA: Instead use UnityScript's 'eval' to directly execute verbatim strings from Web browser strings
+			- Q: Is there any value in porting some of the current Unity codebase to UnityScript to better leverage its 'eval'?
+		-
+	- Unity uses reflection to provide 'Get' / 'Set' methods for each property.
+		- For example a call to set Body1.Penis.Size routes to a 'SetSize()' call to the CPenis object of CBody.
+ 
+		0+.
+
+
+--- New Web-based GUI ---
+- Most basic needs: Slider property sheets:
+	- Unity sends a CObj
+		- SmartGWT builds slider property sheet from direct access of CObj and CObj properties
+			- (Java-side has CObj, CObj, CObjGrp proxies)
+	- Create custom data sources for CObj, CObjGrp, CObj, etc for full CRUD ops.  Data only in Unity!!
+- Start with menu toolbar & buttons
+- Questions:
+	- SmartGWTEE???:  Too much overhead right now for full server rig involving SQL server, Glassfish, Hibernate and the rest!
+
+
+--- VR-based posing ---
+- Actors now in BodyBase!!
+	- Auto-pinning & baking:
+		- Now have decent way to save actors!!
+			- Need to load & save to a database and have db management from combobox!
+	
+		- Need to save files of default bends for arms and legs
+			- Also include a (Return to default) fake file
+		- What to do about arm collar?
+		- What to do about gravity & posing??  Have option on / off??
+		- Set joint angles?
+
+	- DEV
+		- Have auto angle bake run when unpinning?  Or when done moving a bone?  Or done regularly for 'plasticity'?
+		- Implement symmetry
+		- Offer direct bone manipulation for the most important bones (leg, knee, foot, shoulder, elbow, hand)
+
+	- New design
+		- No longer based on particles for cloth fit (tri col).  Rem code??
+		- Not getting any bones from Blender... need them?
+		- Script changes
+		- Pose load
+		- Pose / actors can act upon skin-only mesh or the SoftBody composite = different mode (When CBody exists)
+		- All shape keys downloading now... cache them!
+		- Strip down CBodyBase to the core.  Mothball CBody for a while.  As we work on posing this will greatly clean up CBodyBase
+		- Strip down Blender-side too.
+		- Will need to clarify the mode between PhysX bones to T-pose.  Same with PhysX colliders and pose teleport
+			- Can integrate some of this with the game modes?  (Or just add flags?)
+		- Problem with 'Base' creation / destruction.  Verify!
+		- Hide / Show meshes completely broken.  Fix or ditch?
+		- CObj for CBodyBase... additional properties on top of the Blender morphing ones?
+		- Extra canvases being created on body sides!  Still good?  
+		- Old BB canvas moved to CGame??
+
+		
+		
+		
+		
+=== Design of game modes ===
+--- NEEDS ---
+- Need to provide efficient back-and-forth between body morphing and gameplay on any body.
+- Need to provide fast pose / bone / GUI development without entering softbody mode
+- Need to eventually support dynamic cloth selection and baking during body morphing.
+
+--- Game mode progression use-cases ---
+- User launches game and is welcomed by top game menu offering modes such as Play, Pose Edit, Character Edit
+- If user chooses character edit, the game launches in the character edit mode.
+	- A character selection
+		
+		
+		
+- Node canvas pins
+	- Who can own a canvas??  CBodyBase for morphing? (Actors not create until CBody)
+		- Keep our multiple canvas around body like before (with panels appending to closest canvas?)
+			- Good at preventing run-in between close panels... but for short-lived panels actor-based approach better?
+		- How do we reconcile with VR panels?
+			- IDEA: These can be invoked at any time and allow user to navigate to all possible editable objects
+	- Set menu to only that option with combobox removed?
+	- Calculate intelligent offset... based on node name?  Startup pos??  
+		- Canvas positioning offset defined in actor?
+			- Some have zero offsets like foot center?
+	- Set canvas pin to the nearest edge, not center top?  (or center-center?)
+	- Disable chooser combo box on actor GUIs
+	- Canvas and panel prefabs have hardcoded widths for panel title!
+	- Add arg for panel width?
+	- Make button A trigger panel when selected?
+	- Lines between panel and its hotspot?
+	- Highlight hotspot?  How to show user inner hotspots?
+		- Would be nice to highlight that part of the body (like in wiremesh or other material)
+
+--- MISC ---
+- Shape keys set twice!  Same with all properties because of CObj -> Widget -> CObj circular ref?
+	
+	
+- Definition of new game mode 'Posing'
+	- Pose the gametime bodies with softbodies?
+	- Disable wand popup menu?
+	
+- Need to be able to move nodes while camera moves
+	- Reparenting works perfectly!  Still need the old code for cam movement?
+		- Why all that complexity anyways???  Because we can't reparant camera to wand as it has a circular reference?
+	- Add color codes and a string
+- Layers a fucking mess
+	- WTF colliders in pins with cube???
+	- Ignore raycast?  Default?  Hotspot????
+	- Remove unused layers
+- Should soon be able to move pins and invoke menus... but too complex to do this during gameplay.
+	- Implement a new 'pose mode' without the softbodies and trigger not moving genitals.
+		- Define buttons for this!
+- Extra panel... why?
+- WTF with dropping sphere??
+
+
+--- NOW ---
+- Need visual selection of nodes / hotspot for quick posing
+
+- Need init softbodies to iterate through our properties!
+- Morph panel still showing!
+	- How to deactivate panels?  Add a flag so we don't have to create / destroy properties?
+- Combo box one line lower... ok?
+	- Reinstate title?
+	- Selection and auto title change?
+	- Combo box has label saying 'Switch to:'
+- Cum control
+	- How to control what kind of cumming??
+	- IDEA: For cum press cum button several times for more and more involved cum styles
+	- IDEA: Have user earn 'cum levels' and every cum button press consumes one level with the most cum being spectacular!
+- Balls should have a much-reduced stiffness level!+
+- Cum all fucked... what to do?????
+	
+--- First hot video! ---
+- Make pose of woman crouching on top with shemale lying down
+- Need to be able to edit pins!
+- Work on important panel selection!
+	
+	
+--- Rethinking GUI panels --- DELAYED
+- Better grouping needed on long list of properties like body morphing:
+	- Need a 'sub category' with a selector combobox (that includes '(All)'
+		- When '(All)' selected the properties are sub-categories are separated by labeled separators
+- Smarter 
+
 --- Rethinking game mode progressions ---
 - Crashes when going to game mode because only body 0 init! -> now hacked!
 - How do we support loading without editing?  (Need to load both)
@@ -18,9 +763,6 @@
     ?- Rethink architecture of what VR wand axis and buttons connect to controllable objects (with mode change)
     - Also a menu to change modes?
 
---- Multi-object wand editing ---
-?- Revive hotspots 
-
 --- Problems ---
 - Fucking problem with PhysX explosion with dual body!
 - Multiple 'Base'
@@ -28,11 +770,21 @@
 - UI Give space for label only?
     - Later: by category and with group labels
 BUG:!! Is dependant on geometry!  Penis much denser than breasts!!
+- Fluid with springs no good.  Will have to accurately skin!
 
 --- Later ---
 - Penis lenght stretch glans
 - Improvements needed on dynamic bone creation / destruction
 - VR control of penis angle with vertical, stiffness with hor
+
+--- Mapping of VR controls ---
+- R L/R/U/D: Penis orientation
+- R Click: Cum
+- L U/D: Penis limp-to-erect
+- L R: Penis grow to next size
+- L L:
+- L Click:
+
 
 --- Valid? ---
 - Remove _StaticBodyCollider
@@ -84,7 +836,7 @@ BUG:!! Is dependant on geometry!  Penis much denser than breasts!!
 - Can't do multiple ops on same penis at the same time through wand cuz of 1-slot flag.
 - Could improve wand joystick to control penis up/down/right/left angles instead of up/down or left/right
 - Need new contract between wand controls and game actions
-- Need new architecture to globally select & edit CObject (with spacial selection too)
+- Need new architecture to globally select & edit CObj (with spacial selection too)
 - Body files are a basic implementation.
 	- Body editing shows two bodies and their GUI!
 	- Body files contain the prop buy level!
@@ -104,3 +856,77 @@ BUG:!! Is dependant on geometry!  Penis much denser than breasts!!
 - Disabled cam too low... enabled on debug builds?
 - Bad hacks of uFlex with fluid solver and its (dumb) component search
 - VRTK has a bad hack around its panel creation
+
+
+
+
+
+
+
+
+
+
+
+=== PROBLEMS
+- Serialization of pose angles changes at smallest change in actors / bones / orders.  Need a tag-system!
+- Properties is a tree but now using as morph?  Add level of indirection for more property edits?
+- Need a 'new' button functionality to create new records that doesn't take too much place.
+- Need a good typeof().   Read https://stackoverflow.com/questions/332422/how-do-i-get-the-name-of-an-objects-type-in-javascript
+	
+=== STUDY
+- Web console has grouping, timing, stack trace
+- function class:isA.ClassName() object for identifying instances of this Class. 
+- ClassFactory.defineClass()
+- Everything derived from Class and it has great members such as getClassName()
+- Unity  Profiler.BeginSample("Browser.ProcessCallbacks", this); 
+- See isc class defs with Log in ISC_Core ~ 26439
+	- isc.ClassFactory.defineClass("LogViewer");
+	- isc.LogViewer.addClassMethods({
+- isc.SOCKETS! this.socket = isc.ClassFactory.getClass(this.socketConstructor, true).create({
+	
+
+=== LEARNED:
+- JSON.stringify(oRec) very useful to dump fields for debugging
+- this.getClassName() gets right classname!  (including our extensions!)
+	- this.getClass() == CListGrid works!  Same for getSuperClass() == ListGrid
+- ListGridRecord.  Can disable rows with enabled: false
+- D6 joint Slerp adds additional force to 'drive' the joint to the specified position.  This is ON TOP of the default joint behavior to return joint to original rotation when Angular XYZ not 'free'!!!
+	- With Slerp we (by definition) must drive all three axis...
+	- For spring position to work we MUST have a (small) non-zero value in 'Linear Limit' / 'Limit' and a value in 'Linear Limit Spring' / 'Spring'
+
+=== IDEAS:
+- Dump web log to Unity? (or vice versa?)
+- Slerp damper really good... on all bones?
+	- Need to broadcast bone params like on fingers!
+	
+--- Vr Wand control mapping
+-	J	T	G	Descr
+-	LR	X	0	Teleport hand to new position (and start animating a short time later)
+-	LR	0	X	Move hand directly (With trigger opening / closing hand?)
+-	U	X	0	Move bone directly
+-	U	0	X	Move bone relatively?
+-	X	X	0	Move pelvis directly
+-	X	0	X	Move pelvis relatively?
+-	D	X	0	F control 1
+-	D	0	X	F control 2
+- Click during joystick = GUI for that mode!
+	
+--- Limb tuning steps:
+	- Accurately weight all the body parts.
+	- Tune gravity by observing an undriven limb falling (toggled by slerp or an anchor)
+	- Find out what a 'reasonable slerp force' by setting shoulder bone for 'T' pose and driving it until hand reaches about 85% to the 'T' pose.  Call this force 'F'.
+	- Find out a 'reasonable pin position drive' by setting pin at the T pose and powering it just enough to pull hand about 98% to the 'T' pose.  Call this force 'P'
+	- A pin pulling arm up and slerp putting arm alongside body should result in arm around midway
+	
+	
+	
+--- MOVED: Early property editor in SmartGWT
+- Button height and portal weakly done!
+--- Problem with many-to-one: (SUSPENDED)
+	- Broken by later version of Java?  Tried with all old libs and old IDEA and still no go!
+	- Use 'optionDataSource'??  No JPA samples appear to use it!
+	- Leaving it for now as we don't really need combobox in listboxes right now... one approach would be to debug showcaseEE, display a form that has what we like and trace into JPA query creation
+		- Read docs at https://www.smartclient.com/smartgwt/javadoc/com/smartgwt/client/docs/serverds/DataSourceField.html
+		- https://www.smartclient.com/smartgwt/javadoc/com/smartgwt/client/docs/serverds/package-summary.html
+		=== 2017-11-05 18:42:25,275 [7-44] WARN  JPADataSource - [builtinApplication.person_fetch] Failed to create query: select _Person, personGroupId1 from Person _Person  left outer join _Person.personGroupId personGroupId1
+	

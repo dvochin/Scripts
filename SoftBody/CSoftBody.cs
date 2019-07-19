@@ -53,29 +53,16 @@ using System.Collections.Generic;
 
 
 
-public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Important class in charge of simulate ALL of a body's softbody parts (breasts, penis, etc) from a complex Blender-provide mesh and support data
+public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor, IVisualizeFlex {		// CSoftBody: Important class in charge of simulate ALL of a body's softbody parts (breasts, penis, etc) from a complex Blender-provide mesh and support data
 	//---------------------------------------------------------------------------	MAIN MEMBERS
 	[HideInInspector]	public 	CBody						_oBody;
 	[HideInInspector]	public	int							_nSoftBodyID;			// The SoftBody ID we simulated (e.g. Penis, BreastL, BreastR, etc)
-	[HideInInspector]	public 	CObject						_oObj;
+	[HideInInspector]	public 	CObj						_oObj;
 	//---------------------------------------------------------------------------	FLEX
 	[HideInInspector]	public	uFlex.FlexParticles			_oFlexParticles;
     [HideInInspector]	public	uFlex.FlexShapeMatching		_oFlexShapeMatching;
     [HideInInspector]	public	int							_nParticles;
     [HideInInspector]	public	int							_nShapes;
-	//---------------------------------------------------------------------------	VISUALIZATION
-								CVisualizeShape[]           _aVisShapes;
-								CVisualizeParticle[]		_aVisParticles;
-						public	bool						_bEnableVisualizer = false;
-    [HideInInspector]	public	bool						_bEnableVisualizer_COMPARE = true;
-						public	Vector3						_vecVisualiserOffset = new Vector3();//(0.05f, 0.05f, 0.05f);
-						public	float						_SizeParticles_Mult	= 0.25f;		//###IMPROVE: Add capacity for dev to change these at runtime via Unity property editor
-						public	float						_SizeShapes_Mult	= 0.50f;
-    [HideInInspector]	public	Vector3						_vecSizeParticles;
-    [HideInInspector]	public	Vector3						_vecSizeShapes;
-						public	Color32						_color_ParticlesSelected	= new Color32(255, 255, 0, 255);	// Selected = solid yellow
-						public	Color32						_color_ParticlesPinned		= new Color32(255, 165, 0, 255);	// Pinned (infinite mass) = solid orange
-						public	Color32						_color_ShapeDefault			= new Color32(0, 0, 255, 64);		// Default shape color a mostly transparent blue		//###IMPROVE: Shape color influenced by CSoftBody status?
 	//---------------------------------------------------------------------------	COLLECTIONS
 	[HideInInspector]	public	List<int>					_aParticleInfo;				// Array that describes what 'type' a particle is: skinned, simulated-surface (usually with bone) or simulated-inner (no bone).  Lower 12 bits are 1-based bone ID (if it exists)
     [HideInInspector]	public	List<int>					_aShapeVerts;				//###OPT: Any point in keeping these?  Use direct arrays stuffed into Flex instead
@@ -90,7 +77,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 	[HideInInspector]	public	Dictionary<ushort, ushort>	_mapShapesToParticles;
 	//---------------------------------------------------------------------------	MISC
 	[HideInInspector]	public	SkinnedMeshRenderer			_oSMR;
-						public	float						C_VaginaBoneOffset = CGame.INSTANCE.particleRadius;		//###IMPORTANT:!!! We super-size the penis particles and add an equivalent offset to the vagina bones collision sphere so the larger penis spheres smooth out penetration
+						public	float						C_VaginaBoneOffset = 0.02f;     //#DEV26:??????  CGame.particleRadius;		//###IMPORTANT:!!! We super-size the penis particles and add an equivalent offset to the vagina bones collision sphere so the larger penis spheres smooth out penetration
 	//---------------------------------------------------------------------------	CONSTANTS.  These MUST match their equivalent values in Blender CSoftBody!!!
     //#-------------------------------------------------- Bit masks used in the 'self.aParticleInfo' collection sent to Unity 
     public static int C_ParticleInfo_Mask_Type        = 0x000000FF;     //# This mask enables the multi-purpose ParticleInfo field to read/write the C_ParticleType_XXX particle type
@@ -122,8 +109,12 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
     public static string C_Prefix_DynBone_Vagina		= "+Vagina-";		//# The dynamic vagina bones.  Created and skinned in Blender and repeled (only) by penis bones
     public static string C_Prefix_DynBone_VaginaHole	= "+VaginaHole-";	//# The dynamic vagina hole bones.  Created and skinned in Blender and responsible to guide penis in rig body.
 
+	public static Color32				_color_ParticlesSelected	= new Color32(255, 255, 0, 255);	// Selected = solid yellow
+	public static Color32				_color_ParticlesPinned		= new Color32(255, 165, 0, 255);	// Pinned (infinite mass) = solid orange
+	public static Color32				_color_ShapeDefault			= new Color32(0, 0, 255, 64);		// Default shape color a mostly transparent blue		//###IMPROVE: Shape color influenced by CSoftBody status?
+
 	//---------------------------------------------------------------------------	DEV
-	CProp               _oPropChanged;              // Last property user adjusted.  Set by our CObject property changed event to notify Flex processor loop to perform the work (adjusting Flex data *must* be done in processor call)
+	HashSet<CObj>      _setPropsChanged = new HashSet<CObj>();           // Set of properties that have been changed in this frame.  Set by our CObj property changed event to notify Flex processor loop to perform the work (adjusting Flex data *must* be done in processor call)
 	public Transform	_oBoneRootT;
 	public Quaternion[] _aQuatParticleRotations;	// Stores particle rotations: So that morphs and bends can properly rotate each 'particle bone'
 	public Vector3[] _aShapeRestPositionsBAK;       // Backup of init-time '_oFlexShapeMatching.m_shapeRestPositions'.  Used to scale entire softbody size (Breast game-time resize uses this simple technique)
@@ -146,10 +137,10 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		_nSoftBodyID	= nSoftBodyID;
 		_oBoneRootT		= oBoneRootT;
 		_oSMR = gameObject.GetComponent<SkinnedMeshRenderer>();
-		
-		//=== Bake skinned mesh of softbody rig and obtain its default init-time vertices ===
-		Baking_UpdateBakedMesh();
-		Vector3[] aVerts_ShapeDef = _oMeshBaked.vertices;
+
+        //=== Bake skinned mesh of softbody rig and obtain its default init-time vertices ===
+        Mesh oMeshBaked = Baking_GetBakedSkinnedMesh();
+        Vector3[] aVerts_ShapeDef = oMeshBaked.vertices;
 
 		//=== Obtain the collections Blender constructed for us for easy Flex softbody creation ===
 		string sBlenderInstancePath_SoftBody = _oBody._oBodyBase._sBlenderInstancePath_CBodyBase + ".oBody.mapFlexSoftBodies[" + nSoftBodyID.ToString() + "]";		//###WEAK: Complex & convoluted!  Rethink these global access vars!
@@ -159,7 +150,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		_aShapeParticleOffsets		= CByteArray.GetArray_INT	 ("'CBody'", sBlenderInstancePath_SoftBody + ".aShapeParticleOffsets.Unity_GetBytes()");
 		_aFlatMapBoneIdToShapeId	= CByteArray.GetArray_USHORT ("'CBody'", sBlenderInstancePath_SoftBody + ".aFlatMapBoneIdToShapeId.Unity_GetBytes()");
 		
-		_nParticles = _oMeshBaked.vertexCount;					// Each vertex in the rig mesh is a particle!  (A small portion are simulated (in softbody areas) while most are skinned (in limbs / non-softbody areas))
+		_nParticles = oMeshBaked.vertexCount;					// Each vertex in the rig mesh is a particle!  (A small portion are simulated (in softbody areas) while most are skinned (in limbs / non-softbody areas))
 		_nShapes	= _aShapeVerts.Count;                           // Only some simulated particles / verts have actual shapes.  (Most 'simulated particles' have a shape, and most of the surface ones have a bone)
 		_aQuatParticleRotations = new Quaternion[_nParticles];
 
@@ -167,7 +158,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		//===== CREATE FLEX PARTICLES OBJECT =====
 		//=== Define Flex particles from Blender mesh made for Flex ===
 		_oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
-		_oFlexParticles.m_particlesCount = _oFlexParticles.m_maxParticlesCount = _nParticles;
+		_oFlexParticles.m_particlesCount        = _oFlexParticles.m_maxParticlesCount = _nParticles;
 		_oFlexParticles.m_particles				= new uFlex.Particle[_nParticles];
 		_oFlexParticles.m_restParticles			= new uFlex.Particle[_nParticles];		//###OPT19: Wasteful?  Remove from uFlex??
 		_oFlexParticles.m_colours				= new Color[_nParticles];
@@ -179,7 +170,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		_oFlexParticles.m_collisionGroup		= -1;
 		_oFlexParticles.m_overrideMass			= true;							//###INFO: when m_overrideMass is true ALL particles have invMass set to 1 / m_mass.  So we *MUST* have this always true so we can have kinematic particles
 		_oFlexParticles.m_mass					= 1f;							//###INFO: when m_overrideMass is true this has NO influence so we can set to whatever.
-		_oFlexParticles.m_bounds = _oMeshBaked.bounds;
+		_oFlexParticles.m_bounds = oMeshBaked.bounds;
 
 		Quaternion quatRotParticle_HACK = Quaternion.Euler(-90, 0, 180);        //###HACK:!! This is how Blender orients all the dynamic bones = Gives really crappy constant!  ###IMPROVE: Change default Blender bone rotation to match Unity null-rotation?
 		for (int nParticle = 0; nParticle < _nParticles; nParticle++) {
@@ -220,7 +211,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 		int nShapeLinkStart = 0;
 		for (int nShape = 0; nShape < _nShapes; nShape++) {
 			int nShapeLinkEnd = _oFlexShapeMatching.m_shapeOffsets[nShape];
-			_oFlexShapeMatching.m_shapeCoefficients[nShape] = CGame.INSTANCE.D_SoftBodyStiffness_HACK;                        //###TODO:!!!!! Implement property pushing at init like old CPenis!
+			_oFlexShapeMatching.m_shapeCoefficients[nShape] = CGame.D_SoftBodyStiffness_HACK;                        //###TODO:!!!!! Implement property pushing at init like old CPenis!
 			_mapParticlesToShapes_Base.Add((ushort)_oFlexShapeMatching.m_shapeIndices[nShapeLinkStart], (ushort)nShape);     // Now that we have first index available map two way relationship between a shape and its 'master particle' (ie. the particle that created it in Blender)
 			_mapShapesToParticles_Base.Add((ushort)nShape, (ushort)_oFlexShapeMatching.m_shapeIndices[nShapeLinkStart]);
 			nShapeLinkStart = nShapeLinkEnd;
@@ -270,7 +261,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 			nShapeLinkStart = nShapeLinkEnd;
 		}
 
-		//=== Set the shape rest positions ===#!
+		//=== Set the shape rest positions ===
 		nShapeLinkStart = 0;
 		int nShapeIndexOffset = 0;
 		for (int nShape = 0; nShape < _nShapes; nShape++) {
@@ -314,7 +305,7 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 
 	public override void OnDestroy() {
         Debug.Log("CSoftBody.OnDestroy() cleaning up.");
-		Visualization_Hide();
+        //###CHECK: Need to destroy visualizer component??
 		base.OnDestroy();
 	}
 
@@ -324,35 +315,17 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 	//=========================================================================	UPDATE
 	void Update() {     //###DESIGN: In Flex callback or Update()?		###OPT:!! Doesn't need to run each frame and certainly not in Flex callback!
 		//if (Input.GetKey(KeyCode.Backspace))
-		//	CGame.INSTANCE._bDisableFlexOutputStage_HACK = !CGame.INSTANCE._bDisableFlexOutputStage_HACK;
+		//	CGame._bDisableFlexOutputStage_HACK = !CGame._bDisableFlexOutputStage_HACK;
 
-		if (_bEnableVisualizer != _bEnableVisualizer_COMPARE) {
-			Visualization_Set(_bEnableVisualizer);
-			_bEnableVisualizer_COMPARE = _bEnableVisualizer;
-		}
-
-		if (_bEnableVisualizer) {
-			float nSizeParticles	= CGame.INSTANCE.particleRadius * _SizeParticles_Mult;
-			float nSizeShapes		= CGame.INSTANCE.particleRadius * _SizeShapes_Mult;
-			_vecSizeParticles.Set(nSizeParticles, nSizeParticles, nSizeParticles);
-			_vecSizeShapes.Set(nSizeShapes, nSizeShapes, nSizeShapes);
-
-			//=== Update position of every particle ===
-			foreach (CVisualizeParticle oVisParticle in _aVisParticles)
-				oVisParticle.DoUpdate();
-
-			//=== Update position & orientation of every shape ===
-			foreach (CVisualizeShape oVisShape in _aVisShapes)
-				oVisShape.DoUpdate();
-		}
+        Visualizer_TestForCreationDestruction();
     }
 
 
 	//=========================================================================	FLEX CALLBACK
     public virtual void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
-		//=== Bake rim skinned mesh and update position of softbody particle pins ===
-		Baking_UpdateBakedMesh();								//###OPT:!! Would be worth it to separate the pinning particles from the creation mesh so we don't have to bake as many verts each frame?
-		Vector3[] aVertsBakedMesh = _oMeshBaked.vertices;
+        //=== Bake rim skinned mesh and update position of softbody particle pins ===
+        Mesh oMeshBaked = Baking_GetBakedSkinnedMesh();     //###OPT:!! Would be worth it to separate the pinning particles from the creation mesh so we don't have to bake as many verts each frame?
+		Vector3[] aVertsBakedMesh = oMeshBaked.vertices;
 
 		//=== FLEX INPUT STAGE: Iterate through all skinned particles to set their position from the baked Flex mesh.  Skinned particle position is the ONLY information fed into Flex ===
 		for (int nParticle = 0; nParticle < _nParticles; nParticle++) {      //###OPT!!  Expensive loop per frame that is unfortunately required because different memory footprints... :-(
@@ -373,18 +346,17 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 			oBoneShapeT.rotation = _oFlexShapeMatching.m_shapeRotations[nShapeID];
 		}
 
-		//=== Modify properties within the context of Flex update ===
-		if (_oPropChanged != null) {
-			OnPropChanged(_oPropChanged);
-			_oPropChanged = null;
-		}
+		//=== Modify the properties that were changed in the last set within the context of Flex update ===
+		foreach (CObj oObj in _setPropsChanged)
+			OnPropChanged(oObj);
+		_setPropsChanged.Clear();
 	}
 
 	//=========================================================================	PROPERTIES
-	public virtual void OnPropChanged(CProp oProp) {
-	}
+	public virtual void OnPropChanged(CObj oObj) {}
+
 	public void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {
-		_oPropChanged = oArgs.Property;         // Fired everytime user adjusts a property: Notify flex container update so it can perform the work properly
+		_setPropsChanged.Add(oArgs.CObj);			// Fired everytime user adjusts a property: Notify flex container update so it can perform the work properly
 	}
 
 	//=========================================================================	SHAPE DEFINTION
@@ -395,11 +367,20 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 	}
 
 	public void ShapeDef_SetStiffness(float nStiffness) {
+		float nStiffnessFinal = 0;
 		for (ushort nShape = 0; nShape < _nShapes; nShape++) {
 			ushort nParticle = _mapShapesToParticles[nShape];
 			int nParticleInfo = _aParticleInfo[nParticle];
-			int nShapeStiffness = nParticleInfo & CSoftBody.C_ParticleInfo_Mask_Stiffness;
-			_oFlexShapeMatching.m_shapeCoefficients[nShape] = nStiffness;
+			int nShapeStiffnessLevel = ((nParticleInfo & CSoftBody.C_ParticleInfo_Mask_Stiffness) >> CSoftBody.C_ParticleInfo_BitShift_Stiffness);
+			//if (nShapeStiffnessLevel == 4)		//#DEV26:TEMP
+			//	nStiffnessFinal = CGame.D_aSoftBodyStiffnessLevels_HACK[nShapeStiffnessLevel-1];
+			if (nShapeStiffnessLevel == 0)			//#DEV26: How does this affect breasts??
+				nStiffnessFinal = nStiffness;		//###IMPROVE: Currently a linear curve... implement different curve??
+			else
+				nStiffnessFinal = nStiffness * CGame.D_aSoftBodyStiffnessLevels_HACK[nShapeStiffnessLevel-1];
+			if (nStiffnessFinal > 0.5f)				// Stiffness settings that are too high cause Flex explosions and Unity crashes!
+				nStiffnessFinal = 0.5f;
+			_oFlexShapeMatching.m_shapeCoefficients[nShape] = nStiffnessFinal;
 		}
 	}
 
@@ -435,175 +416,201 @@ public class CSoftBody : CBSkinBaked, uFlex.IFlexProcessor {		// CSoftBody: Impo
 
 
 	#region =========================================================================	VISUALIZATION
-	public void Visualization_Show() {
-		if (_aVisParticles == null) {
+    [HideInInspector]	public	CVisualizeFlex              _oVisualizeFlex;        //#Vis
+						public	bool						_bEnableVisualizer = false;
+    [HideInInspector]	public	bool						_bEnableVisualizer_COMPARE = true;
+						public	Vector3						_vecVisualiserOffset = new Vector3();//(0.05f, 0.05f, 0.05f);
+						public	float						_SizeParticles_Mult	= 0.25f;		//###IMPROVE: Add capacity for dev to change these at runtime via Unity property editor
+						public	float						_SizeShapes_Mult	= 0.50f;
 
-			//=== Create new nodes to render all particles ===
-			_aVisParticles = new CVisualizeParticle[_oFlexParticles.m_particlesCount];
-			for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++) {
-				int nParticleType = _aParticleInfo[nParticle] & C_ParticleInfo_Mask_Type;
-				GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeParticle", typeof(GameObject)) as GameObject;
-				GameObject oParticleGO = Instantiate(oTemplateGO) as GameObject;
-				CVisualizeParticle oVisParticle = CUtility.FindOrCreateComponent(oParticleGO, typeof(CVisualizeParticle)) as CVisualizeParticle;        //###IMPROVE: Set its color based on our type!
-				_aVisParticles[nParticle] = oVisParticle;
-				oVisParticle.Initialize(this, nParticle);
-			}
-
-			//=== Create new nodes to render all shapes ===
-			_aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
-			for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++) {
-				GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;
-				GameObject oParticleGO = Instantiate(oTemplateGO) as GameObject;
-				CVisualizeShape oVisShape = CUtility.FindOrCreateComponent(oParticleGO, typeof(CVisualizeShape)) as CVisualizeShape;
-				_aVisShapes[nShape] = oVisShape;
-				oVisShape.Initialize(this, nShape);
-			}
-
-			//=== Conveniently hide renderers on our gameObject so we can see our shapes ===
-			uFlex.FlexParticlesRenderer oParRend = GetComponent<uFlex.FlexParticlesRenderer>();
-			if (oParRend != null)
-				oParRend.enabled = false;
-			SkinnedMeshRenderer oSMR = GetComponent<SkinnedMeshRenderer>();
-			if (oSMR)
-				oSMR.enabled = false;
-			MeshRenderer oMeshRenderer = GetComponent<MeshRenderer>();
-			if (oMeshRenderer != null)
-				oMeshRenderer.enabled = false;
-			//_oBody._oBodySkinnedMesh._oSkinMeshRendNow.enabled = false;		//###IMPROVE: Set body semi transparent when we're invoked
-
-			_bEnableVisualizer = _bEnableVisualizer_COMPARE = true;
+    void Visualizer_TestForCreationDestruction() {
+		if (_bEnableVisualizer != _bEnableVisualizer_COMPARE) {
+            if (_bEnableVisualizer) {
+			    _oVisualizeFlex = CVisualizeFlex.Create(gameObject, this);
+            } else {
+                GameObject.Destroy(_oVisualizeFlex);
+                _oVisualizeFlex = null;
+            }
+			_bEnableVisualizer_COMPARE = _bEnableVisualizer;
 		}
-	}
+    }
 
-	public void Visualization_Hide() {                  //###IMPROVE: Un-hide renderers hidden in Show()?
-		if (_aVisParticles != null) {
-			foreach (CVisualizeParticle oVisParticle in _aVisParticles)
-				Destroy(oVisParticle.gameObject);
-			foreach (CVisualizeShape oVisShape in _aVisShapes)
-				Destroy(oVisShape.gameObject);
-			_aVisParticles = null;
-			_aVisShapes = null;
-			_bEnableVisualizer = _bEnableVisualizer_COMPARE = false;
-		}
-	}
+    public uFlex.FlexParticles          GetFlexParticles()          { return _oFlexParticles; }     //###IMPROVE: Just make interface the public vars?
+    public uFlex.FlexShapeMatching      GetFlexShapeMatching()      { return _oFlexShapeMatching; }
+    public Vector3                      GetVisualiserOffset()       { return _vecVisualiserOffset; }
+	public float					    GetSizeParticles_Mult()     { return _SizeParticles_Mult; }
+	public float						GetSizeShapes_Mult()        { return _SizeShapes_Mult; }
+    #endregion
 
-	public void Visualization_Set(bool bShow) {
-		if (bShow)
-			Visualization_Show();
-		else
-			Visualization_Hide();
-	}
-	#endregion
+    //public void Visualization_Show() {
+    //	if (_aVisParticles == null) {
+
+    //		//=== Create new nodes to render all particles ===
+    //		_aVisParticles = new CVisualizeParticle[_oFlexParticles.m_particlesCount];
+    //		for (int nParticle = 0; nParticle < _oFlexParticles.m_particlesCount; nParticle++) {
+    //			int nParticleType = _aParticleInfo[nParticle] & C_ParticleInfo_Mask_Type;
+    //			GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeParticle", typeof(GameObject)) as GameObject;
+    //			GameObject oParticleGO = Instantiate(oTemplateGO) as GameObject;
+    //			CVisualizeParticle oVisParticle = CUtility.FindOrCreateComponent(oParticleGO, typeof(CVisualizeParticle)) as CVisualizeParticle;        //###IMPROVE: Set its color based on our type!
+    //			_aVisParticles[nParticle] = oVisParticle;
+    //			oVisParticle.Initialize(this, nParticle);
+    //		}
+
+    //		//=== Create new nodes to render all shapes ===
+    //		_aVisShapes = new CVisualizeShape[_oFlexShapeMatching.m_shapesCount];
+    //		for (int nShape = 0; nShape < _oFlexShapeMatching.m_shapesCount; nShape++) {
+    //			GameObject oTemplateGO = Resources.Load("Prefabs/CVisualizeShape", typeof(GameObject)) as GameObject;
+    //			GameObject oParticleGO = Instantiate(oTemplateGO) as GameObject;
+    //			CVisualizeShape oVisShape = CUtility.FindOrCreateComponent(oParticleGO, typeof(CVisualizeShape)) as CVisualizeShape;
+    //			_aVisShapes[nShape] = oVisShape;
+    //			oVisShape.Initialize(this, nShape);
+    //		}
+
+    //		//=== Conveniently hide renderers on our gameObject so we can see our shapes ===
+    //		uFlex.FlexParticlesRenderer oParRend = GetComponent<uFlex.FlexParticlesRenderer>();
+    //		if (oParRend != null)
+    //			oParRend.enabled = false;
+    //		SkinnedMeshRenderer oSMR = GetComponent<SkinnedMeshRenderer>();
+    //		if (oSMR)
+    //			oSMR.enabled = false;
+    //		MeshRenderer oMeshRenderer = GetComponent<MeshRenderer>();
+    //		if (oMeshRenderer != null)
+    //			oMeshRenderer.enabled = false;
+    //		//_oBody._oBodySkinnedMesh._oSkinMeshRendNow.enabled = false;		//###IMPROVE: Set body semi transparent when we're invoked
+
+    //		_bEnableVisualizer = _bEnableVisualizer_COMPARE = true;
+    //	}
+    //}
+
+    //public void Visualization_Hide() {                  //###IMPROVE: Un-hide renderers hidden in Show()?
+    //	if (_aVisParticles != null) {
+    //		foreach (CVisualizeParticle oVisParticle in _aVisParticles)
+    //			Destroy(oVisParticle.gameObject);
+    //		foreach (CVisualizeShape oVisShape in _aVisShapes)
+    //			Destroy(oVisShape.gameObject);
+    //		_aVisParticles = null;
+    //		_aVisShapes = null;
+    //		_bEnableVisualizer = _bEnableVisualizer_COMPARE = false;
+    //	}
+    //}
+
+    //public void Visualization_Set(bool bShow) {
+    //	if (bShow)
+    //		Visualization_Show();
+    //	else
+    //		Visualization_Hide();
+    //}
+    //#endregion
 
 
-	#region ================================================================	FlexParticleTrim
-	//- Penis particle trim problems: (unfinished)
-	//	- Trim snaps particles to startup position and breaks immersion
-	//	- Trims that remove too many particles move the particle bones poorly and presentation mesh looks bad.
-	//	- Remove Blender penis bone update?
-	//public void FlexParticleTrim_Launch() {
-	//	//=== Reset all the shape flags to active and not-traversed ===
-	//	for (int nShape = 0; nShape < _nShapes; nShape++) {
-	//		_aCloseParticleSearch_IsActive[nShape] = true;
-	//		_aCloseParticleSearch_WasTraversed[nShape] = false;
-	//	}
+    #region ================================================================	FlexParticleTrim
+    //- Penis particle trim problems: (unfinished)
+    //	- Trim snaps particles to startup position and breaks immersion
+    //	- Trims that remove too many particles move the particle bones poorly and presentation mesh looks bad.
+    //	- Remove Blender penis bone update?
+    //public void FlexParticleTrim_Launch() {
+    //	//=== Reset all the shape flags to active and not-traversed ===
+    //	for (int nShape = 0; nShape < _nShapes; nShape++) {
+    //		_aCloseParticleSearch_IsActive[nShape] = true;
+    //		_aCloseParticleSearch_WasTraversed[nShape] = false;
+    //	}
 
-	//	//=== Reset all the particles colors to 'active' ===
-	//	for (int nParticle = 0; nParticle < _nParticles; nParticle++) {
-	//		_oFlexParticles.m_colours[nParticle] = Color.green;
-	//		_oFlexParticles.m_particlesActivity[nParticle] = true;
-	//		_oFlexParticles.m_particles[nParticle].pos		= _oFlexParticles.m_restParticles[nParticle].pos;
-	//		//_oFlexParticles.m_particles[nParticle].invMass  = _oFlexParticles.m_restParticles[nParticle].invMass;
-	//		int nParticleType = _aParticleInfo[nParticle] & C_ParticleInfo_Mask_Type;
-	//		if ((nParticleType & C_ParticleInfo_BitTest_IsSimulated) != 0)
-	//			_oFlexParticles.m_restParticles[nParticle].invMass = _oFlexParticles.m_particles[nParticle].invMass = 1 / _oFlexParticles.m_mass;        // These are simulated particles.  They move freely (and are responsible for driving softbody shapes that in turn drive presentation bones)
-	//		else
-	//			_oFlexParticles.m_restParticles[nParticle].invMass = _oFlexParticles.m_particles[nParticle].invMass = 0;        // These are pinned particles.  They never move from the simulation (we move them to repel clothing, softbody and fluids)
-	//	}
+    //	//=== Reset all the particles colors to 'active' ===
+    //	for (int nParticle = 0; nParticle < _nParticles; nParticle++) {
+    //		_oFlexParticles.m_colours[nParticle] = Color.green;
+    //		_oFlexParticles.m_particlesActivity[nParticle] = true;
+    //		_oFlexParticles.m_particles[nParticle].pos		= _oFlexParticles.m_restParticles[nParticle].pos;
+    //		//_oFlexParticles.m_particles[nParticle].invMass  = _oFlexParticles.m_restParticles[nParticle].invMass;
+    //		int nParticleType = _aParticleInfo[nParticle] & C_ParticleInfo_Mask_Type;
+    //		if ((nParticleType & C_ParticleInfo_BitTest_IsSimulated) != 0)
+    //			_oFlexParticles.m_restParticles[nParticle].invMass = _oFlexParticles.m_particles[nParticle].invMass = 1 / _oFlexParticles.m_mass;        // These are simulated particles.  They move freely (and are responsible for driving softbody shapes that in turn drive presentation bones)
+    //		else
+    //			_oFlexParticles.m_restParticles[nParticle].invMass = _oFlexParticles.m_particles[nParticle].invMass = 0;        // These are pinned particles.  They never move from the simulation (we move them to repel clothing, softbody and fluids)
+    //	}
 
-	//	//=== Starting from a particle we want to keep (uretra for penis, nipple for breast), recursively traverse the softbody particle / shape graph to flag those that are too close to their neighbors ===
-	//	FlexParticleTrim_EvaluateShape_RECURSIVE(0);        //###NOW: Uretra (when penis)
+    //	//=== Starting from a particle we want to keep (uretra for penis, nipple for breast), recursively traverse the softbody particle / shape graph to flag those that are too close to their neighbors ===
+    //	FlexParticleTrim_EvaluateShape_RECURSIVE(0);        //###NOW: Uretra (when penis)
 
-	//	//=== Create working shape definition arrays to store a compacted version of the softbody that leaves out all particles trimmed by overly-close neighbor recursive search above ===
-	//	List<int> aShapeParticleIndices_Work = new List<int>();
-	//	List<int> aShapeParticleOffsets_Work = new List<int>();
+    //	//=== Create working shape definition arrays to store a compacted version of the softbody that leaves out all particles trimmed by overly-close neighbor recursive search above ===
+    //	List<int> aShapeParticleIndices_Work = new List<int>();
+    //	List<int> aShapeParticleOffsets_Work = new List<int>();
 
-	//	//=== Compact the shape definition arrays to leave only the particles that are active ===
-	//	int nShapeLinkStart = 0;
-	//	for (ushort nShapeThis = 0; nShapeThis < _nShapes; nShapeThis++) {
-	//		int nShapeLinkEnd = _aShapeParticleOffsets[nShapeThis];
-	//		for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; ++nShapeIndex) {
-	//			ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
-	//			if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {                 // Shapes that have pinned particles would not find those in the map so skip
-	//				ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
-	//				if (nShapeNeighbor < _aCloseParticleSearch_IsActive.Length && _aCloseParticleSearch_IsActive[nShapeNeighbor]) {
-	//					aShapeParticleIndices_Work.Add(nParticleNeighbor);
-	//				} else {
-	//					_oFlexParticles.m_particlesActivity[nParticleNeighbor] = false;
-	//					_oFlexParticles.m_particles[nParticleNeighbor].pos = _oFlexParticles.m_restParticles[nParticleNeighbor].pos;
-	//				}
-	//			} else {
-	//				aShapeParticleIndices_Work.Add(nParticleNeighbor);		// Particles that have no shapes = pinned particles = always in!
-	//			}
-	//		}
-	//		aShapeParticleOffsets_Work.Add(aShapeParticleIndices_Work.Count);
-	//		nShapeLinkStart = nShapeLinkEnd;
-	//	}
-	//	if (_nShapes != aShapeParticleOffsets_Work.Count)
-	//		CUtility.ThrowExceptionF("###EXCEPTION in CSoftBody '{0}'.  FlexParticleTrim() tried to update to {1} shapes while {2} were present at init-time.", gameObject.name, aShapeParticleOffsets_Work.Count, _nShapes);
+    //	//=== Compact the shape definition arrays to leave only the particles that are active ===
+    //	int nShapeLinkStart = 0;
+    //	for (ushort nShapeThis = 0; nShapeThis < _nShapes; nShapeThis++) {
+    //		int nShapeLinkEnd = _aShapeParticleOffsets[nShapeThis];
+    //		for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; ++nShapeIndex) {
+    //			ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
+    //			if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {                 // Shapes that have pinned particles would not find those in the map so skip
+    //				ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
+    //				if (nShapeNeighbor < _aCloseParticleSearch_IsActive.Length && _aCloseParticleSearch_IsActive[nShapeNeighbor]) {
+    //					aShapeParticleIndices_Work.Add(nParticleNeighbor);
+    //				} else {
+    //					_oFlexParticles.m_particlesActivity[nParticleNeighbor] = false;
+    //					_oFlexParticles.m_particles[nParticleNeighbor].pos = _oFlexParticles.m_restParticles[nParticleNeighbor].pos;
+    //				}
+    //			} else {
+    //				aShapeParticleIndices_Work.Add(nParticleNeighbor);		// Particles that have no shapes = pinned particles = always in!
+    //			}
+    //		}
+    //		aShapeParticleOffsets_Work.Add(aShapeParticleIndices_Work.Count);
+    //		nShapeLinkStart = nShapeLinkEnd;
+    //	}
+    //	if (_nShapes != aShapeParticleOffsets_Work.Count)
+    //		CUtility.ThrowExceptionF("###EXCEPTION in CSoftBody '{0}'.  FlexParticleTrim() tried to update to {1} shapes while {2} were present at init-time.", gameObject.name, aShapeParticleOffsets_Work.Count, _nShapes);
 
-	//	//=== Assign the resultant Flex shape indices array to the packed copy we created above ===
-	//	_oFlexShapeMatching.m_shapeIndices          = aShapeParticleIndices_Work.ToArray();
-	//	_oFlexShapeMatching.m_shapeOffsets          = aShapeParticleOffsets_Work.ToArray();
-	//	_oFlexShapeMatching.m_shapeIndicesCount     = aShapeParticleIndices_Work.Count;
-	//	_oFlexShapeMatching.m_shapeRestPositions    = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
+    //	//=== Assign the resultant Flex shape indices array to the packed copy we created above ===
+    //	_oFlexShapeMatching.m_shapeIndices          = aShapeParticleIndices_Work.ToArray();
+    //	_oFlexShapeMatching.m_shapeOffsets          = aShapeParticleOffsets_Work.ToArray();
+    //	_oFlexShapeMatching.m_shapeIndicesCount     = aShapeParticleIndices_Work.Count;
+    //	_oFlexShapeMatching.m_shapeRestPositions    = new Vector3[_oFlexShapeMatching.m_shapeIndicesCount];
 
-	//	//=== Re-define the shape ===
-	//	ShapeDef_DefineSoftBodyShape(false);
-	//}
+    //	//=== Re-define the shape ===
+    //	ShapeDef_DefineSoftBodyShape(false);
+    //}
 
-	//void FlexParticleTrim_EvaluateShape_RECURSIVE(ushort nShapeThis) {
-	//	_aCloseParticleSearch_WasTraversed[nShapeThis] = true;      // Flag this particle / shape as being traversed so we don't recurse through it again
-	//	ushort nParticleThis = _mapShapesToParticles[nShapeThis];
-	//	Vector3 vecParticleThis = _oFlexParticles.m_restParticles[nParticleThis].pos;
+    //void FlexParticleTrim_EvaluateShape_RECURSIVE(ushort nShapeThis) {
+    //	_aCloseParticleSearch_WasTraversed[nShapeThis] = true;      // Flag this particle / shape as being traversed so we don't recurse through it again
+    //	ushort nParticleThis = _mapShapesToParticles[nShapeThis];
+    //	Vector3 vecParticleThis = _oFlexParticles.m_restParticles[nParticleThis].pos;
 
-	//	//=== Obtain the list of links to the particles of this shape ===
-	//	int nShapeLinkStart = (nShapeThis == 0) ? 0 : _aShapeParticleOffsets[nShapeThis-1];
-	//	int nShapeLinkEnd = _aShapeParticleOffsets[nShapeThis];
+    //	//=== Obtain the list of links to the particles of this shape ===
+    //	int nShapeLinkStart = (nShapeThis == 0) ? 0 : _aShapeParticleOffsets[nShapeThis-1];
+    //	int nShapeLinkEnd = _aShapeParticleOffsets[nShapeThis];
 
-	//	//=== First iterate through all this shape's neighbors to deactivate those that are too close ===
-	//	if (_aCloseParticleSearch_IsActive[nShapeThis]) {
-	//		for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; nShapeIndex++) {
-	//			ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
-	//			if (nParticleThis != nParticleNeighbor) {			// All shapes have a link to their own particle.  Skip those!
-	//				if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {					// Shapes that have pinned particles would not find those in the map so skip
-	//					ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
-	//					Vector3 vecParticleNeighbor = _oFlexParticles.m_restParticles[nParticleNeighbor].pos;
-	//					Vector3 vecThisToNeighbor = vecParticleNeighbor - vecParticleThis;
-	//					float nDistThisToNeighbor = vecThisToNeighbor.magnitude;
-	//					if (nDistThisToNeighbor < CGame.INSTANCE.particleSpacing) {
-	//						_aCloseParticleSearch_IsActive[nShapeNeighbor] = false;
-	//						_oFlexParticles.m_colours[nParticleNeighbor] = Color.red;
-	//						_oFlexParticles.m_particlesActivity[nParticleNeighbor] = false;
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
+    //	//=== First iterate through all this shape's neighbors to deactivate those that are too close ===
+    //	if (_aCloseParticleSearch_IsActive[nShapeThis]) {
+    //		for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; nShapeIndex++) {
+    //			ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
+    //			if (nParticleThis != nParticleNeighbor) {			// All shapes have a link to their own particle.  Skip those!
+    //				if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {					// Shapes that have pinned particles would not find those in the map so skip
+    //					ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
+    //					Vector3 vecParticleNeighbor = _oFlexParticles.m_restParticles[nParticleNeighbor].pos;
+    //					Vector3 vecThisToNeighbor = vecParticleNeighbor - vecParticleThis;
+    //					float nDistThisToNeighbor = vecThisToNeighbor.magnitude;
+    //					if (nDistThisToNeighbor < CGame.particleSpacing) {
+    //						_aCloseParticleSearch_IsActive[nShapeNeighbor] = false;
+    //						_oFlexParticles.m_colours[nParticleNeighbor] = Color.red;
+    //						_oFlexParticles.m_particlesActivity[nParticleNeighbor] = false;
+    //					}
+    //				}
+    //			}
+    //		}
+    //	}
 
-	//	//=== Iterate through all the neighbors that are still active and recurse this same function through them ===
-	//	for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; nShapeIndex++) {
-	//		ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
-	//		if (nParticleThis != nParticleNeighbor) {       // All shapes have a link to their own particle.  Skip those!
-	//			if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {                 // Shapes that have pinned particles would not find those in the map so skip
-	//				ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
-	//				if (_aCloseParticleSearch_WasTraversed[nShapeNeighbor] == false)
-	//					FlexParticleTrim_EvaluateShape_RECURSIVE(nShapeNeighbor);
-	//			}
-	//		}
-	//	}
-	//}
-	#endregion
+    //	//=== Iterate through all the neighbors that are still active and recurse this same function through them ===
+    //	for (int nShapeIndex = nShapeLinkStart; nShapeIndex < nShapeLinkEnd; nShapeIndex++) {
+    //		ushort nParticleNeighbor = (ushort)_aShapeParticleIndices[nShapeIndex];
+    //		if (nParticleThis != nParticleNeighbor) {       // All shapes have a link to their own particle.  Skip those!
+    //			if (_mapParticlesToShapes.ContainsKey(nParticleNeighbor)) {                 // Shapes that have pinned particles would not find those in the map so skip
+    //				ushort nShapeNeighbor = _mapParticlesToShapes[nParticleNeighbor];
+    //				if (_aCloseParticleSearch_WasTraversed[nShapeNeighbor] == false)
+    //					FlexParticleTrim_EvaluateShape_RECURSIVE(nShapeNeighbor);
+    //			}
+    //		}
+    //	}
+    //}
+    #endregion
 }
 
 

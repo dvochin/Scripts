@@ -26,11 +26,11 @@ public class CGizmo : MonoBehaviour {
 	public static CGizmo CreateGizmo(CHotSpot oHotSpot, bool bMiddleClickOp) {
 		Transform oGizmoTran = null;
 		
-		switch (CGame.INSTANCE._oCursor._EditMode) {
+		switch (CGame._oCursor._EditMode) {
 			case EEditMode.Select:	return null;			// We don't display a gizmo in select mode...
-			case EEditMode.Move:	oGizmoTran = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_GizmoMove); 		break;
-			case EEditMode.Rotate:	oGizmoTran = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_GizmoRotate);	break;
-			case EEditMode.Scale:	oGizmoTran = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_GizmoScale); 	break;
+			case EEditMode.Move:	oGizmoTran = (Transform)GameObject.Instantiate(CGame._oCursor._Prefab_GizmoMove); 		break;
+			case EEditMode.Rotate:	oGizmoTran = (Transform)GameObject.Instantiate(CGame._oCursor._Prefab_GizmoRotate);	break;
+			case EEditMode.Scale:	oGizmoTran = (Transform)GameObject.Instantiate(CGame._oCursor._Prefab_GizmoScale); 	break;
 		}
 
 		CGizmo oGizmoInPrefab = oGizmoTran.GetComponent<CGizmo>();
@@ -45,7 +45,7 @@ public class CGizmo : MonoBehaviour {
 	void Initialize(CHotSpot oHotSpot, bool bMiddleClickOp) {
 		_oHotSpot = oHotSpot;
 		_bMiddleClickOp = bMiddleClickOp;
-		_eEditMode = CGame.INSTANCE._oCursor._EditMode;		// Our gizmo mode is the mode of the cursor edit mode at startup.
+		_eEditMode = CGame._oCursor._EditMode;		// Our gizmo mode is the mode of the cursor edit mode at startup.
 		gameObject.name = "Gizmo-" + _eEditMode.ToString();
 
 		//=== Set the initializing gizmo the position and rotation of the hotspot.  We have to move/rotate both at every frame ===
@@ -58,7 +58,7 @@ public class CGizmo : MonoBehaviour {
 			transform.localScale *= CCursor.C_GizmoScale_RotationMultiplier;
 
 		//=== Handling of special 'hidden helper object' mode = Hide gizmo and immediately begin move opeation along y,z axis ===
-		if (CGame.INSTANCE._bGameModeBasicInteractions) {	
+		if (CGame._bGameModeBasicInteractions) {	
 			Renderer[] aRend = transform.GetComponentsInChildren<Renderer>();	//###IMPROVE? Instead of hiding all gizmo elements, would it be too tough to just not instantiate its prefab??
 			foreach (Renderer oRend in aRend)
 				oRend.enabled = false;
@@ -84,7 +84,7 @@ public class CGizmo : MonoBehaviour {
 		switch (_eModeGizmo) {
 
 			case EModeGizmo.S1_WaitingLeftClickGizmoPart:	// User has completed the left mouse up & down that resulted in hotspot being activated and gizmo shown.  We now wait until left mouse button on a gizmo part to begin gizmo moving/rotating/scaling the object
-				_oRayHit_LayerGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Gizmo);		// Obtain the user's hit on the gizmo collider layers
+				_oRayHit_LayerGizmo = CUtility.RaycastToCameraPoint2D(Input.mousePosition, G.C_LayerMask_Gizmo);		// Obtain the user's hit on the gizmo collider layers
 				CGizmo oGizmo = FindGizmoFromCollider(_oRayHit_LayerGizmo.collider);		//... See if the user clicked on a part of our gizmo...
 				if (oGizmo != null) {
 					if (_oHighlightedGizmoCollider != _oRayHit_LayerGizmo.collider) {
@@ -134,7 +134,7 @@ public class CGizmo : MonoBehaviour {
 		//=== Create an INSTANCE of the 'cursor cutter' planar object.  This object is a simple plane collider arranged to cross the gizmo position and aligned parallel to the allowed transformation the current gizmo part allows (either XY, YZ, XZ)
 		//###IMPROVE: Offset is visible when beginning animation... offset properly applied??
 
-		_oPlaneCutter = (Transform)GameObject.Instantiate(CGame.INSTANCE._oCursor._Prefab_GizmoPlaneCutter);		// This plane will convert the rays from the camera to the mouse into a 3D position on the cutting plane.
+		_oPlaneCutter = (Transform)GameObject.Instantiate(CGame._oCursor._Prefab_GizmoPlaneCutter);		// This plane will convert the rays from the camera to the mouse into a 3D position on the cutting plane.
 		_oPlaneCutter.gameObject.SetActive(true);				// Prefab might have top object deactivated.  Make sure it is active.
 		_oPlaneCutter.SetParent(transform);						// Temporarily assign plane cutter parent to gizmo so we can rotate to the object's local rotation below...
 		_oPlaneCutter.localPosition = Vector3.zero;				// Zero our local position / rotation so we're coincident with hotspot / gizmo
@@ -152,7 +152,7 @@ public class CGizmo : MonoBehaviour {
 		//=== Cutter plane is now correctly positioned & oriented.  We now decouple so cutting plane won't move as object moves/rotates ===
 		_oPlaneCutter.SetParent(null);
 
-		RaycastHit oRayHit_LayerCutter = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Cutter);		// Obtain the user's hit on the cutter to determine gizmo offset to mouse click
+		RaycastHit oRayHit_LayerCutter = CUtility.RaycastToCameraPoint2D(Input.mousePosition, G.C_LayerMask_Cutter);		// Obtain the user's hit on the cutter to determine gizmo offset to mouse click
 
 		//=== Store important information at start of gizmo operation for our calculations in GizmoTransform_Update() ===
 		_vecGizmoPosAtStart = transform.position;									// Remember where the gizmo was at start.  (Needed for scaling)
@@ -184,7 +184,7 @@ public class CGizmo : MonoBehaviour {
 	
 	public void GizmoTransform_Update() {		// User is actively dragging one of the gizmo parts to move/rotate/scale our hotspot.  Read on collider plane where mouse cursor is and adjust object
 
-		RaycastHit oRayHit = CUtility.RaycastToCameraPoint2D(Input.mousePosition, CCursor.C_LayerMask_Cutter);		// We now only do hit test on cutter plane
+		RaycastHit oRayHit = CUtility.RaycastToCameraPoint2D(Input.mousePosition, G.C_LayerMask_Cutter);		// We now only do hit test on cutter plane
 		if (_vecRayHitPoint_Last == oRayHit.point)			// If user hasn't move the mouse in the last frame don't do anything
 			return;
 		_vecRayHitPoint_Last = oRayHit.point;

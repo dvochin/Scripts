@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 
 public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to provide skinned mesh support.
 
-	[HideInInspector]	public 	SkinnedMeshRenderer	_oSkinMeshRendNow;
+	[HideInInspector]	public 	SkinnedMeshRenderer	_oSkinMeshRend;
 
 	[HideInInspector] 	public 	ArrayList 			_aSkinTargets = new ArrayList();   // Our collection of skin targets that follow their skin position and can act as 'magnets' to pull actors such as hands
 
@@ -16,7 +16,7 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
 		base.OnDeserializeFromBlender(aExtraArgs);			// First call the CBMesh base class to serialize the mesh itself...
 
-		_oSkinMeshRendNow = (SkinnedMeshRenderer)CUtility.FindOrCreateComponent(transform, typeof(SkinnedMeshRenderer));
+		_oSkinMeshRend = CUtility.FindOrCreateComponent<SkinnedMeshRenderer>(gameObject);
 
 		////=== Send blender command to obtain the skinned mesh info ===
 		CByteArray oBA = new CByteArray("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + _sNameCBodyInstanceMember + ".Unity_GetMesh_SkinnedInfo()");
@@ -101,10 +101,10 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with out-of-range sums!", gameObject.name, nErr_VertsWithOutOfRangeSums);
 			
 		if (nErr_VertsWithZeroBones > 0)
-			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with zero bones!", gameObject.name, nErr_VertsWithZeroBones);
+			CUtility.ThrowExceptionF("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with zero bones!", gameObject.name, nErr_VertsWithZeroBones);
 			
 		if (nErr_VertsWithTooManyBones > 0)
-			Debug.LogErrorFormat("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with too many bones!", gameObject.name, nErr_VertsWithTooManyBones);
+            CUtility.ThrowExceptionF("###ERROR: CBSkin.ctor() on mesh '{0}' found {1} verts with too many bones!", gameObject.name, nErr_VertsWithTooManyBones);
 			
 		//=== Read the number of errors detected when sending over the blender bone weights... what to do?? ===		
 		int nErrorsBoneGroups = oBA.ReadInt();
@@ -118,17 +118,17 @@ public class CBSkin : CBMesh {	// Blender-centered class that extends CBMesh to 
 		UpdateNormals();									// Fix the normals with the just-serialized map of shared normals
 		_oMeshNow.bindposes 	= aSkinBindPoses;
 		_oMeshNow.boneWeights 	= aBoneWeights.ToArray();
-		_oSkinMeshRendNow.sharedMesh = _oMeshNow;					//###TODO: skinned mesh complex bounds!
-		_oSkinMeshRendNow.materials = _aMatsCurrent;		//###DESIGN:!! Using materials instead of shared materials so that different bodies on the same texture base can go invisible or not... (but more costly in video memory!)  ###OPT:!!
-		_oSkinMeshRendNow.bones = aSkinBones;
+		_oSkinMeshRend.sharedMesh = _oMeshNow;					//###TODO: skinned mesh complex bounds!
+		_oSkinMeshRend.materials = _aMatsCurrent;		//###DESIGN:!! Using materials instead of shared materials so that different bodies on the same texture base can go invisible or not... (but more costly in video memory!)  ###OPT:!!
+		_oSkinMeshRend.bones = aSkinBones;
 
 
 		//=== Conveniently reset skinned mesh renderer flags we always keep constant... makes it easier to override the defaults which go the other way ===
-		_oSkinMeshRendNow.updateWhenOffscreen = true;                               //###OPT: Should some mesh have this off?
-        _oSkinMeshRendNow.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;       //###PERF: Runtime performance of shadows?  (All done in different quality settings?)
-        _oSkinMeshRendNow.receiveShadows = true;
-		if (_oSkinMeshRendNow.GetComponent<Collider>() != null)						//###CHECK: ReleaseGlobalHandles mesh collider here if it exists at gameplay
-			Destroy(_oSkinMeshRendNow.GetComponent<Collider>());
+		_oSkinMeshRend.updateWhenOffscreen = true;                               //###OPT: Should some mesh have this off?
+        _oSkinMeshRend.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;       //###PERF: Runtime performance of shadows?  (All done in different quality settings?)
+        _oSkinMeshRend.receiveShadows = true;
+		if (_oSkinMeshRend.GetComponent<Collider>() != null)						//###CHECK: ReleaseGlobalHandles mesh collider here if it exists at gameplay
+			Destroy(_oSkinMeshRend.GetComponent<Collider>());
 	}
 
 

@@ -4,7 +4,7 @@
 === TODO ===
 - Load / Save in Blender of ClothSrc vert positions for body (under filename being hash of all body props?)
 	- This info stored in file for body props?
-- Cleanup... need CObject?
+- Cleanup... need CObj?
 - Refix CCloth to pull from ClothSrc mesh before cut!
 
 === LATER ===
@@ -63,7 +63,7 @@
 
 === WISHLIST ===
 - Need central editing functionality: A central game mode combobox followed by what to edit (e.g. which cloth) and what to sub-edit (e.g. which curve)
-	- Detail pane fills up from CObject enumeration from there.
+	- Detail pane fills up from CObj enumeration from there.
 	- Q: What to do about 'commit' button?  How does that flow with top-level editing framework?
 	- Q: How to select multiple clothing? (idea: have a slot for all possible clothing with default being nothing populated?)
 	- Q: How to save the whole thing?
@@ -79,10 +79,10 @@
 # We currently scan seam chains for L/R... given our simplifying assumptions do we keep overhead of right side?
 # Need to redo bodysuit to new body.  Redo UVs too.
 
-#- Unity edits CProps of CCloth at the global level (for cloth types, curve types, meta props like nipple X/Y, bra strap pos / width, etc)
+#- Unity edits CObjs of CCloth at the global level (for cloth types, curve types, meta props like nipple X/Y, bra strap pos / width, etc)
 #- User can edit only one curve at a time in a parent / child with CCloth / CCurve.  User picks by radio button one only.
     #- User adjusts sliders and Unity renders the cutting curves onto bodysuit (and cuts when user presses 'Cut' button)
-#- CCurve has derived superclasses such as CCurveNeck, CCurveLegs, CCurveBottom, CCurveArms, etc which contains its own CObject / CProps for Unity editing / cloth loading/saving
+#- CCurve has derived superclasses such as CCurveNeck, CCurveLegs, CCurveBottom, CCurveArms, etc which contains its own CObj / CObjs for Unity editing / cloth loading/saving
 #- Have to remove the old single-side source mesh, cut mesh, etc and its behavior (duplicate before batch cut)
 #- Folder positions of cloth stuff... a new parent node?
 
@@ -154,7 +154,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 	CBSkinBaked			_oBSkinBaked_SkinnedPortion;		// The 'skinned portion' of our cloth.  Skinned alongside its owning body.  We use all its verts in a master-spring-slave Flex relationship to force these verts to stay very close to their original position on the body
     CPinnedParticles    _oPinnedParticles;              
     //---------------------------------------------------------------------------	USER INTERFACE
-	CObject				_oObj;                              // The multi-purpose CObject that stores CProp properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
+	CObj				_oObj;                              // The multi-purpose CObj that stores CObj properties  to publicly define our object.  Provides client/server, GUI and scripting access to each of our 'super public' properties.
     CHotSpot            _oHotSpot;                          // The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
     Transform           _oWatchBone;                        // Bone position we watch from our owning body to 'autotune' cloth simulation parameters so cloth stays on body during rapid movement (e.g. pose changing)
 	CUICanvas			_oCanvas;							// The fixed UI canvas responsible to render the cloth-editing GUI
@@ -186,7 +186,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		//=== Create the skinned-portion of the cloth.  It will be responsible for driving Flex particles that heavily influence their corresponding particles in fully-simulated cloth mesh ===
 		_oBSkinBaked_SkinnedPortion = (CBSkinBaked)CBSkinBaked.Create(null, _oBodyBase, sBlenderAccessString_ClothInCollection + ".oMeshClothSkinned", typeof(CBSkinBaked));    //###WEAK13:!!! Fucking dot!!
 		_oBSkinBaked_SkinnedPortion.transform.SetParent(transform);
-		_oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
+		_oBSkinBaked_SkinnedPortion._oSkinMeshRend.enabled = false;          // Skinned portion invisible to the user.  Only used to guide simulated portion
 
 		//=== Receive the aMapPinnedParticles array Blender created to map the skinned verts to their pertinent simulated ones ===
 		List<ushort> aMapPinnedParticles = CByteArray.GetArray_USHORT("'CBody'", _oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection  + ".aMapPinnedParticles.Unity_GetBytes()");
@@ -196,18 +196,18 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 		MeshRenderer oMeshRend = GetComponent<MeshRenderer>();
         //oMeshRend.sharedMaterial = Resources.Load("Materials/BasicColors/TransWhite25") as Material;        //####SOON? Get mats!  ###F
         oMeshRend.sharedMaterial = Resources.Load("Materials/Test-2Sided") as Material;        //####SOON? Get mats!  ###F
-        _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.sharedMaterial = oMeshRend.sharedMaterial;        // Skinned part has same material
+        _oBSkinBaked_SkinnedPortion._oSkinMeshRend.sharedMaterial = oMeshRend.sharedMaterial;        // Skinned part has same material
 		_oMeshNow = oMeshFilter.sharedMesh;
 		_oMeshNow.MarkDynamic();                // Docs say "Call this before assigning vertices to get better performance when continually updating mesh"
 
 		//=== Create the 'cloth at startup' mesh.  It won't get simulated and is used to reset simulated cloth to its startup position ===
 		_oBMeshClothAtStartup = CBMesh.Create(null, _oBodyBase, sBlenderAccessString_ClothInCollection + ".oMeshClothSimulated", typeof(CBMesh));
-		_oBMeshClothAtStartup.transform.SetParent(_oBodyBase.FindBone("chestUpper"));      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
+		_oBMeshClothAtStartup.transform.SetParent(_oBodyBase.FindBoneByPath("chestUpper"));      // Reparent this 'backup' mesh to the chest bone so it rotates and moves with the body
         _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = false;
 		//_oBMeshClothAtStartup.gameObject.SetActive(false);      // De activate it so it takes no cycle.  It merely exists for backup purposes
 
         //=== Create the Flex object for our simulated part ===
-		//###BROKEN: Move out of CFlex! CGame.INSTANCE._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.INSTANCE.nMassCloth, Color.yellow);
+		//###BROKEN: Move out of CFlex! CGame._oFlex.CreateFlexObject(gameObject, _oMeshNow, _oMeshNow, uFlex.FlexBodyType.Cloth, uFlex.FlexInteractionType.SelfCollideFiltered, CGame.nMassCloth, Color.yellow);
         uFlex.FlexProcessor oFlexProc = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexProcessor)) as uFlex.FlexProcessor;
         oFlexProc._oFlexProcessor = this;
         _oFlexParticles = GetComponent<uFlex.FlexParticles>();
@@ -223,14 +223,13 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 
 
         //=== Create the managing object and related hotspot ===
-		_oObj = new CObject(this, "Cloth " + gameObject.name, "Cloth " + gameObject.name);
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, transform.name, typeof(EFlexCloth));
-        oPropGrp.PropAdd(EFlexCloth.Tightness,     "Tightness",    1.0f, 0.01f, 2.5f, "");
-        oPropGrp.PropAdd(EFlexCloth.Length,        "Length",       1.0f, 0.50f, 1.10f, "");
-        oPropGrp.PropAdd(EFlexCloth.ClothMass,     "Mass",         1.0f, 0.0001f, 1000.0f, "");
-        _oObj.FinishInitialization();
-		_oWatchBone = _oBodyBase.FindBone("chestUpper");            //####HACK ####DESIGN: Assumes this cloth is a top!
-		_oHotSpot = CHotSpot.CreateHotspot(this, _oWatchBone, "Clothing", false, new Vector3(0, 0.22f, 0.04f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
+		//_oObj = new CObj(this, "Cloth " + gameObject.name, "Cloth " + gameObject.name, _oBodyBase._oObj);
+		//CObjEnum oObjGrp = new CObjEnum(_oObj, transform.name, typeof(EFlexCloth));
+  //      _oObj.Add(EFlexCloth.Tightness,     "Tightness",    1.0f, 0.01f, 2.5f, "");
+  //      _oObj.Add(EFlexCloth.Length,        "Length",       1.0f, 0.50f, 1.10f, "");
+  //      _oObj.Add(EFlexCloth.ClothMass,     "Mass",         1.0f, 0.0001f, 1000.0f, "");
+		//_oWatchBone = _oBodyBase.FindBone("chestUpper");            //####HACK ####DESIGN: Assumes this cloth is a top!
+		//_oHotSpot = CHotSpot.CreateHotspot(this, _oWatchBone, "Clothing", false, G.C_Layer_HotSpot, 1.0f, new Vector3(0, 0.22f, 0.04f));     //###IMPROVE!!! Position offset that makes sense for that piece of clothing (from center of its verts?)
 
 		//=== Backup the startup cloth arrays so we can adjust in a non-destructive way ===
 		_aSpringRestLengthsBAK = new float[_oFlexSprings.m_springsCount];
@@ -244,12 +243,12 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 
 		//=== Create the managing object and related hotspot ===			###CURRENT
 		////////////////
-		//_oObj = new CPropGrpBlender(this, _oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".oObj", _oBodyBase._nBodyID);
+		//_oObj = new CObjGrpBlender(this, _oBodyBase._sBlenderInstancePath_CBodyBase + sBlenderAccessString_ClothInCollection + ".oObj", _oBodyBase._nBodyID);
 		//_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
 		//_oHotSpot = CHotSpot.CreateHotspot(this, null, "Body Morphing", false, new Vector3(0, 0, 0));
 		//_oCanvas = CUICanvas.Create(transform);
 		//_oCanvas.transform.position = new Vector3(0.31f, 1.35f, 0.13f);            //###WEAK11: Hardcoded panel placement in code?  Base on a node in a template instead??  ###IMPROVE: Autorotate?
-		//CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, "Cloth Editing");
+		//CUtility.WndPopup_Create(_oCanvas, EWndPopupType.PropertyEditor, new CObj[] { _oObj }, "Cloth Editing");
 	}
 
 	public override void OnDestroy() {
@@ -264,25 +263,25 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 
     //--------------------------------------------------------------------------	UTILITY
     public void HideShowMeshes() {
-        GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowPresentation;
-        _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = CGame.INSTANCE.ShowMeshStartup;
-        _oBSkinBaked_SkinnedPortion._oSkinMeshRendNow.enabled = CGame.INSTANCE.ShowPinningRims;
-        GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.INSTANCE.ShowFlexParticles;
+        GetComponent<MeshRenderer>().enabled = CGame.ShowPresentation;
+        _oBMeshClothAtStartup.GetComponent<MeshRenderer>().enabled = CGame.ShowMeshStartup;
+        _oBSkinBaked_SkinnedPortion._oSkinMeshRend.enabled = CGame.ShowPinningRims;
+        GetComponent<uFlex.FlexParticlesRenderer>().enabled = CGame.ShowFlexParticles;
     }
 
 	//--------------------------------------------------------------------------	EVENT PROCESSING
 
 	void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {      // Fired everytime user adjusts a property.
 		// 'Bake' the morphing mesh as per the player's morphing parameters into a 'MorphResult' mesh that can be serialized to Unity.  Matches Blender's CBodyBase.UpdateMorphResultMesh()
-		Debug.LogFormat("CBCloth had property '{0}' changed to value {1}", oArgs.PropertyName, oArgs.ValueNew);
+		//Debug.LogFormat("CBCloth had property '{0}' changed to value {1}", oArgs.CObj._sNameInCodebase, oArgs.CObj._nValue);
 
 		//if (oArgs.Property._oObjectExtraFunctionality == null)
 		//	oArgs.Property._oObjectExtraFunctionality = new CMorphChannel(this, oArgs.PropertyName);
 		//CMorphChannel oMorphChannel = oArgs.Property._oObjectExtraFunctionality as CMorphChannel;
-		//bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.ValueNew);
+		//bool bMeshChanged = oMorphChannel.ApplyMorph(oArgs.CObj._nValue);
 		//if (bMeshChanged) {
-		//	_oMeshStaticCollider._oMeshNow.vertices = _oMeshStaticCollider._memVerts.L;       //###IMPROVE: to some helper function?
-		//	_oMeshStaticCollider.UpdateNormals();							// Morphing invalidates normals... update
+		//	_oMeshSkinnedBody._oMeshNow.vertices = _oMeshSkinnedBody._memVerts.L;       //###IMPROVE: to some helper function?
+		//	_oMeshSkinnedBody.UpdateNormals();							// Morphing invalidates normals... update
 		//	_bFlexBodyCollider_ParticlesUpdated = true;                          // Flag Flex to perform an update of its particle positions...
 		//}
 	}
@@ -291,12 +290,12 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
 
 	public void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) { }
 
-	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {		//###DESIGN? Currently an interface call... but if only GUI interface occurs through CObject just have cursor directly invoke the GUI_Create() method??
-		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(_oBodyBase._oBody.FindClosestCanvas(), new CObject[] { _oObj });
+	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {		//###DESIGN? Currently an interface call... but if only GUI interface occurs through CObj just have cursor directly invoke the GUI_Create() method??
+		//if (eHotSpotEvent == EHotSpotEvent.ContextMenu)		//###BROKEN: Needs canvas!
+		//	_oHotSpot.WndPopup_Create(_oBodyBase._oBody.FindClosestCanvas(), new CObj[] { _oObj });
 	}
 
-    public void OnPropSet_Tightness(float nValueOld, float nValueNew) {
+    public void OnSet_Tightness(float nValueOld, float nValueNew) {
 		int nSprings = _oFlexSprings.m_springsCount;
 		if (_oPinnedParticles != null)
 			nSprings -= _oPinnedParticles._nNumMappingsSkinToSim;
@@ -305,7 +304,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
         Debug.LogFormat("Cloth Tightness {0}", nValueNew);
     }
 
-    public void OnPropSet_Length(float nValueOld, float nValueNew) {
+    public void OnSet_Length(float nValueOld, float nValueNew) {
 		int nSprings = _oFlexSprings.m_springsCount;
 		if (_oPinnedParticles != null)
 			nSprings -= _oPinnedParticles._nNumMappingsSkinToSim;
@@ -314,7 +313,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
         Debug.LogFormat("Cloth Length {0}", nValueNew);
     }
 
-    public void OnPropSet_ClothMass(float nValueOld, float nValueNew) {      
+    public void OnSet_ClothMass(float nValueOld, float nValueNew) {      
 		//###OBS? Doesn't appear to do anything!!
         //float nInvMassPerParticle = 1 / (nValueNew * _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim);
         //for (int nPar = 0; nPar < _oFlexParticles.m_particlesCount - _oPinnedParticles._nNumMappingsSkinToSim; nPar++)
@@ -326,7 +325,7 @@ public class CBCloth : CBMesh, IHotSpotMgr, uFlex.IFlexProcessor {						// CBClo
     public void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
         //=== Bake the baked part of our cloth.  We need its periphery verts to pin our simulated part of the cloth! ===
 		if (_oPinnedParticles != null) {									// Skip baking skinned mesh if its empty!
-			_oPinnedParticles._oMeshSoftBodyPinnedParticles.Baking_UpdateBakedMesh();		// Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
+			_oPinnedParticles._oMeshSoftBodyPinnedParticles.Baking_GetBakedSkinnedMesh();		// Bake the skinned portion of the mesh.  We need its verts to pin the 'pinned particles' which in turn move the 'moving particles' toward them via a spring we created in init ===
 			_oPinnedParticles.UpdatePositionsOfPinnedParticles();
 		}
 

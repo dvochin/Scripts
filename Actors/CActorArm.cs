@@ -1,346 +1,508 @@
-/*###DISCUSSION: Anim hands
+#region JUNK
 
-=== FINISH ===
- * Cleanup old crap!
-   * Cleanup old bone tree & code??  Old layer for hands?
- * Vert snapping on closest sphere found, but we need closest vert!  (can simplify C++ now that we don't need as much accuracy??)
- * Make a few hand poses flow... enhance with bone settings?
- * Reduce pin strength??  Increase damping??
- * 
-=== DESIGN ===
-- Important the 'drag' of the rigid body!  Don't forget that one!!
-- Pose spring is very important parameter and needs tweaking for all bones!
-- We want to work on the in-game experience of easy interaction to the lovemaking experience.
-	- All actions the user does control public variables that are recorded in animation tracks.
-		- The user can go back in time with these, setup loops, save poses, create sequences, share them etc.
-		- The only thing he/she can't do is do advanced editing & adjust timing -> that requires Unity editor and the Animation GUI panels
+//if (CGame._bDevFlag1) {
+//    float nLimit = 2;
+//    for (int nFinger = 1; nFinger < 5; nFinger++) {
+//        for (int nJoint = 0; nJoint < 3; nJoint++) {
+//            CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+//            Vector3 eulRot = oBoneFinger.transform.localRotation.eulerAngles;
+//            if (CGame._bDevFlag2)
+//                eulRot.x = Mathf.Clamp(eulRot.x,  oBoneFinger._oJoint.lowAngularXLimit.limit,   oBoneFinger._oJoint.highAngularXLimit.limit);
+//            if (CGame._bDevFlag3) {
+//                eulRot.y = Mathf.Clamp(eulRot.y, -nLimit, nLimit);
+//                eulRot.z = Mathf.Clamp(eulRot.z, -nLimit, nLimit);
+//            }
+//            //eulRot.y = Mathf.Clamp(eulRot.y, -oBoneFinger._oJoint.angularYLimit.limit, oBoneFinger._oJoint.angularYLimit.limit);
+//            //eulRot.x = Mathf.Clamp(eulRot.z, -oBoneFinger._oJoint.angularZLimit.limit, oBoneFinger._oJoint.angularZLimit.limit);
+//            oBoneFinger.transform.localRotation = Quaternion.Euler(eulRot);
+//        }
+//    }
+//}
 
-- Now operating on configurable joint, but duplicate the code so that it can act on the straight bones...
-	- Add editor-based editing for quick posing!!  This can facilitate animation curves... (without all PhysX IK help of course)
-- Concept of 'anchor' on the hands that shifts to different pre-defined transforms: such as tip of index for vagina insertion, palm of hand for under breast, mid-index finger for around cock, etc
-- Some bones (like collar) need much stiffer drive to avoid looking stupid when changing... how to merge that in??
-- Create CWalkerActor and CWalkerArea class?
-	- CWalkerArea is derives from our skinned collider and add an 'area of interest' perpendicular to the normal it calculates... :)
+//_oBoneExtremity.gameObject.layer = nLayer;
+//for (int nFinger = 0; nFinger < 5; nFinger++) {
+//    for (int nJoint = 0; nJoint < 3; nJoint++) {
+//        CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+//        oBoneFinger.gameObject.layer = nLayer;
+//    }
+//}
+#endregion
 
-=== HAND BREAST SIMULATION ===
- * A big collider really helps... need less cycles to simulate and get breasts out of the way... so diff colliders for PhysX2 & 3?
-   * PhysX2 assumes flat hands
- * increase particle radius helps too
- * The big question... move by CKeyHook or go the distance to animate hands like we do sex bone??
-=== IDEAS ===
-- Caress zones of differenty types... that are invoked occasionally according to how 'turned on' the character is (e.g. stroking the arms during early foreplay... then the breasts... finally vagina penetration!)
 
-=== PROBLEMS ===
-- TEMP: Set drag of left arm for test!
-
-=== TODO ===
-- Give shapes and colors to springs and targets!
-- To clean up what is shown in animator GUI, consider moving all 'super public' properties to own component??
-- AnimEvents: need to extract the playing animation context...
-	- Make tests to perform PingPong, looping, wait for other event, etc
-	
-
-- Develop 'autofind' ability of a limb to detect an interesting magnet in its area of interest.  (Use boxe triggers for this??
-- Reduce strenght of slerp and start blending in effects of magnets
-- Find how we're going to dampen... with rigidbody drag, angle drag?  Joint drag?  There are so many!!
-- Develop hand poses
-- NEXT: Bring back magnets, reduce drive and follow the tits!!
-- Caress of other body... find hotspot area through trigger boxes??
- 
-- Now have working actor magnets and anchors!!!
-	- Work on the proper 'twist'... impossible with spring joint?  Config Joint on hands then??
-		- Or might rely on simply the colliders doing their job??  (Assuming a proper bone drive hint that is weakly driven)
-		- Idea: Set the magnet INSIDE the body and have the collider keep on surface!!!!!
-	- With magnets and anchors, do we create a layer of abstraction on top of that that connects the two in easy-to-invoke one enum?
-		- This would of course have to be sensitive to the relative position of the actor with the target... e.g. stroking penis while standing up has the hand position differently then kneeling!  (Might be too complex... best left to animator??)
-
-=== NOW ===
-- Right hand side is getting a pain... subclass?
-- Number of bind poses shutdown problem a pain...
-- Stronger drive of collar a must...
-- Remove most drives??
-- Clarify naming between 'walker' and 'target' and update vars!
-- Some targets (BackOfHead) need special 'hints' to look good...  as they are the exception postpone these for now?
-- It would be nice to be able to save target positions at gametime?
-- Have a 'cut hand' to place with would make things more intuitive!
-	- Have that hand accept params to properly visualize fingers?
-	- Do we place finger position hints in target??
-- Have code pull possible choices out of nodes at init?
-- Conclusions on early experiments:
-	- Target has to drive collar strongly and shoulder weakly... elbow and hand can be solved by PhysX
-	- So to design these we need to have a 'test mode' where magnet can be quickly be turned on and off (so collar & shoulder drive can show their results)
-	- Therefore... is our old concept of 'pose' dead?  Will we ever have to drive?
-	- Possible to have lockups in certain transitions... will the collar and shoulder drives be sufficient to resolve?
-	- Will we ever have to drive elbow and hand???  If no then why have them as anim parameters??  TEST!!
-
-- Continue exploring arms and modes.  The mode with drive and targets is the right idea
-	- Create an in game menu that appears when user presses Q or E to enter that mode
-	- Record these actions in an animation clip that is created at the beginning of every game.
-
-*/
 
 using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 using System;
 
-public class CActorArm : CActor {
+public class CJoint {
+
+}
+
+
+public class CActorArm : CActorLimb, IVisualizeFlex {
 
 	[HideInInspector]	public 	CBone 	_oBoneCollar;
 	[HideInInspector]	public 	CBone 	_oBoneShoulderBend;
 	[HideInInspector]	public 	CBone 	_oBoneShoulderTwist;
     [HideInInspector]	public 	CBone 	_oBoneForearmBend;
     [HideInInspector]	public 	CBone 	_oBoneForearmTwist;
+	[HideInInspector]	public 	CBone[,] _aaFingers;            // Array of the three bones for each five fingers of this hand
+    [HideInInspector]	public 	EHandMode _eHandMode = EHandMode.Normal;
+    [HideInInspector]	public 	EHandPose _eHandPose;
 
-	[HideInInspector]	public 	CBone[,] _aaFingers = new CBone[5,3];			// Array of the three bones for each five fingers of this hand
-
-	[HideInInspector]	public 	CHandTarget		_oHandTarget;			// Our connected hand target (if any) responsible for pinning and animate the hand...
-
-	//####OBS? float[]			_aFingerSpreadMultiplier = new float[] { 0, 1.3f, 0.3f, -0.5f, -1.1f };		// These multiply the Fingers_Spread to cause fingers Y to spread fingers away from each other in different ration (e.g. not all rotate in same direction!)
-
-	//--- Ray-pinning of hands variables ---
-	//CMemAlloc<Vector3>	_memVecRayHitInfo;				// HandTarget of the last raycast hit as computed by DLL raycasting.  Used for arm pinning
-	CHandTarget			_oHandTarget_RaycastPin;		// Commonly used hand target used during commonly-used raycast to position hands.
-	//int					_nArmPinBodyColVert;			// Body collider vert that pinned arm is following
-	CBody				_oBodyArmPin;					// Body owning body collider vert _nArmPinBodyColVert
-	//float				_nTimeStartPinSet;				// Time.time value when pin was set.  Used to gracefully slerp to new position to avoid sharp hand movements.
-	//bool				_bPinByClosestVert;				// When true we pin to the closest body collider vert.  When false we pin by ray position (much more accurate)
+    /*###TODO: FlexHand
+    - Move to a subclass of CSoftBody (so we can have visualization?)
+    - Need to access proper spring so we can close fingers... by calculation or we stuff into array?
+    - Particles explode!
+    - Rest particles don't appear to have enough fingers!
+    - Visualizer doesn't work!  Adopt our own!
+        - Currently part of CSoftBody... detach?
+    */ 
 
 
-	const float			C_TimeToMoveToNewPinPos = 9.0f;	// Time to slerp to new hand pin position		###TUNE
 
-	//---------------------------------------------------------------------------	CREATE / DESTROY
-	public override void OnStart_DefineLimb() {
-		_nDrivePinToBone = 0.1f * C_DrivePinToBone;				// Weaken the hand drive so hand doesn't fly from pin to pin		//###TUNE
-		//_memVecRayHitInfo = new CMemAlloc<Vector3>(2);
+    [HideInInspector]	public	uFlex.FlexParticles			_oFlexParticles;
+    [HideInInspector]	public  uFlex.FlexSprings           _oFlexSprings;              // Custom-created springs to bind the hand particles (over two layers) to give hand a softbody feel.
+    [HideInInspector]	public	int                         _nParticles = 2*4*3;        // two layers (one for fingers other for 2nd layer on top of fingers to solidify the hand), four fingers, three joints per finger
+
+    //--- Temporary build-time arrays for Flex Hand creation ---
+    List<int>   _aSpringIndices       = new List<int>();
+    List<float> _aSpringRestLength    = new List<float>();
+    List<float> _aSpringCoef          = new List<float>();
+
+    int FlexHand_CalcParticleID(int nLayer, int nFinger, int nJoint) {
+        // Flattens the layer, finger, finger joint into a particle ID
+        return (nLayer * 4 * 3) + (nFinger * 3) + nJoint;
+    }
+
+    void FlexHand_AddSpring(int nLayer1, int nFinger1, int nJoint1, int nLayer2, int nFinger2, int nJoint2) {
+        int nPar1 = FlexHand_CalcParticleID(nLayer1, nFinger1, nJoint1);
+        int nPar2 = FlexHand_CalcParticleID(nLayer2, nFinger2, nJoint2);
+        _aSpringIndices.Add(nPar1);
+        _aSpringIndices.Add(nPar2);
+        _aSpringCoef.Add(1.0f);
+        Vector3 vecPar1 = _oFlexParticles.m_particles[nPar1].pos;
+        Vector3 vecPar2 = _oFlexParticles.m_particles[nPar2].pos;
+        float nDistRest = Vector3.Distance(vecPar1, vecPar2);
+        _aSpringRestLength.Add(nDistRest);
+    }
+
+    public void FlexHand_Create() {     //#Hand
+		//=== Define Flex particles that will perform 2-way interaction of hands in the Flex scene ===
+		_oFlexParticles = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexParticles)) as uFlex.FlexParticles;
+        _oFlexParticles.m_drawDebug = true;
+        _oFlexParticles.m_drawRest = true;
+		_oFlexParticles.m_particlesCount        = _oFlexParticles.m_maxParticlesCount = _nParticles;
+		_oFlexParticles.m_particles				= new uFlex.Particle[_nParticles];
+		_oFlexParticles.m_restParticles			= new uFlex.Particle[_nParticles];		//###OPT19: Wasteful?  Remove from uFlex??
+		_oFlexParticles.m_colours				= new Color[_nParticles];
+		_oFlexParticles.m_velocities			= new Vector3[_nParticles];
+		_oFlexParticles.m_densities				= new float[_nParticles];
+		_oFlexParticles.m_particlesActivity		= new bool[_nParticles];
+		_oFlexParticles.m_colour				= Color.green;
+		_oFlexParticles.m_interactionType		= uFlex.FlexInteractionType.None;       //###TEMP
+		_oFlexParticles.m_collisionGroup		= -1;
+		_oFlexParticles.m_overrideMass			= true;							//###INFO: when m_overrideMass is true ALL particles have invMass set to 1 / m_mass.  So we *MUST* have this always true so we can have kinematic particles
+		_oFlexParticles.m_mass					= 1f;							//###INFO: when m_overrideMass is true this has NO influence so we can set to whatever.
+		//_oFlexParticles.m_bounds = oMeshBaked.bounds;
+
+        _oFlexSprings   = CUtility.FindOrCreateComponent(gameObject, typeof(uFlex.FlexSprings))   as uFlex.FlexSprings;
+
+        //for (int nLayer = 0; nLayer < 2; nLayer++) {
+        //    for (int nFinger = 0; nFinger < 4; nFinger++) {
+        //        for (int nJoint = 0; nJoint < 3; nJoint++) {
+        //        }
+        //    }
+        //}
+
+        //=== Set the starting particle positions ===
+        for (int nLayer = 0; nLayer < 2; nLayer++) {
+            for (int nFinger = 0; nFinger < 4; nFinger++) {
+                for (int nJoint = 0; nJoint < 3; nJoint++) {
+                    int nPar = FlexHand_CalcParticleID(nLayer, nFinger, nJoint);
+                    CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+                    Vector3 vecPos = oBoneFinger._vecStartingPos;
+                    vecPos.y += 1;
+                    if (nLayer == 1)
+                        vecPos.x += 0.01f;      //###TODO: Add up vector
+                    _oFlexParticles.m_particles[nPar].pos = vecPos;
+                    _oFlexParticles.m_particles[nPar].invMass = (nJoint == 0) ? 0 : 1;
+                    _oFlexParticles.m_restParticles[nPar].pos = vecPos;
+                    _oFlexParticles.m_restParticles[nPar].invMass = _oFlexParticles.m_particles[nPar].invMass;
+                    _oFlexParticles.m_particlesActivity[nPar] = true;
+                }
+            }
+        }
+
+        //=== Link each finger joint with its subsequent joint ===
+        for (int nLayer = 0; nLayer < 2; nLayer++) {
+            for (int nFinger = 0; nFinger < 4; nFinger++) {     
+                for (int nJoint = 1; nJoint < 2; nJoint++) {      //###NOTE: Ending one joint before the end
+                    FlexHand_AddSpring(nLayer, nFinger, nJoint, nLayer, nFinger, nJoint + 1);
+                }
+            }
+        }
+        //=== Link the fingers together ===
+        for (int nLayer = 0; nLayer < 2; nLayer++) {
+            for (int nFinger = 0; nFinger < 3; nFinger++) {                         //###NOTE: Ending one finger before last
+                for (int nJoint = 0; nJoint < 3; nJoint++) {
+                    FlexHand_AddSpring(nLayer, nFinger, nJoint, nLayer, nFinger + 1, nJoint);
+                }
+            }
+        }
+        //=== Link the two layers together ===
+        for (int nFinger = 0; nFinger < 4; nFinger++) {
+            for (int nJoint = 0; nJoint < 3; nJoint++) {
+                FlexHand_AddSpring(0, nFinger, nJoint, 1, nFinger, nJoint);
+            }
+        }
+
+        //=== Copy our temporary working arrays into the pertinent Flex array ===
+        _oFlexSprings.m_springIndices       = _aSpringIndices.ToArray();
+        _oFlexSprings.m_springRestLengths   = _aSpringRestLength.ToArray();
+        _oFlexSprings.m_springCoefficients  = _aSpringCoef.ToArray();
+        _oFlexSprings.m_springsCount = _aSpringRestLength.Count;
+        //_oFlexSprings.m_debug = true;
+        _aSpringIndices       = null;
+        _aSpringRestLength    = null;
+        _aSpringCoef          = null;
+    }
+
+    //---------------------------------------------------------------------------	CREATE / DESTROY
+    public override void OnStart_DefineLimb() {
+		_bBakeJointAnglesWhenMovingPin = true;              // Enable this limb to 'bake' each joint angles as the pin is moved.  Greatly stabilizes the limb during gameplay as the hard work of setting joint angles has been done by the pose designer
+		///_nDrivePinToBone = 0.1f * C_DrivePinToBone;				// Weaken the hand drive so hand doesn't fly from pin to pin		//###TUNE
 
 		//=== Init Bones and Joints ===
-        CBone oBoneChestUpper = _oBody._oActor_Chest._oBoneExtremity;           //###DEV21:!!! Cleanup all the old crap!
-		float n = 1f;		//###DESIGN:!!!
-		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	   50, 2.5f));	//###NOTE: Requires a lot of stiffness to avoid sagging! ###TUNE
-		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",	    n, 2.0f));
-		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",    n, 1.5f));
-		_aBones.Add(_oBoneForearmBend		= CBone.Connect(this, _oBoneShoulderTwist,	_chSidePrefixL+"ForearmBend",   n, 1.5f));
-		_aBones.Add(_oBoneForearmTwist		= CBone.Connect(this, _oBoneForearmBend,	_chSidePrefixL+"ForearmTwist",  n, 1.0f));
-		_aBones.Add(_oBoneExtremity			= CBone.Connect(this, _oBoneForearmTwist,	_chSidePrefixL+"Hand",		    n, 0.5f));
+        CBone oBoneChestUpper = _oBodyBase._oActor_Chest._oBoneExtremity;           //###DEV21:!!! Cleanup all the old crap!
+		_aBones.Add(_oBoneCollar			= CBone.Connect(this, oBoneChestUpper,		_chSidePrefixL+"Collar",	    3.0f, CBone.EBoneType.ArmCollar));
+		_aBones.Add(_oBoneShoulderBend		= CBone.Connect(this, _oBoneCollar,		    _chSidePrefixL+"ShldrBend",     2.0f, CBone.EBoneType.Bender));
+		_aBones.Add(_oBoneShoulderTwist		= CBone.Connect(this, _oBoneShoulderBend,   _chSidePrefixL+"ShldrTwist",    1.5f, CBone.EBoneType.Twister));
+		_aBones.Add(_oBoneForearmBend		= CBone.Connect(this, _oBoneShoulderTwist,	_chSidePrefixL+"ForearmBend",   1.5f, CBone.EBoneType.Bender));
+		_aBones.Add(_oBoneForearmTwist		= CBone.Connect(this, _oBoneForearmBend,	_chSidePrefixL+"ForearmTwist",  1.0f, CBone.EBoneType.Twister));
+		_aBones.Add(_oBoneExtremity			= CBone.Connect(this, _oBoneForearmTwist,	_chSidePrefixL+"Hand",		    1.0f, CBone.EBoneType.Extremity));     //###INFO: Mass has a HUGE influence on how strong and stable joints are!  Setting hand mass lower makes in much less stable!  ###TODO: Study why!!
 
-		//=== Init Hotspot ===
-		if (_eBodySide == EBodySide.Left)
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, new Vector3(0, 0, 0));		//###IMPROVE20: Horrible path!  Shorten by using some var!
-		else
-			_oHotSpot = CHotSpot.CreateHotspot(this, _oBody._oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, new Vector3(0, 0, 0));
+        //=== Manually remove the shoulder's Y rotation as it looks horrible! ===   ###HACK: Bake into bone angles in Blender import??
+        _oBoneCollar._oJointD6.angularYMotion = ConfigurableJointMotion.Locked;
 
-		//=== Init CObject ===
-		_oObj = new CObject(this, "Arm" + _chSidePrefixU, "Arm" + _chSidePrefixU);		//###PROBLEM19: Name for scripting and label name!
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Arm", typeof(EActorArm));
-		AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
-		oPropGrp.PropAdd(EActorArm.Hand_UpDown,			"Hand-UpDown", 0, -100, 100, "");		//###OBS?
-		oPropGrp.PropAdd(EActorArm.Hand_LeftRight,		"Hand-LeftRight", 0, -100, 100, "");
-		oPropGrp.PropAdd(EActorArm.Hand_Twist,			"Hand-Twist", 0, -100, 100, "");
-		//oPropGrp.PropAdd(EActorArm.Fingers_Close,		"Fingers-Close",		0,	-100,	100, "", CProp.Hide);		//###BROKEN
-		//oPropGrp.PropAdd(EActorArm.Fingers_Spread,		"Fingers-Spread",		0,	-100,	100, "", CProp.Hide);
-		//oPropGrp.PropAdd(EActorArm.Fingers_ThumbPose,	"Fingers-ThumbPose",	typeof(EThumbPose), (int)EThumbPose.AlongsideFingers, "", CProp.Hide);
-		//oPropGrp.PropAdd(EActorArm.UserControl,		"User Control",			0,		0,		1, "");
-		_oObj.FinishInitialization();
+        _oBoneForearmBend.RotateX(_eBodySide == EBodySide.Left ? 60 : -60);              // Bend forearm halfway by default so body 'folds' more easily.        //###IMPROVE: Have a function that properly inverts!?!
 
-		_oHandTarget_RaycastPin = CActorArm.FindHandTarget(_oBody, EHandTargets.RaycastPin, _eBodySide == EBodySide.Right);	// Find the raycast pin hand target as we use it heavily and it is reparented
-	}
+        //OnSet_Dev_Limb_RigidBody_Drag(0, 15);
+        //OnSet_Dev_Limb_RigidBody_AngDrag(0, 0.1f);
 
-	//void ConfigFingerRoot(int nFingerID, string sFingerName) {		//###OBS?					//###WEAK: 3dsMax bone rotation for fingers need massive rework... these ranges kept limited to compensate... FIX MODEL!
-	//	CJointDriver oJointFingerBoneParent = _oBoneExtremity;
-	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 0, sFingerName, 020f, -020f, -009f,  000f);		// First  bone: Can twist about y also
-	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 1, sFingerName, 010f, -020f,  000f,  000f);		// Second bone: Only X
-	//	oJointFingerBoneParent = ConfigFingerBone(oJointFingerBoneParent, nFingerID, 2, sFingerName, 010f, -020f,  000f,  000f);		// Third  bone: Only X (more limited)		//###CHECK: Joint free vs fixed affecting these??
-	//}
-	
-	//CJointDriver ConfigFingerBone(CJointDriver oJointFingerBoneParent, int nFingerID, int nFingerBoneID, string sFingerName, float XL, float XH, float YR, float ZR) {		//###OBS?
-	//	CJointDriver oJointDrv = CBone.Connect(this, oJointFingerBoneParent, _sSidePrefixL+sFingerName + (nFingerBoneID+1).ToString(), 1.0f, 0.01f, XL,  XH, -YR,  YR,  -ZR,  ZR);		//###TODO: Calibrate different fingers specially!
-	//	_aJoints.Add(oJointDrv);
-	//	JointDrive oDrive = oJointDrv._oConfJoint.slerpDrive;
-	//	oDrive.positionSpring = 1;						//###TUNE
-	//	oDrive.positionDamper = 0;// .001f;				//***NOW!
-	//	oJointDrv._oConfJoint.slerpDrive = oDrive;
-		
-	//	oJointDrv._oRigidBody.mass = 0.0001f;			//###TODO!
-	//	oJointDrv._oRigidBody.drag = 0;					// Remove all damping so finger joint gets the least stress as possible to avoid 'disjointed rubber fingers'
-	//	oJointDrv._oRigidBody.angularDrag = 0;
-	//	CapsuleCollider oCollCap = (CapsuleCollider)CUtility.FindOrCreateComponent(oJointDrv._oTransform.gameObject, typeof(CapsuleCollider));
-	//	oCollCap.direction = 2;			// z = 2 as per docs at http://docs.unity3d.com/Documentation/ScriptReference/CapsuleCollider-direction.html
-	//	oCollCap.radius = 0.011f;
-	//	oCollCap.height = 0.04f;		
-	//	_aaFingers[nFingerID, nFingerBoneID] = oJointDrv;		
-	//	return oJointDrv;
-	//}
-	public static CHandTarget FindHandTarget(CBody oBody, EHandTargets eHandTarget, bool bRightSideOfBody) {
-        //string sNameHandTarget = "CHandTarget-" + eHandTarget.ToString();				// The enum name of hand target is prefixed by 'CHandTarget-' in the bone tree
-        //Transform oHandTargetT = oBody.SearchBone(oBody._oBonesT, sNameHandTarget);
-        //CHandTarget oHandTarget = oHandTargetT.GetComponent<CHandTarget>();
-        //if (bRightSideOfBody)		// The right side of body has 'create as needed' hand targets that are mirrored from the left side...
-        //	oHandTarget = CHandTarget.FindOrCreateRightSideHandTarget(oHandTarget);
-        //return oHandTarget;
-        return null;        //###BROKEN
-	}
+        //transform.position = new Vector3(_eBodySide == EBodySide.Left ? -0.22f : 0.22f, 0.90f, 0.00f);       // Position the anchor pin at a reasonable position alongside the thigh
 
-	//---------------------------------------------------------------------------	ARM RAYCAST PINNING: User selecting where to place the closest arm of the selected body on a body surface through raycasting
+        //=== Init Hotspot ===
+  //      if (_eBodySide == EBodySide.Left)
+		//	_oHotSpot = CHotSpot.CreateHotspot(this, _oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/lCollar/lShldrBend/lShldrTwist/lForearmBend/lForearmTwist/lHand"), "Left Hand", true, G.C_Layer_HotSpot);		//###IMPROVE20: Horrible path!  Shorten by using some var!
+		//else
+		//	_oHotSpot = CHotSpot.CreateHotspot(this, _oBodyBase.FindBone("hip/abdomenLower/abdomenUpper/chestLower/chestUpper/rCollar/rShldrBend/rShldrTwist/rForearmBend/rForearmTwist/rHand"), "Right Hand", true, G.C_Layer_HotSpot);
 
-	public void ArmRaycastPin_Begin() {
-		_oHandTarget = _oHandTarget_RaycastPin;
-		_oHandTarget.ConnectHandToHandTarget(this);
-		_oHandTarget.transform.position = _oBoneExtremity.transform.position;			// Manually set the hand target position to the hand position so slerp in Update doesn't start from some old stale position  ###MOVE?
-		_oBodyArmPin = null;
-		//_nArmPinBodyColVert = -1;
-		//_nTimeStartPinSet = 0;			// Reset our start-of-slerp time to zero so it's initialize at first real pin position
-		//_bPinByClosestVert = false;		// We start pinning by ray position as it's much more accurate.  When user releases pinning key we go to vert pinning which will handle changes in body orientation  ###IMPROVE: Always have 'ray precision' pinning by storing offset and rotating to closest vert normal?
-		_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;	// We free rotation constraint so hand is just attraced by position (and repelled by colliders)  Greatly simplifies hand raycasting!!
-	}
-	public void ArmRaycastPin_Update() {
-		//_oBodyArmPin = null;          ###F ###OBS ###BROKEN
-		//_nArmPinBodyColVert = -1;
+        //=== Init CObj ===
+        _oObj = new CObj("Arm" + _chSidePrefixU, this);
+        _oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
+        AddBaseActorProperties();                       // The first properties of every CActor subclass are Pinned, pos & rot
+#if __DEBUG__
+        //_oObj.Add("Dev_Arm_Collar_SlerpStrength",       this, 0, 0, 50);
+        //_oObj.Add("Dev_Arm_Shoulder_SlerpStrength",     this, 0, 0, 50);
+        //_oObj.Add("Dev_Arm_Elbow_SlerpStrength",        this, 0, 0, 50);
+        //_oObj.Add("Dev_Arm_Twist_SlerpStrength",        this, 0, 0, 50);
+#endif
 
-		//Ray oRay = Camera.main.ScreenPointToRay(Input.mousePosition);
+        _aaFingers = new CBone[5,3];			// Array of the three bones for each five fingers of this hand
 
-		//foreach (CBody oBody in CGame.INSTANCE._aBodies) {		//###OPT!!: Expensive call currently and we throwaway most of the precision work!  Rethink!!
-		//	if (oBody != null) {
-		//		_nArmPinBodyColVert = ErosEngine.BodyCol_RayCast(oBody._oBodyCol._hBodyCol, oRay.origin, oRay.direction, _memVecRayHitInfo.P);		//###SIMPLIFY  ###CLEANUP: Extra stuff!
-		//		if (_nArmPinBodyColVert != -1) {		// If a raycast vert was found pin this arm to the raycast-provided bodycol vert...
-		//			_oBodyArmPin = oBody;
-		//			//Debug.Log("Ray: " + _nArmPinBodyColVert + " = " + _memVecRayHitInfo.L[0] + _memVecRayHitInfo.L[1]);
-		//			//GameObject.Find("(CGame)/(JUNK)/PIN_RAY") .transform.position = _memVecRayHitInfo.L[0];
-		//			//GameObject.Find("(CGame)/(JUNK)/PIN_VERT").transform.position = _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert];
-		//			if (_nTimeStartPinSet == 0)			// Set the start-of-slerp time only once... the first time we have a valid position to pin to...
-		//				_nTimeStartPinSet = Time.time;
-		//			return;			//###WEAK!! This simple iteration will result in first body with valid raycast to be selected, even if further bodies are actually closer to camera
-		//		}
-		//	}
-		//}
-	}
-	public void ArmRaycastPin_End() {						// Check at end of raycast procedure to unpin if nothing was found
-		//_bPinByClosestVert = true;							// Go to vert-pinning mode now to finalize the pin (much less acurate but survives body movement)
-		if (_oBodyArmPin == null) {							//###CHECK!! Correct cancellation??
-			_oHandTarget.ConnectHandToHandTarget(null);		// Destroy arm from pin at end of raycast search if we're not connected to anything
-			_oHandTarget = null;				//???
-			_oObj.PropSet(0, EActorArm.Pinned, 0);		// Unpin??
-			//_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// If raycasting results in no pin to raycast vert we re-enable angular constraint??? ###TODO!!!! ###DESIGN!!
-		}
-	}
+        //=== Initialize the fingers ===
+        DefineFinger(0, "Thumb",    "");
+        DefineFinger(1, "Index",    "Carpal1");
+        DefineFinger(2, "Mid",      "Carpal2");
+        DefineFinger(3, "Ring",     "Carpal3");
+        DefineFinger(4, "Pinky",    "Carpal4");
 
-	//---------------------------------------------------------------------------	UPDATE
-	public override void OnUpdate() {          // Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
+        //=== Define the PhysX properties for all fingers ===
+        for (int nFinger = 0; nFinger < 5; nFinger++) {
+            for (int nJoint = 0; nJoint < 3; nJoint++) {
+                CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+                oBoneFinger.gameObject.layer = G.C_Layer_Hand;
+                //oBoneFinger._oRigidBody.mass = 2;
+                oBoneFinger._oRigidBody.isKinematic = false;  //#DEV27:??????? _eBodySide == EBodySide.Right;        
+                oBoneFinger._oRigidBody.useGravity = false;
+                oBoneFinger._oJointD6.angularYMotion = oBoneFinger._oJointD6.angularZMotion = ConfigurableJointMotion.Locked;
+                Collider oCol = oBoneFinger.GetComponent<Collider>();
+                oCol.material = CGame._oPhysMat_Friction_Lowest;      //###CHECK ###DEV278
+            }
+        }
+
+        //=== Specialize the PhysX properties for Thumb joints ===
+        CBone oBoneThumb0 = _aaFingers[0, 0];
+        oBoneThumb0._oJointD6.angularYMotion = oBoneThumb0._oJointD6.angularZMotion = ConfigurableJointMotion.Limited;      // Thumb0 gets all three rotations enabled (it needs that full flexibility to support the hand shapes we need)
+        CBone oBoneThumb1 = _aaFingers[0, 1];
+        oBoneThumb1._oJointD6.angularYMotion = ConfigurableJointMotion.Limited;
+        CBone oBoneThumb2 = _aaFingers[0, 2];
+        oBoneThumb2._oJointD6.angularYMotion = ConfigurableJointMotion.Limited;
+
+        //float nSizeFingerTriggerSphere = 0.030f;
+        //Vector3 vecOffset = new Vector3(0, 0, _eBodySide == EBodySide.Left ? nSizeFingerTriggerSphere : -nSizeFingerTriggerSphere);
+        //for (int nFinger = 1; nFinger < 5; nFinger++) {
+        //    for (int nJoint = 0; nJoint < 3; nJoint++) {
+        //        CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+        //        oBoneFinger.CreateTriggerChild(nSizeFingerTriggerSphere, vecOffset);
+        //    }
+        //}
+
+        //DEV_SetFingerPhysicsParameters_HACK();
+
+        //_oBoneShoulderBend.RotateX2(this._eBodySide == EBodySide.Left ? -90 : 90);        // Set the default should bend to be alongside body (instead of 'T' pose)
+
+        FlexHand_Create();
+    }
+
+    void DefineFinger(int nFinger, string sNameJointPrefix, string sNameIntermediateJointToSkip) {
+        //const float nDriveStrength_Fingers = 0.1f;
+        sNameIntermediateJointToSkip  = _chSidePrefixL + sNameIntermediateJointToSkip;          // Prefix all our joint names with our prefix side 'l' or 'r'
+        sNameJointPrefix              = _chSidePrefixL + sNameJointPrefix;
+        string sPathFingerRoot;
+        if (sNameIntermediateJointToSkip.Contains("Carpal")) {         // Carpal bones are skipped and we go straight for the finger (Thumb has no carpal ancestor bone)
+            sPathFingerRoot = string.Format("{0}/{1}", sNameIntermediateJointToSkip, sNameJointPrefix);
+        } else {                        
+            sPathFingerRoot = sNameJointPrefix;
+        }
+        float nMass = 0.015f;            // Creates fingers that are NOT simulated by PhysX if we have zero mass (e.g. straight setting of 'localRotation')
+        _aaFingers[nFinger, 0] = CBone.Connect(this, _oBoneExtremity,           sPathFingerRoot        + "1", nMass, CBone.EBoneType.Finger);
+        _aaFingers[nFinger, 1] = CBone.Connect(this, _aaFingers[nFinger, 0],    sNameJointPrefix + "2", nMass, CBone.EBoneType.Finger);
+        _aaFingers[nFinger, 2] = CBone.Connect(this, _aaFingers[nFinger, 1],    sNameJointPrefix + "3", nMass, CBone.EBoneType.Finger);
+    }
+
+    protected override void PinToExtremity_ConfigureJoint(JointDrive oJointDriveSlerp) {    //#DEV26: ###TODO: Move to limb
+        base.PinToExtremity_ConfigureJoint(oJointDriveSlerp);
+
+        //_oJoint_ExtremityToPin.anchor = new Vector3(0.012137f, 0.082438f, 0.02f);        //#DEV26: ###IMPROVE: Read from marker in hand?
+        //_oJoint_ExtremityToPin.anchor = new Vector3(0.006f, 0.096f, 0.048f);            //###DEV27: Cock anchor ###IMPROVE: Set into prefab?
+        //_oJoint_ExtremityToPin.anchor = new Vector3(0.006f, 0.07f, 0.04f);            //###DEV27: Cock anchor ###IMPROVE: Set into prefab?  Z = height, Y = tips
+        _oJoint_ExtremityToPin.anchor = new Vector3(0.006f, 0.07f, 0.07f);            //###DEV27: Cock anchor ###IMPROVE: Set into prefab?  Z = height, Y = tips
+        _oJoint_ExtremityToPin.autoConfigureConnectedAnchor = false;
+        _oJoint_ExtremityToPin.connectedAnchor = Vector3.zero;
+        _oJoint_ExtremityToPin.angularZMotion = ConfigurableJointMotion.Free;            // Limit hand joint to X,Y motion while leaving Z free to rotate like a hinge.  This is essential for PhysX to auto-calculate how to best position entire arm and hand to most easily reach pin point
+        oJointDriveSlerp.positionSpring = 0.0f;                 // Disable Slerp for arm pin.  Strictly D6 limits and no additional drive!
+
+        const float nTinyLimitToEnableSpring = 0.000001f;
+        SoftJointLimit oLimit = new SoftJointLimit();
+        oLimit.limit = nTinyLimitToEnableSpring;
+        _oJoint_ExtremityToPin.linearLimit = oLimit;
+
+        oLimit.limit = -nTinyLimitToEnableSpring;
+        _oJoint_ExtremityToPin.lowAngularXLimit = oLimit;
+        oLimit.limit =  nTinyLimitToEnableSpring;
+        _oJoint_ExtremityToPin.highAngularXLimit = oLimit;
+
+        oLimit.limit =  nTinyLimitToEnableSpring;               //###CHECK: PhysX has this large value as minimum for Y,Z??
+        _oJoint_ExtremityToPin.angularYLimit = oLimit;
+        _oJoint_ExtremityToPin.angularYLimit = oLimit;
+
+        Util_SetJointExtremityToPinStrengths_ByMode(/*bDirectDriveStrength=*/false);     // Set the pin driving strength to normal
+    }
+
+    public override void OnActorPinned(bool bPinned) {
+        _oBoneForearmBend   ._oRigidBody.useGravity = !bPinned;         // Disable gravity when pinned so our pin strenght can be a lot weaker
+        _oBoneForearmTwist  ._oRigidBody.useGravity = !bPinned;
+        _oBoneExtremity     ._oRigidBody.useGravity = !bPinned;
+    }
+
+    //---------------------------------------------------------------------------	UPDATE
+
+    public override void OnUpdate() {          // Arms need per-frame update to handle pinned situations where we constantly set our pin position to a body collider vert
 		base.OnUpdate();
-        //###F ###BROKEN (Body col!)
-		//if (_oBodyArmPin != null && _oHandTarget != null) {			//###IMPROVE: Add 'walking' the body col mesh to 'caress' the mesh!
-		//	Vector3 vecPinPos = _bPinByClosestVert ? _oBodyArmPin._oBodyCol._memVerts.L[_nArmPinBodyColVert] : _memVecRayHitInfo.L[0];		//###TODO!!!! ALWAYS SLERP!
-		//	float nPercentSlerp = (Time.time - _nTimeStartPinSet) / C_TimeToMoveToNewPinPos;		//###INFO: How to setup Vector.Slerp correctly... see E:\EG\Unity\Data\Documentation\Documentation\ScriptReference\Vector3.Slerp.html
-		//	_oHandTarget.transform.position = Vector3.Slerp(_oHandTarget.transform.position, vecPinPos, nPercentSlerp);	// Constantly set our pin position to the body collider vertex  found during ArmRaycastPin_Update()
-		//}
 
-		////=== Set hand position when some keys are pressed ===
-		//if (_oBody.IsBodySelected()) {						//###TODO	###HACK!!!
-		//	if (Input.GetKeyDown(KeyCode.Alpha5))				//###IDEA: USE F1-F4?
-		//		_oObj.PropSet(0, EActorArm.HandTarget, (int)EHandTargets.Head_Side);
-		//	//if (Input.GetKeyDown(KeyCode.Alpha6))
-		//	//	_oObj.PropSet(0, EActorArm.HandTarget, (int)EHandTargets.Breast_Side);
-		//}
-	}
+        if (_eBodySide == EBodySide.Left) {
+            if (Input.GetKeyDown(KeyCode.Alpha9))
+                HandPose_Set(EHandPose.Default);
+            if (Input.GetKeyDown(KeyCode.Alpha8))
+                HandPose_Set(EHandPose.GrabCup);
+            if (Input.GetKeyDown(KeyCode.Alpha7))
+                HandPose_Set(EHandPose.Planar);
+        }
+
+        if (_eHandMode == EHandMode.MasturbatingPenis) {
+            float nPointInCycle = (Time.time / 2.0f) * Mathf.PI;
+            float nLenRatio = (Mathf.Sin(nPointInCycle) + 1) / 2;
+            Vector3 vecPosAtRatio = CGame.INSTANCE.GetBody(0)._oSoftBody_Penis.PenisCenterCurve_Get3dPosAtLength(nLenRatio);
+            transform.position = vecPosAtRatio;
+            //###DEV27: Set hand pose every frame?  Degree of finger closing?  From what info???
+        }
+
+        Visualizer_TestForCreationDestruction();
+    }
+
+    //---------------------------------------------------------------------------	COBJECT EVENTS
+
+    void Event_PropertyChangedValue(object sender, EventArgs_PropertyValueChanged oArgs) {}
+    
+    public void HandPose_Set(EHandPose eHandPose, float nFingersClosed_HACK = 0) {
+        _eHandPose = eHandPose;
+        switch (_eHandPose) {
+            case EHandPose.Default:
+                _aaFingers[0, 0].RotateX(0);
+                _aaFingers[0, 0].RotateZ(0);
+                _aaFingers[0, 2].RotateX(0);
+                for (int nFinger = 1; nFinger < 5; nFinger++) {
+                    for (int nJoint = 0; nJoint < 3; nJoint++) {
+                        _aaFingers[nFinger, nJoint].RotateX(0);
+                    }
+                }
+                break;
+            case EHandPose.Planar:
+                break;
+            case EHandPose.GrabCup:
+                //_aaFingers[0, 0].RotateX(CGame.INSTANCE.s_vecFingerThumb0_Grab.x);
+                //_aaFingers[0, 0].RotateY(CGame.INSTANCE.s_vecFingerThumb0_Grab.y);
+                //_aaFingers[0, 0].RotateZ(CGame.INSTANCE.s_vecFingerThumb0_Grab.z);
+                //_aaFingers[0, 1].RotateY(CGame.INSTANCE.s_vecFingerThumb1_Grab.x);
+                //_aaFingers[0, 2].RotateY(CGame.INSTANCE.s_vecFingerThumb1_Grab.y);
+                //_aaFingers[0, 2].RotateX(CGame.INSTANCE.s_vecFingerThumb1_Grab.z);
+
+                _aaFingers[0, 0]._oJointD6.targetRotation = Quaternion.Euler(CGame.INSTANCE.s_vecFingerThumb0_Grab);
+
+                //float nFingersClose = -CGame._oObj.Get("DEV_FingerClose_Moving");
+                for (int nFinger = 1; nFinger < 5; nFinger++) {
+                    for (int nJoint = 0; nJoint < 3; nJoint++) {
+                        _aaFingers[nFinger, nJoint].RotateX((nJoint == 0) ? -nFingersClosed_HACK * 2 : -nFingersClosed_HACK);
+                    }
+                }
+                break;
+        }
+    }
+
+    void HandCollider_EnableDisableCollisionWithOtherCollider(Collider oColOther, bool bEnableCollision) {
+        Physics.IgnoreCollision(oColOther, _oBoneExtremity.GetComponent<Collider>(), !bEnableCollision);
+        for (int nFinger = 0; nFinger < 5; nFinger++) {
+            for (int nJoint = 0; nJoint < 3; nJoint++) {
+                CBone oBoneFinger = _aaFingers[nFinger, nJoint];
+                Collider oCol = oBoneFinger.GetComponent<Collider>();
+                if (oCol)
+                    Physics.IgnoreCollision(oColOther, oCol, !bEnableCollision);
+            }
+        }
+    }
+    public void HandCollider_CollisionsAgainstBodySurface_Enable() {
+        if (CGame._aBodyBases[0]._oBody == null)
+            return;
+        Collider oColBodySurface = CGame._aBodyBases[0]._oBody._oFlexTriCol_BodySurface.GetComponent<MeshCollider>();      //#DEV26: ###HACK!!!!
+        HandCollider_EnableDisableCollisionWithOtherCollider(oColBodySurface, true);
+        //float nMassMult = CGame._oObj.Get("DEV_RB_MassMultInMove");
+        //_oBoneExtremity   ._oRigidBody.mass = _oBoneExtremity   ._nMass * nMassMult;
+        //_oBoneForearmTwist._oRigidBody.mass = _oBoneForearmTwist._nMass * nMassMult;
+        //foreach (CBone oBone in _aBones)
+        //    oBone._oRigidBody.mass = oBone._nMass * nMassMult;
+    }
+    public void HandCollider_CollisionsAgainstBodySurface_Disable() {
+        if (CGame._aBodyBases[0]._oBody == null)
+            return;
+        Collider oColBodySurface = CGame._aBodyBases[0]._oBody._oFlexTriCol_BodySurface.GetComponent<MeshCollider>();      //#DEV26: ###HACK!!!!
+        HandCollider_EnableDisableCollisionWithOtherCollider(oColBodySurface, false);
+        //float nMassMult = CGame._oObj.Get("DEV_RB_MassMultInMove");
+        //_oBoneExtremity   ._oRigidBody.mass = _oBoneExtremity._nMass;
+        //_oBoneForearmTwist._oRigidBody.mass = _oBoneForearmTwist._nMass;
+        //foreach (CBone oBone in _aBones)
+        //    oBone._oRigidBody.mass = oBone._nMass;
+    }
 
 
-	//---------------------------------------------------------------------------	COBJECT EVENTS
 
-	//public void OnPropSet_HandTarget(float nValueOld, float nValueNew) {
-	//	if (_oHandTarget != null) {
-	//		_oHandTarget.ConnectHandToHandTarget(null);		// If we were previously connected drop the connection now to let the hand go idle
-	//		_oHandTarget = null;
-	//	}
-	//	EHandTargets eHandTarget = (EHandTargets)nValueNew;
-		
-	//	switch (eHandTarget) {
-	//		case EHandTargets.ManualPosition:
-	//			//###BROKEN!!! Conflict during init! _oObj.PropSet(0, EActorArm.Pinned, 1);				// Manual position means pinned
-	//			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;	// Enable angular contraint so user can fully define hand pos/rot
-	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-	//			break;
-	//		case EHandTargets.Idle:
-	//			_oObj.PropSet(0, EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
-	//			transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-	//			break;
-	//		default:
-	//			_oHandTarget = CActorArm.FindHandTarget(_oBody, eHandTarget, _eBodySide == EBodySide.Right);
-	//			_oHandTarget.ConnectHandToHandTarget(this);
-	//			break;
-	//	}
+    //---------------------------------------------------------------------------	DEBUG PROPERTIES
 
-		//} else if (eHandTarget == EHandTargets.DumpPos_TEMP) {		//###OBS? Keep??
-		//	_oBoneShoulder	.DumpBonePos_DEV();
-		//	_oBoneMidLimb	.DumpBonePos_DEV();
-		//	_oBoneExtremity.DumpBonePos_DEV();
+#if __DEBUG_
+    //public void OnSet_Dev_Arm_Collar_SlerpStrength(float nValueOld, float nValueNew) {
+    //    CUtility.Joint_SetSlerpPositionSpring(_oBoneCollar._oJointD6, nValueNew);
+    //}
+    //public void OnSet_Dev_Arm_Shoulder_SlerpStrength(float nValueOld, float nValueNew) {
+    //    CUtility.Joint_SetSlerpPositionSpring(_oBoneShoulderBend._oJointD6, nValueNew);
+    //}
+    //public void OnSet_Dev_Arm_Elbow_SlerpStrength(float nValueOld, float nValueNew) {
+    //    CUtility.Joint_SetSlerpPositionSpring(_oBoneForearmBend._oJointD6, nValueNew);
+    //}
+    //public void OnSet_Dev_Arm_Twist_SlerpStrength(float nValueOld, float nValueNew) {
+    //    CUtility.Joint_SetSlerpPositionSpring(_oBoneShoulderTwist._oJointD6, nValueNew);
+    //    CUtility.Joint_SetSlerpPositionSpring(_oBoneForearmTwist ._oJointD6, nValueNew);
+    //}
+#endif
 
-		//if (eHandTarget == EHandTargets.Driven_DEV) {			//###WEAK!!!?
-		//	_oObj.PropSet(0, EActorArm.Pinned, 0);				// No hand target to go to, unpin to let gravity & arm drive simulate the arm
-		//	transform.parent = _oBody._oBaseT;				// Reparent the arm pin to the starting parent of 'Base'
-		//	_oBoneShoulder	.SetRotationRaw_HACK(new Quaternion(-0.109f,0.592f,0.133f,0.787f));
-		//	_oBoneMidLimb	.SetRotationRaw_HACK(new Quaternion(-0.398f,0.818f,0.281f,0.307f));
-		//	_oBoneExtremity.SetRotationRaw_HACK(new Quaternion(-0.207f,0.124f,-0.200f,0.950f));
-		//} else {
-		//	_oBoneShoulder	.SetRotationDefault_HACK();
-		//	_oBoneMidLimb	.SetRotationDefault_HACK();
-		//	_oBoneExtremity.SetRotationDefault_HACK();
-		//}
-	//}
+    //---------------------------------------------------------------------------	VR WAND MOVEMENT
+    public override Transform VrWandMove_Begin(CVrWand oVrWand, bool bStartAction1, bool bStartAction2) {       //###DESIGN: Rename to auto move, manual move?
+        base.VrWandMove_Begin(oVrWand, bStartAction1, bStartAction2);
+        if (bStartAction1) {               //#DEV26: Proper?  Grip too?
+            HandPose_Set(CActorArm.EHandPose.Default);
+        } else if (bStartAction2) {
+            _oJoint_ExtremityToPin.angularZMotion = ConfigurableJointMotion.Limited;        // For the duration of user manual movement, limit the Z-rotation so that player has full 6 degree of freedom control over the hand to properly place in 3D from the VR wand
+            Util_SetJointExtremityToPinStrengths_ByMode(/*bDirectDriveStrength=*/true);     // Greatly strengthen the pulling power of the pin during manual moves
+            HandPose_Set(CActorArm.EHandPose.GrabCup);              // Set the hand's pose during manual move = closing fingers to hold a 'cup'
+            HandCollider_CollisionsAgainstBodySurface_Disable();    // Disable hand's PhysX collider so it can go right into the softbodies ###IMPROVE: Keep collisions against main body!  (Need to separate softbody PhysX mesh colliders into their own layer!!)
+        }
+        return transform;
+    }
+    public override void VrWandMove_End(CVrWand oVrWand) {
+        base.VrWandMove_End(oVrWand);
+        _oJoint_ExtremityToPin.angularZMotion = ConfigurableJointMotion.Free;            // Restore Z motion to the default 'free rotation' so automatic pins self-resolve the hand rotation about the body
+        Util_SetJointExtremityToPinStrengths_ByMode(/*bDirectDriveStrength=*/false);     // Return the driving strength to normal
+        HandPose_Set(CActorArm.EHandPose.Default);
+        HandCollider_CollisionsAgainstBodySurface_Enable();     // Re-enable hand's PhysX collider so so hands are now repelled even by softbodies (through their PhysX static colliders)
+    }
+    public override void VrWandMove_Update(CVrWand oVrWand) {
+        base.VrWandMove_Update(oVrWand);
+        VrWandMove_UpdatePositionAndRotation(transform);            // Redirect to this call so rotation can adjust 'up' to be compatible with our joint
+    }
 
-	public void OnPropSet_Hand_UpDown(float nValueOld, float nValueNew) { _oBoneExtremity.RotateX2(nValueNew); }
-	public void OnPropSet_Hand_LeftRight(float nValueOld, float nValueNew) { _oBoneExtremity.RotateY2(nValueNew); }
-	public void OnPropSet_Hand_Twist	(float nValueOld, float nValueNew) { _oBoneExtremity.RotateZ2(nValueNew); }
-	//public void OnPropSet_Fingers_Close	(float nValueOld, float nValueNew) {
-	//	for (int nFingerID = 1; nFingerID < 5; nFingerID++)												// Thumb excluded
-	//		for (int nFingerBoneID = 0; nFingerBoneID < 3; nFingerBoneID++)
-	//			_aaFingers[nFingerID, nFingerBoneID].RotateX_DualRange(nValueNew);
-	//}
-	//public void OnPropSet_Fingers_Spread(float nValueOld, float nValueNew) {
-	//	for (int nFingerID = 1; nFingerID < 5; nFingerID++) {											// Thumb excluded
-	//		for (int nFingerBoneID = 0; nFingerBoneID < 3; nFingerBoneID++) {
-	//			_aaFingers[nFingerID, nFingerBoneID].RotateY_DualRange(nValueNew * _aFingerSpreadMultiplier[nFingerID]);		// Apply a special 'multiplier' to finger Y to cause them to spread in opposite directions!
-	//		}
-	//	}
-	//}
-	//public void OnPropSet_Fingers_ThumbPose(float nValueOld, float nValueNew) {
-	//	EThumbPose eThumbPose = (EThumbPose)nValueNew;
-	//	switch (eThumbPose) {
-	//		case EThumbPose.AlongsideFingers:
-	//			_aaFingers[0, 0].RotateX_DualRange(000f);
-	//			_aaFingers[0, 0].RotateZ_DualRange(000f);
-	//			break;
-	//		case EThumbPose.OppositeFingers:
-	//			_aaFingers[0, 0].RotateX_DualRange(100f);
-	//			_aaFingers[0, 0].RotateZ_DualRange(100f);
-	//			break;
-	//	}
-	//}
+    public override void VrWandMove_UpdatePositionAndRotation(Transform oNodeT) {
+        transform.position = oNodeT.position;
+        transform.rotation = Quaternion.LookRotation(oNodeT.forward, _oBoneForearmTwist.transform.up);      //###INFO: Our configuration joint (used for hands as a hinge joint) becomes unstable if the up vectors are pointing into each other.  Align the hand up vector with the forearm up vector to stabilize
+    }
 
-	//public void OnPropSet_UserControl(float nValueOld, float nValueNew) {
-	//	if (_oHandTarget != null)
-	//		_oHandTarget.SetUserControl(nValueNew);
-	//}
+
+    public void HandMode_Change(EHandMode eHandMode) {
+        _eHandMode = eHandMode;
+        switch (_eHandMode) {
+            case EHandMode.Normal:
+                break;
+            case EHandMode.MasturbatingPenis:
+                VrWandMove_Begin(CGame._oVrWandL, false, true);     //###DEV27: Fix this shit up!!
+                HandCollider_CollisionsAgainstBodySurface_Enable();     
+                break;
+        }
+    }
+
+	#region =========================================================================	VISUALIZATION
+    [HideInInspector]	public	CVisualizeFlex              _oVisualizeFlex;        //#Vis
+						public	bool						_bEnableVisualizer = false;
+    [HideInInspector]	public	bool						_bEnableVisualizer_COMPARE = true;
+						public	Vector3						_vecVisualiserOffset = new Vector3();//(0.05f, 0.05f, 0.05f);
+						public	float						_SizeParticles_Mult	= 0.25f;		//###IMPROVE: Add capacity for dev to change these at runtime via Unity property editor
+						public	float						_SizeShapes_Mult	= 0.50f;
+
+    void Visualizer_TestForCreationDestruction() {
+		if (_bEnableVisualizer != _bEnableVisualizer_COMPARE) {
+            if (_bEnableVisualizer) {
+			    _oVisualizeFlex = CVisualizeFlex.Create(gameObject, this);
+            } else {
+                GameObject.Destroy(_oVisualizeFlex);
+                _oVisualizeFlex = null;
+            }
+			_bEnableVisualizer_COMPARE = _bEnableVisualizer;
+		}
+    }
+
+    public uFlex.FlexParticles          GetFlexParticles()          { return _oFlexParticles; }     //###IMPROVE: Just make interface the public vars?
+    public uFlex.FlexShapeMatching      GetFlexShapeMatching()      { return null; }
+    public Vector3                      GetVisualiserOffset()       { return _vecVisualiserOffset; }
+	public float					    GetSizeParticles_Mult()     { return _SizeParticles_Mult; }
+	public float						GetSizeShapes_Mult()        { return _SizeShapes_Mult; }
+    #endregion
+
+    public enum EHandPose {
+        Default,
+        GrabCup,
+        Planar,
+    }
+
+    public enum EHandMode {
+        Normal,
+        MasturbatingPenis,
+    }
 }
-
-public enum EThumbPose {
-	AlongsideFingers,
-	OppositeFingers,
-};
-
-public enum EHandTargets {	//###OBS??? Extract from CHandTarget nodes??		// Design-time defined hand positions.  Each *must* match a 'CHandTarget-xxx' node somewhere in the bone tree
-	ManualPosition,			// Manual position (default at init) is required so pinned arms correctly pin at startup
-	Idle,
-	Head_Side,
-	//Breast_Side,
-	//Breast_Under,
-	//Stomach,
-	//Hip_Side,
-	//Crotch_Up,
-	//Crotch_Side,
-	//Penis,
-	//Vagina,
-	//Brace_Side,
-	//Brace_Back,
-	RaycastPin,
-	//Driven_DEV,
-	//DumpPos_TEMP,
-};

@@ -6,34 +6,31 @@ public class CSoftBody_BreastL : CSoftBody {
 	public override void Initialize(CBody oBody, int nSoftBodyID, Transform oBoneRootT) {
 		base.Initialize(oBody, nSoftBodyID, oBoneRootT);
 
-        //=== Create the managing object and related hotspot ===
-		_oObj = new CObject(this, "Breast", "Breast");
-		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Breast", typeof(ESoftBodyBreast));
-        oPropGrp.PropAdd(ESoftBodyBreast.Stiffness,			"Stiffness",		0.1f, 0.01f, 0.2f, "");
-        oPropGrp.PropAdd(ESoftBodyBreast.Size,				"Size",				1.0f, 0.5f, 1.3f, "");
-		CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyBreast.Size);
-
-		_oObj.FinishInitialization();
+  //      //=== Create the managing object and related hotspot ===
+		//_oObj = new CObj(this, "Breast", "Breast", _oBodyBase._oObj);
+		//_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
+  //      _oObj.Add(ESoftBodyBreast.BreastStiffness,			"Stiffness",		0.1f, 0.01f, 0.2f, "");     //###TUNE
+		//_oObj.Add(ESoftBodyBreast.BreastSize,				"Size",				1.0f, 0.8f, 1.2f, "");		//###TUNE
+		//CGame._oVrWandL ._oObjDebugJoystickHor_HACK = _oObj.Find(ESoftBodyBreast.Size);
 	}
 
 	public override void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
 		base.PreContainerUpdate(solver, cntr, parameters);
 	}
 
-	public override void OnPropChanged(CProp oProp) {               // This *must* be called within context of Flex's 'PreContainerUpdate()'
-		base.OnPropChanged(oProp);
-		switch (oProp._nPropOrdinal) {
-			case (int)ESoftBodyBreast.Stiffness:
-				ShapeDef_SetStiffness(oProp._nValueLocal);
-				_oBody._oSoftBody_BreastR.ShapeDef_SetStiffness(oProp._nValueLocal);
+	public override void OnPropChanged(CObj oObj) {               // This *must* be called within context of Flex's 'PreContainerUpdate()'
+		base.OnPropChanged(oObj);
+		switch (oObj._sName) {
+			case "Stiffness":
+				ShapeDef_SetStiffness(oObj._nValue);
+				_oBody._oSoftBody_BreastR.ShapeDef_SetStiffness(oObj._nValue);
 				break;
 
-			case (int)ESoftBodyBreast.Size:
+			case "Size":
 				for (int nShapeIndex = 0; nShapeIndex < _oFlexShapeMatching.m_shapeIndicesCount; nShapeIndex++)
-					_oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _aShapeRestPositionsBAK[nShapeIndex] * oProp._nValueLocal;
+					_oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _aShapeRestPositionsBAK[nShapeIndex] * oObj._nValue;
 				for (int nShapeIndex = 0; nShapeIndex < _oBody._oSoftBody_BreastR._oFlexShapeMatching.m_shapeIndicesCount; nShapeIndex++)
-					_oBody._oSoftBody_BreastR._oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _oBody._oSoftBody_BreastR._aShapeRestPositionsBAK[nShapeIndex] * oProp._nValueLocal;
+					_oBody._oSoftBody_BreastR._oFlexShapeMatching.m_shapeRestPositions[nShapeIndex] = _oBody._oSoftBody_BreastR._aShapeRestPositionsBAK[nShapeIndex] * oObj._nValue;
 				break;
 		}
 	}

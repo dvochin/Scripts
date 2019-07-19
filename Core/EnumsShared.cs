@@ -38,26 +38,26 @@ public enum EColGroups {					// PhysX collider groups.  Keep synced with C++
 //	SoftBody_GPU,						//###TODO!!!: Reset when changed
 //};
 
-public enum EPenis_OBS {
-	PenisScale,
-	BaseUpDown,
-	BaseLeftRight,
-	ShaftUpDown,
-	ShaftLeftRight,
-	DriveStrength,
-	DriveStrengthMax,
-	DriveDamping,				//###INFO: Setting drive damping reduces drive!!  Far better to reduce actor angular damping instead!!
-	Mass,
-	Density,					//###OBS: Useless??
-	AngularDamping,
-	LinearDamping
-};
+//public enum EPenis_OBS {
+//	PenisScale,
+//	BaseUpDown,
+//	BaseLeftRight,
+//	ShaftUpDown,
+//	ShaftLeftRight,
+//	DriveStrength,
+//	DriveStrengthMax,
+//	DriveDamping,				//###INFO: Setting drive damping reduces drive!!  Far better to reduce actor angular damping instead!!
+//	Mass,
+//	Density,					//###OBS: Useless??
+//	AngularDamping,
+//	LinearDamping
+//};
 
-public enum EPenisTip_OBS {
-	//FlagEjaculate,				// Now by CGamePlay for easier global sync
-	CycleTime,						//###IMPROVE: Change curve to only active ejaculation and have 'time on' and 'time off'??
-	MaxVelocity,
-};
+//public enum EPenisTip_OBS {
+//	//FlagEjaculate,				// Now by CGamePlay for easier global sync
+//	CycleTime,						//###IMPROVE: Change curve to only active ejaculation and have 'time on' and 'time off'??
+//	MaxVelocity,
+//};
 
 public enum ECloth {
 	Cloth_GPU,
@@ -158,7 +158,7 @@ public enum EFlexCloth {
 public enum EPenis {
 	SizeShaft,
 	SizeWholePenis,
-	Length,
+	PenisLength,
     Stiffness,
 	BendLeftRight,
 	BendUpDown,
@@ -172,17 +172,16 @@ public enum EPenis {
 };
 
 public enum ESoftBodyPenis {
-	Stiffness,
+	Erection,
 	Size,
-	BaseUpDown,
-	BaseLeftRight,
-	ShaftUpDown,
-	ShaftLeftRight,
-	ShaftTwistLeftRight,
+	UpDown,
+	LeftRight,
+	Cum,
+	//ShaftTwistLeftRight,
 	Reset_HACK,
 	Kinematic_HACK,
 };
 public enum ESoftBodyBreast {
-	Stiffness,
-	Size,
+	BreastStiffness,
+	BreastSize,
 };

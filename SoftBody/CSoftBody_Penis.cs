@@ -63,42 +63,45 @@ using System.Collections.Generic;
 
 public class CSoftBody_Penis : CSoftBody {
 
-	Transform			_oCumEmitterT;
-	CPenisSlice[]		_aPenisSlices;
+	public CFlexEmitter     _oCumEmitterT;
+	CPenisSlice[]		    _aPenisSlices;
 
 	public override void Initialize(CBody oBody, int nSoftBodyID, Transform oBoneRootT) {
 		base.Initialize(oBody, nSoftBodyID, oBoneRootT);
 
-        //=== Create the managing object and related hotspot ===	//###DESIGN:?? Inheritance with derived classes.  Softbodies repeat same properties...
-		_oObj = new CObject(this, "Penis", "Penis");				//###WEAK: String names duplication x 3
+        //=== Create the managing object and related hotspot ===	//###DESIGN:?? Inheritance with derived classes.  Softbodies repeat same properties..s.
+		_oObj = new CObj("Penis", "Penis", null);				// _oBody._oBodyBase._oObj
 		_oObj.Event_PropertyValueChanged += Event_PropertyChangedValue;
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Penis", typeof(ESoftBodyPenis));
-        oPropGrp.PropAdd(ESoftBodyPenis.Stiffness,			"Stiffness",		0.1f, 0.01f, 0.3f, "");			//###TUNE:!!!	 ###PROBLEM: Stiffness can 'blow up' depending on many Flex parameters!	  ###NOTE: Stiffness *must* propagate itself through all particles to avoid softbody falling appart!!
-        oPropGrp.PropAdd(ESoftBodyPenis.Size,				"Size",				1.0f, 0.7f, 1.3f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.BaseUpDown,			"Base Up/Down",		0.0f, -45.0f, 45.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.BaseLeftRight,		"Base Left/Right",	0.0f, -45.0f, 45.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.ShaftUpDown,		"Curve Up/Down",	0.0f, -25.0f, 25.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.ShaftLeftRight,		"Curve Left/Right",	0.0f, -20.0f, 20.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.ShaftTwistLeftRight,"Twist Left/Right",	0.0f, -5.0f, 5.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.Reset_HACK,			"Reset",			0.0f, 0.0f, 1.0f, "");
-        oPropGrp.PropAdd(ESoftBodyPenis.Kinematic_HACK,		"Kinematic",		0.0f, 0.0f, 1.0f, "");
-		CGame.INSTANCE._oVrWandR._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.BaseUpDown);
-		CGame.INSTANCE._oVrWandR._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.BaseLeftRight);
-		//CGame.INSTANCE._oVrWandL ._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.ShaftUpDown);
-		//CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.ShaftLeftRight);
-		CGame.INSTANCE._oVrWandL._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.Size);
-		CGame.INSTANCE._oVrWandL._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Stiffness);
-		///CGame.INSTANCE._oVrWandL ._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.TrimFlexParticles_HACK);
-		///CGame.INSTANCE._oVrWandR._oPropDebugJoystickHor_HACK = oPropGrp.PropFind(ESoftBodyPenis.Kinematic_HACK);
-		///CGame.INSTANCE._oVrWandR._oPropDebugJoystickVer_HACK = oPropGrp.PropFind(ESoftBodyPenis.Reset_HACK);
+        _oObj.Add("Erection",			this, 0.03f,  0.03f, 0.25f, "");			//###TUNE:!!!!! Extremely important and sensitive!  Heavily affected by Flex solver iterations!!! 	 ###PROBLEM: Stiffness can 'blow up' depending on many Flex parameters!	  ###NOTE: Stiffness *must* propagate itself through all particles to avoid softbody falling appart!!
+        _oObj.Add("Size",				this, 1.0f,   0.85f, 1.25f, "");
+        _oObj.Add("Up/Down",			this, 0.0f, -10.0f, 10.0f, "");
+        _oObj.Add("Left/Right",		    this, 0.0f, -10.0f, 10.0f, "");
+        _oObj.Add("Cum",				this, 0.0f,   0.0f, 1.0f, "");
+        //_oObj.Add("TestCenterCurve",	this, 0.0f,   0.0f, 1.0f, "");
 
-		_oObj.FinishInitialization();
+        //###DEV27: ###HACK
+        CGame.INSTANCE._oBrowser_HACK._oWebViewTree_Cock_HACK = new CWebViewTree(CGame.INSTANCE._oBrowser_HACK, _oObj, "Cock_HACK", "Cock");
+
+		//_oObj.Add(ESoftBodyPenis.ShaftTwistLeftRight,"Twist Left/Right",	0.0f, -5.0f, 5.0f, "");
+		//_oObj.Add(ESoftBodyPenis.Reset_HACK,			"Reset",			0.0f, 0.0f, 1.0f, "");
+		//_oObj.Add(ESoftBodyPenis.Kinematic_HACK,		"Kinematic",		0.0f, 0.0f, 1.0f, "");
+
+		//CGame._oVrWandL._oObjDebugJoystickHor_HACK = _oObj.Find("Size");         // Test code to connect Vr wand directly to various penis axis
+		//CGame._oVrWandL._oObjDebugJoystickVer_HACK = _oObj.Find("Erection");
+		//CGame._oVrWandR._oObjDebugJoystickVer_HACK = _oObj.Find("Up/Down");
+		//CGame._oVrWandR._oObjDebugJoystickHor_HACK = _oObj.Find("Left/Right");
+		//CGame._oVrWandR._oObjDebugJoystickPress_HACK = _oObj.Find("Cum");
+
+		///CGame._oVrWandR._oObjDebugJoystickHor_HACK = _oObj.Find(ESoftBodyPenis.Kinematic_HACK);
+		///CGame._oVrWandR._oObjDebugJoystickVer_HACK = _oObj.Find(ESoftBodyPenis.Reset_HACK);
 
 		//=== Find the Uretra particle / bone ===
+        Mesh oMeshBaked = Baking_GetBakedSkinnedMesh();
 		for (ushort nParticle = 0; nParticle < _aParticleInfo.Count; nParticle++) {					
 			int nParticleInfo = _aParticleInfo[nParticle];
 			int nParticleFlags = (nParticleInfo & CSoftBody.C_ParticleInfo_Mask_Flags);
 
+            //###DEV27Z: ###CHECK Uretra not always defined from Blender??
 			if (_oCumEmitterT == null && (nParticleFlags & CSoftBody.C_ParticleInfo_BitFlag_Uretra) != 0) {
 				Debug.LogFormat("-> CSoftBody_Penis() found uretra particle #{0}", nParticle);
 
@@ -106,15 +109,13 @@ public class CSoftBody_Penis : CSoftBody {
 				ushort nBoneUretra = (ushort)((nParticleInfo & CSoftBody.C_ParticleInfo_Mask_BoneID) >> CSoftBody.C_ParticleInfo_BitShift_BoneID);
 				Transform oBoneUretraT = _mapBonesDynamic[nBoneUretra];
 
-				//=== Instantiate an emitter and reparent / reorient to the uretra bone ===
-				GameObject oFlexEmitterGOT = Resources.Load("Prefabs/CFlexEmitter") as GameObject;
-				GameObject oFlexEmitterGO = GameObject.Instantiate(oFlexEmitterGOT) as GameObject;
-				oFlexEmitterGO.name = string.Format("CFlexEmitter");
-				_oCumEmitterT = oFlexEmitterGO.transform;
-				_oCumEmitterT.SetParent(oBoneUretraT);
-				_oCumEmitterT.position = _oMeshBaked.vertices[nParticle];		//###NOTE: Feed in the GLOBAL position of where the particle is at init.  As the shape's center gives this bone a position further away from penis tip edge Unity will calculate the proper localPosition to keep the emitter exactly where the uretra is even as bone / shape moves.
-				_oCumEmitterT.localRotation = Quaternion.Euler(-90, 0, 0);                  //###WEAK: Blender bones oriented 90 degrees off.  This re-orientation was determined by observation
-				_oCumEmitterT.localScale = Vector3.one;
+                //=== Instantiate an emitter and reparent / reorient to the uretra bone ===
+                _oCumEmitterT = CUtility.InstantiatePrefab<CFlexEmitter>("Prefabs/CFlexEmitter", "CFlexEmitter", oBoneUretraT);
+                _oCumEmitterT.DoStart();
+                _oCumEmitterT.transform.position = oMeshBaked.vertices[nParticle];		//###NOTE: Feed in the GLOBAL position of where the particle is at init.  As the shape's center gives this bone a position further away from penis tip edge Unity will calculate the proper localPosition to keep the emitter exactly where the uretra is even as bone / shape moves.
+				_oCumEmitterT.transform.localRotation = Quaternion.Euler(-90, 0, 0);                  //###WEAK: Blender bones oriented 90 degrees off.  This re-orientation was determined by observation
+
+                break;      //###CHECK:
 			}
 		}
 
@@ -124,7 +125,7 @@ public class CSoftBody_Penis : CSoftBody {
 		_aPenisSlices = new CPenisSlice[nSlices];
 
 		Vector3 vecPenisStart	= _oBoneRootT.position;
-		Vector3 vecPenisEnd		= _oCumEmitterT.position;
+		Vector3 vecPenisEnd		= _oCumEmitterT.transform.position;
 		vecPenisStart.x = 0;
 		vecPenisStart.z += 0.022f;		//###HACK:!!!!!! Perform crappy manual adjustment of 'beginning of penis shaft' so we don't change scrotum bones!  Get this info from a marked Blender vert?  (Improved: don't process bones under a certain vert)
 		vecPenisEnd.Set(0, vecPenisStart.y, vecPenisEnd.z);
@@ -141,9 +142,9 @@ public class CSoftBody_Penis : CSoftBody {
 		}
 		_aPenisSlices[0]._oSliceT.SetParent(transform);     // Set penis slice chain root to be child of our penis node
 
-		//=== Assign the penis particle bones to the just-created slices ===
+		//=== Assign each penis particle bones to the appropriate slice (determined by distance from base toward tip) ===
 		for (int nArrayIndex = 0; nArrayIndex < _aFlatMapBoneIdToShapeId.Count; nArrayIndex += 2) {
-			ushort nBoneID	= _aFlatMapBoneIdToShapeId[nArrayIndex + 0];    //# Serialiazable array storing what shapeID each bone has.  Flat map is a simple list of <Bone1>, <Shape1>, <Bone2>, <Shape2>, etc.
+			ushort nBoneID	= _aFlatMapBoneIdToShapeId[nArrayIndex + 0];    //# Serializable array storing what shapeID each bone has.  Flat map is a simple list of <Bone1>, <Shape1>, <Bone2>, <Shape2>, etc.
 			ushort nShapeID = _aFlatMapBoneIdToShapeId[nArrayIndex + 1];
 			ushort nParticleID = _mapShapesToParticles[nShapeID];
 			Transform oBoneParticleT	= _mapBonesDynamic[nBoneID];		// Obtain reference to the particle / bone and its parent (fake shape 'bone').  We set the shape 'bone' the position / rotation of the corresponding Flex shape knowing that the presentation mesh will be updated only from the real particle bone.
@@ -152,7 +153,9 @@ public class CSoftBody_Penis : CSoftBody {
 			nSlice = Mathf.Clamp(nSlice, 0, nSlices - 1);
 			_aPenisSlices[nSlice].AddChildBone(oBoneParticleT, nParticleID);
 		}
-	}
+
+        ShapeDef_SetStiffness(1);       //#DEV26:
+    }
 	public override void DoDestroy() {
 		//=== Destroy the PARENTS of the dynamic bones we created ===
 		foreach (KeyValuePair<ushort, Transform> oPair in _mapBonesDynamic)
@@ -178,32 +181,32 @@ public class CSoftBody_Penis : CSoftBody {
 	}
 
 
-	public override void OnPropChanged(CProp oProp) {               // This *must* be called within context of Flex's 'PreContainerUpdate()'
-		base.OnPropChanged(oProp);
-		switch (oProp._nPropOrdinal) {
-			case (int)ESoftBodyPenis.Stiffness:
-				ShapeDef_SetStiffness(oProp._nValueLocal);
+	public override void OnPropChanged(CObj oObj) {               // This *must* be called within context of Flex's 'PreContainerUpdate()'
+		base.OnPropChanged(oObj);
+		switch (oObj._sName) {
+			case "Erection":
+				ShapeDef_SetStiffness(oObj._nValue);
 				break;
 
-			case (int)ESoftBodyPenis.Size:
-				ShapeDef_Enter();
-				_aPenisSlices[0]._oSliceT.localScale = new Vector3(oProp._nValueLocal, oProp._nValueLocal, oProp._nValueLocal);
+			case "Size":
+				ShapeDef_Enter();       // Scale the entire penis by changing the local scale of the root slice and 'baking'
+				_aPenisSlices[0]._oSliceT.localScale = new Vector3(oObj._nValue, oObj._nValue, oObj._nValue);
 				ShapeDef_Leave();
 				break;
 
-			case (int)ESoftBodyPenis.BaseUpDown:
-			case (int)ESoftBodyPenis.BaseLeftRight:
-				Util_AdjustPenisSliceRotation(1, 2, true);
+			case "UpDown":
+			case "LeftRight":       //###BROKEN?
+				Util_AdjustPenisSliceRotation(1, _aPenisSlices.Length-1);
 				break;
 
-			case (int)ESoftBodyPenis.ShaftUpDown:
-			case (int)ESoftBodyPenis.ShaftLeftRight:
-			case (int)ESoftBodyPenis.ShaftTwistLeftRight:
-				Util_AdjustPenisSliceRotation(2, _aPenisSlices.Length-1, false);
-				break;
+			//case (int)ESoftBodyPenis.ShaftUpDown:
+			//case (int)ESoftBodyPenis.ShaftLeftRight:
+			//case (int)ESoftBodyPenis.ShaftTwistLeftRight:
+			//	Util_AdjustPenisSliceRotation(2, _aPenisSlices.Length-1);
+			//	break;
 
-			case (int)ESoftBodyPenis.Reset_HACK:
-				if (oProp._nValueLocal != 0) {
+			case "Reset":
+				if (oObj._nValue != 0) {
 					for (int nParticle = 0; nParticle < _nParticles; nParticle++) {
 						_oFlexParticles.m_particles[nParticle].pos = _oFlexParticles.m_restParticles[nParticle].pos;
 						_oFlexParticles.m_particles[nParticle].invMass = 0;
@@ -211,36 +214,60 @@ public class CSoftBody_Penis : CSoftBody {
 				}
 				break;
 
-			case (int)ESoftBodyPenis.Kinematic_HACK:
+			case "Kinematic":
 				for (int nParticle = 0; nParticle < _nParticles; nParticle++) {
 					int nParticleType = _aParticleInfo[nParticle] & C_ParticleInfo_Mask_Type;
 					if ((nParticleType & C_ParticleInfo_BitTest_IsSimulated) != 0)
-						_oFlexParticles.m_particles[nParticle].invMass = (oProp._nValueLocal != 0) ? 0 : 1;
+						_oFlexParticles.m_particles[nParticle].invMass = (oObj._nValue != 0) ? 0 : 1;
 				}
 				break;
 
+			case "Cum":
+				CGame.INSTANCE.CumControl_Start();
+				break;
+
+            //case "TestCenterCurve":
+            //    PenisCenterCurve_Get3dPosAtLength(oObj._nValue);
+            //    break;
 		}
 	}
+    public Vector3 PenisCenterCurve_Get3dPosAtLength(float nLenRatio) {
+        // Returns where in 3D space where along the line running from base to tip at the 'nLenRatio' position.
+        // (e.g. nLenRatio = 0 returns at base, 1 returns at tip, 0.5 at mid-shaft, etc)
+        // Used to guide hand to 'masturbate' penis regardless of curvature or size.  Not mathematically precise but good enoug
+        nLenRatio = Mathf.Clamp(nLenRatio, 0, 0.99f);                   // Remove 1 as code below would get out of bounds.
+        float nSliceSplit = nLenRatio * (_aPenisSlices.Length - 2) + 1;     //###WEAK: Ignore first slice.  We need the shaft.  ###IMPROVE: Find exact ratio?
+        int nSlice1 = (int)nSliceSplit;
+        int nSlice2 = nSlice1 + 1;
+        float nSliceRemains = nSliceSplit - nSlice1;
+        CPenisSlice oSlice1 = _aPenisSlices[nSlice1];
+        CPenisSlice oSlice2 = _aPenisSlices[nSlice2];
+        Vector3 vecSlice1 = oSlice1.CalcApproxSliceCenter();
+        Vector3 vecSlice2 = oSlice2.CalcApproxSliceCenter();
+        GameObject.Find("DEV_Cock1").transform.position = vecSlice1;
+        GameObject.Find("DEV_Cock2").transform.position = vecSlice2;
+        Vector3 vecPosAtRatio = (nSliceRemains * vecSlice2) + ((1.0f - nSliceRemains) * vecSlice1);     // Interpolate between the two slices by the remains ratio
+        //Transform oMarker = CUtility.InstantiatePrefab<Transform>("Prefabs/MarkerS", $"PenisCenterCurve-{nLenRatio}", CGame.INSTANCE.transform);
+        //oMarker.position = vecPosAtRatio;
+        //oMarker.GetComponent<MeshRenderer>().enabled = true;
+        //CGame.INSTANCE.GetBodyBase(0)._oActor_ArmL.transform.position = vecPosAtRatio;      //###DEV27: ###TEMP: To test placing hand on cock (need spring)
+        return vecPosAtRatio;
+    }
 
-	void Util_AdjustPenisSliceRotation(int nSliceStart, int nSliceEnd, bool bIsBase) {
-		Quaternion quatRot;
-		if (bIsBase)
-			quatRot = Quaternion.Euler(_oObj.PropGet(0, (int)ESoftBodyPenis.BaseUpDown), _oObj.PropGet(0, (int)ESoftBodyPenis.BaseLeftRight), 0);
-		else
-			quatRot = Quaternion.Euler(_oObj.PropGet(0, (int)ESoftBodyPenis.ShaftUpDown), _oObj.PropGet(0, (int)ESoftBodyPenis.ShaftLeftRight), _oObj.PropGet(0, (int)ESoftBodyPenis.ShaftTwistLeftRight));
+	void Util_AdjustPenisSliceRotation(int nSliceStart, int nSliceEnd) {
+		Quaternion quatRot = Quaternion.Euler(_oObj.Get("Up/Down"), _oObj.Get("Left/Right"), 0);
 		ShapeDef_Enter();
 		for (int nSlice = nSliceStart; nSlice < nSliceEnd; nSlice++)
 			_aPenisSlices[nSlice]._oSliceT.localRotation = quatRot;
 		ShapeDef_Leave();
 	}
 
-
-
 	public class CPenisSliceBone {
 
 		public CPenisSlice  _oPenisSlice;
 		public Transform    _oBoneParticleT;            //###DESIGN: No longer required now that we directly modify rest particles... but can be useful later??
 		public Transform    _oBoneShapeDefT;
+		public Transform    _oMarkerT;
 		Vector3             _vecPosBackupG;
 		Quaternion          _quatRotBackupG;
 		public int          _nParticleID;
@@ -249,18 +276,16 @@ public class CSoftBody_Penis : CSoftBody {
 			_oPenisSlice        = oPenisSlice;
 			_nParticleID        = nParticleID;
 			_oBoneParticleT     = oParticleBoneT;
-			if (CPenisSlice.C_DEBUG_CreateMarkers) {
-				GameObject oMarkerCubeGOT = Resources.Load("ModelsOLD/Markers/MarkerCubeDir") as GameObject;        //###TODO: Move resource!
-				_oBoneShapeDefT = (GameObject.Instantiate(oMarkerCubeGOT) as GameObject).transform;
-				_oBoneShapeDefT.GetComponent<MeshRenderer>().material.color = Color.blue;
-			} else {
-				_oBoneShapeDefT = new GameObject().transform;
-			}
+		    _oBoneShapeDefT = new GameObject().transform;
 			_oBoneShapeDefT.name = _oBoneParticleT.name + "-ShapeDef";
 			_oBoneShapeDefT.position    = _oBoneParticleT.position;
 			_oBoneShapeDefT.rotation    = _oBoneParticleT.rotation;
 			_oBoneShapeDefT.localScale  = _oBoneParticleT.localScale;
 			_oBoneShapeDefT.SetParent(_oPenisSlice._oSliceT);
+			if (CPenisSlice.C_DEBUG_CreateMarkers) {
+                _oMarkerT = CUtility.InstantiatePrefab<Transform>("Prefabs/MarkerS", "PenisSliceBone-" + nParticleID.ToString(), _oBoneParticleT);
+				_oMarkerT.GetComponent<MeshRenderer>().material.color = Color.blue;
+			}
 		}
 
 		public void ShapeDef_Enter() {
@@ -281,26 +306,41 @@ public class CSoftBody_Penis : CSoftBody {
 		public CSoftBody_Penis          _oSoftBodyPenis;
 		public int                      _nSliceID;
 		public Transform                _oSliceT;
+		public Transform                _oMarkerT;
 		public List<CPenisSliceBone>    _aSliceBones = new List<CPenisSliceBone>();
-		public static bool              C_DEBUG_CreateMarkers = false;          //###IMPROVE: Use this debug technique throughtout the codebase!
+		public static bool              C_DEBUG_CreateMarkers = false;          //###NOTE: Use this debug technique throughout the codebase!
+        public CPenisSliceBone          _oSliceBoneL;            // Leftmost, rightmost particles.  Used to find the approximate 'center' in CalcApproxSliceCenter() (needed to determine the 'PenisCenterCurve' regardless of penis run-time bend
+        public CPenisSliceBone          _oSliceBoneR;
 
 
 		public CPenisSlice(CSoftBody_Penis oSoftBodyPenis, int nSliceID, Vector3 vecPos) {
 			_oSoftBodyPenis = oSoftBodyPenis;
 			_nSliceID = nSliceID;
-			if (CPenisSlice.C_DEBUG_CreateMarkers) {
-				GameObject oMarkerCubeGOT = Resources.Load("ModelsOLD/Markers/MarkerCubeDir") as GameObject;
-				_oSliceT = (GameObject.Instantiate(oMarkerCubeGOT) as GameObject).transform;
-				_oSliceT.GetComponent<MeshRenderer>().material.color = Color.cyan;
-			} else {
-				_oSliceT = new GameObject().transform;
-			}
+			_oSliceT = new GameObject().transform;
 			_oSliceT.position = vecPos;
-			_oSliceT.name = "+PenisSlice-" + _nSliceID.ToString();
+            _oSliceT.rotation = Quaternion.identity;
+            _oSliceT.name = "+PenisSlice-" + _nSliceID.ToString();
+			if (CPenisSlice.C_DEBUG_CreateMarkers) {
+                _oMarkerT = CUtility.InstantiatePrefab<Transform>("Prefabs/MarkerS", "PenisSlice" + _nSliceID.ToString(), _oSliceT);
+				_oMarkerT.GetComponent<MeshRenderer>().material.color = Color.cyan;
+            }
 		}
 
 		public void AddChildBone(Transform oParticleBoneT, int nParticleID) {
-			_aSliceBones.Add(new CPenisSliceBone(this, nParticleID, oParticleBoneT));
+            CPenisSliceBone oPenisSliceBone = new CPenisSliceBone(this, nParticleID, oParticleBoneT);
+			_aSliceBones.Add(oPenisSliceBone);
+            if (_oSliceBoneL == null) {
+                _oSliceBoneL = oPenisSliceBone;
+            } else {
+                if (_oSliceBoneL._oBoneParticleT.position.x > oPenisSliceBone._oBoneParticleT.position.x)
+                    _oSliceBoneL = oPenisSliceBone;
+            }
+            if (_oSliceBoneR == null) {
+                _oSliceBoneR = oPenisSliceBone;
+            } else {
+                if (_oSliceBoneR._oBoneParticleT.position.x < oPenisSliceBone._oBoneParticleT.position.x)
+                    _oSliceBoneR = oPenisSliceBone;
+            }
 		}
 
 		public void ShapeDef_Enter() {
@@ -312,32 +352,22 @@ public class CSoftBody_Penis : CSoftBody {
 			foreach (CPenisSliceBone oSliceBone in _aSliceBones)
 				oSliceBone.ShapeDef_Leave();
 		}
+
+        public Vector3 CalcApproxSliceCenter() {
+            // Return the approximate run-time center of this penis slice as calculated by the midpoint of the left-most and right-most particle (determined at init time)
+            return (_oSliceBoneL._oBoneParticleT.position + _oSliceBoneR._oBoneParticleT.position) / 2;
+        }
 	}
 };
 
-public class CBSkinBaked_PenisMeshCollider : CBSkinBaked {      // CBSkinBaked_PenisMeshCollider: A mesh collider created from baked mesh created every frame from a reduced-geometry penis.  Used to open vagina via its raycasting approach to penetration
-	MeshCollider _oMeshCollider;
-
-	public override void OnDeserializeFromBlender(params object[] aExtraArgs) {
-		base.OnDeserializeFromBlender(aExtraArgs);
-		gameObject.layer = LayerMask.NameToLayer("Penis");
-		_oMeshCollider = CUtility.FindOrCreateComponent(gameObject, typeof(MeshCollider)) as MeshCollider;
-		_oMeshCollider.sharedMesh = _oMeshBaked;
-	}
-
-	public override void OnSimulate() {
-		base.OnSimulate();
-		_oMeshCollider.sharedMesh = _oMeshBaked;
-	}
-}
 
 
-//oPropGrp.PropAdd(ESoftBodyPenis.Transparency,		"Transparency",			0.0f, 0.0f, 100.0f, "");
-//oPropGrp.PropAdd(ESoftBodyPenis.TransparencyBody_HACK,	"Body Transparency",	0.0f, 0.0f, 100.0f, "");		//###MOVE
+//_oObj.Add(ESoftBodyPenis.Transparency,		"Transparency",			0.0f, 0.0f, 100.0f, "");
+//_oObj.Add(ESoftBodyPenis.TransparencyBody_HACK,	"Body Transparency",	0.0f, 0.0f, 100.0f, "");		//###MOVE
 			//case (int)ESoftBodyPenis.Transparency:
-			//	_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, false);
+			//	_oBody.Util_AdjustMaterialTransparency("Penis", oObj._nValue / 100, false);
 			//	break;
 			//case (int)ESoftBodyPenis.TransparencyBody_HACK:
-			//	_oBody.Util_AdjustMaterialTransparency("Penis", oProp._nValueLocal / 100, true);
+			//	_oBody.Util_AdjustMaterialTransparency("Penis", oObj._nValue / 100, true);
 			//	break;
 

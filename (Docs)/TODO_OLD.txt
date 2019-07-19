@@ -1,0 +1,62 @@
+--- Rethinking game mode progressions ---
+- Crashes when going to game mode because only body 0 init! -> now hacked!
+- How do we support loading without editing?  (Need to load both)
+    - Game remembers the last-loaded bodies and loads those
+        - Would be nice to just save fully baked Blender file!  Can adjust Blender codebase to restore itself from file?? 
+    - Need a game menu GUI (with keys) to switch modes and edit the bodies
+        - Do we break cloth fitting mode?
+
+--- Accurate vagina opener ---
+- Have a way to determine penis size
+- Scale vagina hole bones at runtime. Works!  Need ref size!
+- Need penis sensor at vagina opening
+
+--- Penetration work ---
+- Bones in the way right now... disable?  Fix now??
+- Add 'shoot cum' button?
+    - Or... design of sophisticated button system and modes for video?
+    ?- Rethink architecture of what VR wand axis and buttons connect to controllable objects (with mode change)
+    - Also a menu to change modes?
+
+--- Multi-object wand editing ---
+?- Revive hotspots 
+
+--- Problems ---
+- Fucking problem with PhysX explosion with dual body!
+- Multiple 'Base'
+- Popup panel fails most times?
+- UI Give space for label only?
+    - Later: by category and with group labels
+BUG:!! Is dependant on geometry!  Penis much denser than breasts!!
+
+--- Later ---
+- Penis lenght stretch glans
+- Improvements needed on dynamic bone creation / destruction
+- VR control of penis angle with vertical, stiffness with hor
+
+--- Valid? ---
+- Remove _StaticBodyCollider
+- Small bug with last penis bone... 
+- Collider mesh small tri removal broken!
+- Array.Copy error in flex solver when dtor
+- Weakness with softbody rim area selection by select_more()  Breast and penis have different densities!!
+- Load of properties slow... can disable Blender & normals??
+- Slow FPS!  With menu????
+- All the shape keys take a long time to init!  Can group in Blender access string?
+
+
+- Then...
+    - Finalize morph names forever
+        - Remove ball size from DAZ
+        - Use '-' instead of _?
+    - Man!
+    - Add vagina morphs and re-build all meshes
+- Ensuse normals are efficient
+
+
+?- Penis bone!   Into importer!  And vert group too!
+    - Can simplify away??
+- Fluid collider mesh too sparce and has holes!
+- Fluid errors a pain
+
+- Remove Blender processing of MorphResult?  (Still needed??)

@@ -4,10 +4,11 @@ public class CUICanvas : MonoBehaviour {			// CUICanvas: Encapsulates the native
     public static CUICanvas Create(Transform oParentT) {
         GameObject oCanvasResGO = Resources.Load("UI/CUICanvas") as GameObject;
         GameObject oCanvasGO = Instantiate(oCanvasResGO) as GameObject;
-        oCanvasGO.transform.SetParent(oParentT, false);
-        oCanvasGO.transform.localPosition = Vector3.zero;
+		oCanvasGO.name = "CUICanvas-" + oParentT.gameObject.name;
+		oCanvasGO.transform.SetParent(oParentT, false);
+        //oCanvasGO.transform.localPosition = Vector3.zero;
         //oCanvasGO.transform.localRotation = Quaternion.identity;
-        oCanvasGO.transform.localRotation = Quaternion.Euler(0, 180, 0);        //###WEAK:!!! Entire canvas inverted to properly face camera. (Don't know why this is needed!)
+        //oCanvasGO.transform.localRotation = Quaternion.Euler(0, 180, 0);        //###WEAK:!!! Entire canvas inverted to properly face camera. (Don't know why this is needed!)
         CUICanvas oCanvas = oCanvasGO.GetComponent<CUICanvas>();
         oCanvas.Init();
         return oCanvas;
@@ -21,11 +22,15 @@ public class CUICanvas : MonoBehaviour {			// CUICanvas: Encapsulates the native
 		Vector2 vecCanvasSize = new Vector2(oCanvasRT.rect.width, oCanvasRT.rect.height);
 		for (int nChild = 0; nChild < transform.childCount; nChild++) {		// Iterate through our immediate children to add their heights (they should all be CUIPanels)
 			Transform oChildT = transform.GetChild(nChild);
+			CUIPanel oPanel = oChildT.GetComponent<CUIPanel>();         // Add additional space if this panel has a selector
+			if (oPanel == null)
+				Debug.LogWarning("#Warning: CUICanvas found a child that was not a CUIPanel!");
 			RectTransform oChildRT = oChildT as RectTransform;
 			vecCanvasSize.y += (int)oChildRT.rect.height;
 		}
+		vecCanvasSize.y += 20;			//###HACK: Lots of padding around panel means we miss a bit of the bottom of panel... increment a bit
 
-        Vector2 vecPivot = oCanvasRT.pivot;
+		Vector2 vecPivot = oCanvasRT.pivot;
 		vecPivot.y = 1;			//###HACK: Logic for center below fails.  Even though we have pivot at 0.5 for x,y possibly because of our fitter the right value are computed if we set y to 1
 		float zScale = 1;       //###MOD: Was much too thick!   zSize / oCanvasRT.localScale.z;  0, -135, 0 / 232, 270, 0
 
@@ -35,8 +40,8 @@ public class CUICanvas : MonoBehaviour {			// CUICanvas: Encapsulates the native
         oBoxCol.isTrigger = true;
 	}
 
-	public CUIPanel CreatePanel(string sNameDialogLabel, string sNameChooserLabel = null, params object[] aObjects) {     //###DESIGN19: Keep?
-		CUIPanel oPanel = CUIPanel.Create(this, sNameDialogLabel, sNameChooserLabel, aObjects);
+	public CUIPanel CreatePanel(string sNameDialogLabel, CObj oObjCurrent = null, bool bCreateSelector = false) {
+		CUIPanel oPanel = CUIPanel.Create(this, sNameDialogLabel, oObjCurrent, bCreateSelector);
 		UpdateCanvasSize();				// Created a new panel.  Need to update our size
 		return oPanel;
 	}

@@ -24,22 +24,18 @@ public class G : MonoBehaviour {					// Global static class to store global cons
 	public const string	C_NamePrefix_CutterAsMesh = "CutterAsMesh";      // Prefix given to meshes created from curves in gBL_GetCutterAsMesh() that converts a curve into a mesh for Client rendering.  Also has a node folder of the same name in ()
 
 
-	public const int 	C_Layer_NoCollision			= 08;				
-	public const int 	C_Layer_NoCollisionSelf		= 09;				
-	public const int 	C_Layer_HarnessSphereliders	= 29;
-
-	public const uint 	C_LayerMask_NoCollision		= 0x00000100;
-	public const uint 	C_LayerMask_NoCollisionSelf	= 0x00000200;
-	public const uint 	C_LayerMask_HarnessSphereliders	= 0x20000000;					//###NOTE: Can't convert (2 << C_Layer_CutterPlane) easily to their mask (weird compilere errors) so keep these in sync manually!
+	//public const int 	C_Layer_HarnessSphereliders	= 29;
+	//public const uint 	C_LayerMask_HarnessSphereliders	= 0x20000000;					//###NOTE: Can't convert (2 << C_Layer_CutterPlane) easily to their mask (weird compilere errors) so keep these in sync manually!
 
 	public const int	C_FrameRate = 25;							//###TODO: Push this value in all contexts needing framerate... including PhysX!!
 	public const byte	C_FileVersion_CurveDefinition = 1;			// The file version of pose serialization.  Magic number pushed as first byte of every curve definition file
 	public const byte	C_FileVersion_Pose = 1;						// Version of pose files we can load and save
 	public const bool	C_DisplayOnCheckIfChanged = false;			// Controls verbose output on debug log when 'superpublic' values change.
 	public const float	C_PiDiv2 = Mathf.PI / 2;
-	
-	//---------------------------------------------------------------------------	MAGIC NUMBERS: Must match Blender.
-	public const ushort C_MagicNo_EndOfFlatGroup = 65535;			// We indicate the 'end of a 'flattened group' with this invalid vertID indicating the end of the current group (for efficient serialization of variable-sized groups)
+    public const int    C_MaxVertsInMesh = 65534;                   // How many verts a Unity mesh can have
+
+    //---------------------------------------------------------------------------	MAGIC NUMBERS: Must match Blender.
+    public const ushort C_MagicNo_EndOfFlatGroup = 65535;			// We indicate the 'end of a 'flattened group' with this invalid vertID indicating the end of the current group (for efficient serialization of variable-sized groups)
 	public const ushort C_MagicNo_EndOfArray = 12345;
 
 	//---------------------------------------------------------------------------	GUI-Related
@@ -50,4 +46,42 @@ public class G : MonoBehaviour {					// Global static class to store global cons
 	//---------------------------------------------------------------------------	Variables stored in 'PlayerPref'
 	public const string	C_PlayerPref_MachineID	= "MachineID";		// The MAC addressed used when registring this computer to 'GameKey'
 	//public const string	C_PlayerPref_GameKey	= "GameKey";		// The numeric gamekey entered by the user during activation and read at every game init
+
+    public static int       C_Layer_Default             = LayerMask.NameToLayer("Default");             // Layer used for body bones that cannot collide with anything (mostly in torso)
+    public static int       C_Layer_UI                  = LayerMask.NameToLayer("UI");
+    public static int       C_Layer_NoCollision         = LayerMask.NameToLayer("NoCollision");         // Layer with no collision with anything.
+    public static int       C_Layer_BodySurface         = LayerMask.NameToLayer("BodySurface");         // Layer used by PhysX mesh collider to represent the whole body (including soft body parts) for raycasting (used for body surface path creation)
+    public static int       C_Layer_Bone1               = LayerMask.NameToLayer("Bone1");               // Layer used for body collider bones.  Three of them are needed due to overlap in body structure (especially around the shoulder area)
+    public static int       C_Layer_Bone2               = LayerMask.NameToLayer("Bone2");
+    public static int       C_Layer_Bone3               = LayerMask.NameToLayer("Bone3");
+    public static int       C_Layer_Hand                = LayerMask.NameToLayer("Hand");                // Hand requires a special layer.  Its PhysX bones must collider with BodySurface so we cannot have the BodySurface mesh collider cover the hand area and had to split the hands into its own BodySurface collider mesh with this layer
+    public static int       C_Layer_VrWand              = LayerMask.NameToLayer("VrWand");			    // Layer used ONLY on the left and right VR touch input controllers.
+    public static int       C_Layer_Cutter              = LayerMask.NameToLayer("Cutter");              // Layer used to detect only the 'cutter plane' that makes single-plane editing possible    ###OBS:?	public static int       C_Layer_Gizmo               = LayerMask.NameToLayer("Gizmo");               // Layer used to detect only gizmo colliders
+    public static int       C_Layer_Gizmo               = LayerMask.NameToLayer("Gizmo");               // Layer used to detect only gizmo colliders
+    public static int       C_Layer_HotSpot             = LayerMask.NameToLayer("HotSpot");             // Layer used to detect only hotspots
+
+    
+    public static int       C_LayerMask_Default         = 1 << C_Layer_Default;
+    public static int		C_LayerMask_UI              = 1 << C_Layer_UI;
+    public static int       C_LayerMask_NoCollision     = 1 << C_Layer_NoCollision;
+    public static int       C_LayerMask_BodySurface     = 1 << C_Layer_BodySurface;
+    public static int       C_LayerMask_Bone1           = 1 << C_Layer_Bone1;
+    public static int       C_LayerMask_Bone2           = 1 << C_Layer_Bone2;
+    public static int       C_LayerMask_Bone3           = 1 << C_Layer_Bone3;
+    public static int       C_LayerMask_Hand            = 1 << C_Layer_Hand;
+    public static int       C_LayerMask_VrWand          = 1 << C_Layer_VrWand;
+    public static int       C_LayerMask_Cutter          = 1 << C_Layer_Cutter;
+	public static int		C_LayerMask_Gizmo 			= 1 << C_Layer_Gizmo;
+	public static int		C_LayerMask_HotSpot 		= 1 << C_Layer_HotSpot;
+
+    public static int       C_LayerMask_Bones           = C_LayerMask_Bone1 | C_LayerMask_Bone2 | C_LayerMask_Bone3 | C_LayerMask_Hand;
+    public static int       C_LayerMask_BodySurfaces    = C_LayerMask_BodySurface | C_LayerMask_Hand;       //###DESIGN: Keep??
+    public static int       C_LayerMask_HeadsetRaycaster= C_LayerMask_BodySurface | C_LayerMask_UI;         // Headset raycaster needs to perform a single raycast against bodies AND UI browsers!
+
+    public static Color     C_Color_YellowTrans         = new Color32(255,255,000,016);      //###IMPROVE: Move all the static color definitions here!
+    public static Color     C_Color_RedDark             = new Color32(128,000,000,255);
+    public static Color     C_Color_RedTrans            = new Color32(255,000,000,016);
+    public static Color     C_Color_BlueDark            = new Color32(000,000,128,255);
+    public static Color     C_Color_Orange              = new Color32(255,165,000,255);
+    public static Color     C_Color_Purple              = new Color32(216,191,216,255);
 }

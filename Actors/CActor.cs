@@ -18,7 +18,7 @@
 - Go through Daz and extract the damn angles!
 - Do the colliders
 
-- Huge hack with CProp name!!!!!
+- Huge hack with CObj name!!!!!
 - Add warning when clipping y,z in joint driver!
 - How to handle joint axis rotation?  What about L/R of body??
 - How to handle different y,z rotations??  Switch axis??
@@ -107,91 +107,129 @@ using UnityEngine;
 using System.IO;
 using System.Collections.Generic;
 
-public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an 'actor': a body part such as arms, legs, chest that has intelligence to interact with the environment.  Subclassed in CActorArm / CActorLeg / CActorChest, etc...
+public abstract class CActor : MonoBehaviour, IHotSpotMgr, CVrWand.IVrWandMoveable {		// Base class to an 'actor': a body part such as arms, legs, chest that has intelligence to interact with the environment.  Subclassed in CActorArm / CActorLeg / CActorChest, etc...
 
-	[HideInInspector]	public	CObject			_oObj;				// Our object responsible for 'super public' properties exposed to GUI and animation system.  Each CActor-derived subclass fills this with its own properties
-	[HideInInspector]	public 	CHotSpot		_oHotSpot;			// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
-	[HideInInspector]	public 	CBody			_oBody;
+	[HideInInspector]	public	CObj			_oObj;				// Our object responsible for 'super public' properties exposed to GUI and animation system.  Each CActor-derived subclass fills this with its own properties
+	//#DEV26: ###OBS? [HideInInspector]	public 	CHotSpot		_oHotSpot;			// The hotspot object that will permit user to left/right click on us in the scene to move/rotate/scale us and invoke our context-sensitive menu.
+	[HideInInspector]	public 	CBodyBase		_oBodyBase;
 	[HideInInspector]	public 	EBodySide		_eBodySide;							// Side of actor: Left, Right or Center
-	[HideInInspector]	public 	char			_chSidePrefixL, _chSidePrefixU;		// Left side = 'l", right side = r.  Used to locate our bone structure by string name
+	[HideInInspector]	public 	char			_chSidePrefixL, _chSidePrefixU;     // Left side = 'l", right side = r.  Used to locate our bone structure by string name
+						public	string			_sName;								// Name of actor such as "Left Arm"
 
 	[HideInInspector]	public 	CBone 			_oBoneExtremity;					//###MOVE? This is the 'extremity bone' of the limb (hand for arm and foot for leg).  Kept here so CHarnessSphereActorWalker can orient itself to our knee / elbow for more natural hand and toe placement
 	[HideInInspector]	public 	List<CBone>		_aBones = new List<CBone>();		// The array of bones defined for this actor.  Duplicated in there for easy enable/disable as we change game mode
-	[HideInInspector]	public 	ConfigurableJoint _oConfJoint_Extremity;			// The joint of our extremity.  Stored for faster pin/unpin
-	
-	[HideInInspector]	public	float			_nDrivePinToBone = C_DrivePinToBone;			// The strength of the spring force pulling actor to its pin position
+	[HideInInspector]	public ConfigurableJoint _oJoint_ExtremityToPin;            // The joint between our 'extremity' (hand, feet, etc) and our 'pinning pin'.  Stored for faster pin/unpin.  Hinge joint for limb pins and Configurable Joint for all others
+    
+                        public	CActorGuiPin	_oActorGuiPin;						// The canvas pin mechanism responsible for displaying our popup GUI menu at a controlled distance from our position.  (Used to prevent menu from being clipped by body)
+	//[HideInInspector]	public	float			_nDrivePinToBone = C_DrivePinToBone;            // The strength of the spring force pulling actor to its pin position
+	[HideInInspector]	public	bool			_bBakeJointAnglesWhenMovingPin;		// When true every joint in this actor will 'bake' their angle as the pin is moved.  Only set for extremities such as arms and legs
 
-						public	const float		C_DrivePinToBone = 5000f;					//###CHECK: The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
+//###OBS						public	const float		C_DrivePinToBone = 5000f;					//###CHECK: The default positional drive for all pins.  Hugely important! Sets _nDrivePos  ###TUNE
 						public	const float		C_SizeHotSpot_BodyNodes = 1.0f;	// Relative hotspot size of the torso nodes
 						//public	const float		C_SizeHotSpot_BodyNodes = 2.8f;	// Relative hotspot size of the torso nodes
 
 						CUICanvas _oCanvas_HACK;		//###TEMP:
-						Vector3 _eulRotChanged;	// To enable CProp-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
+						Vector3 _eulRotChanged;	// To enable CObj-based rotation setting (which must break quaternions into four floats) we store rotation writes this temp quaternion with the end-result 'taking' only upon set of w.  This means that any rotation change must change w to 'take' (as it should given nature of quaternions)
 
 	//---------------------------------------------------------------------------	CREATE / DESTROY
 
-	public virtual void OnStart(CBody oBody) {
-		_oBody 	= oBody;
+	public virtual void OnStart(CBodyBase oBodyBase) {
+		_oBodyBase 	= oBodyBase;
 
 		//=== Determine if we're a left, right or 'center' actor (e.g. ArmL, LegR, etc) === (NOTE: Applies to Actors, NOT bones!!)
 		if (gameObject.name.EndsWith("L")) { 
 			_eBodySide = EBodySide.Left;
 			_chSidePrefixL = 'l';
+			_sName = "Left " + gameObject.name.Substring(0, gameObject.name.Length - 1);
 		} else if (gameObject.name.EndsWith("R")) { 
 			_eBodySide = EBodySide.Right;		
 			_chSidePrefixL = 'r';
+			_sName = "Right " + gameObject.name.Substring(0, gameObject.name.Length - 1);
 		} else { 
 			_eBodySide = EBodySide.Center;		
-			_chSidePrefixL = 'X';					//###CHECK21: What to do??
+			_chSidePrefixL = 'X';                   //###CHECK21: What to do??
+			_sName = gameObject.name;
 		}
 		_chSidePrefixU = _chSidePrefixL.ToString().ToUpper()[0];
 
-		//=== Create the configurable joint component and set it with values appropriate for a pin ===
-		//if (_oConfJoint_Extremity != null) {		//###CHECK22:!! This check ok?  Keep?
-		if (GetType() != typeof(CActorGenitals)) {		//###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
-			_oConfJoint_Extremity = CUtility.FindOrCreateComponent(gameObject, typeof(ConfigurableJoint)) as ConfigurableJoint;
-			_oConfJoint_Extremity.xMotion = _oConfJoint_Extremity.yMotion = _oConfJoint_Extremity.zMotion = ConfigurableJointMotion.Limited;
-			_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Limited;
+        OnStart_DefineLimb();       //#DEV26:!!!
 
-			JointDrive oDrive = new JointDrive();
-			oDrive.positionSpring = 1000.0f;			//###DESIGN:!!!!  ###TUNE!!!!!!!!!!
-			if (GetType() == typeof(CActorLeg)) { 
-				oDrive.positionSpring *= 100.0f;			//###DESIGN:!!! Make spring stiffness for leg pins much stiffer!
-				_oConfJoint_Extremity.angularXMotion = _oConfJoint_Extremity.angularYMotion = _oConfJoint_Extremity.angularZMotion = ConfigurableJointMotion.Free;		//###DESIGN:!!! Feet pins with no rotation limits??
-			}
-			oDrive.positionDamper = 0;                          //###TODO!!!!! ###TUNE?
-			oDrive.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
-			_oConfJoint_Extremity.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
-			_oConfJoint_Extremity.slerpDrive = oDrive;
-
-			//###DESIGN:!!! Config rigidbody mass and drag?
-		}
-
-		GetComponent<Renderer>().enabled = false;					// Hidden by default.  CGame shows/hides us with call to OnBroadcast_HideOrShowHelperObjects
-		
-		OnStart_DefineLimb();
-
-		_oObj.PropSet(0, EActorNode.Pinned, 1);			//###DESIGN:!!! Pin everything??
-		//if (GetType() != typeof(CActorArm) && GetType() != typeof(CActorLeg))
-		//	_oObj.PropSet(0, EActorNode.Pinned, 1);
-		//if (GetType() == typeof(CActorArm) || GetType() == typeof(CActorLeg))
-		//	_oObj.PropSet(0, EActorNode.Pinned, 1);
-
-        SetActorPosToBonePos();         //###CHECK
+        //#DEV26:
+        if (_oObj != null && GetType() != typeof(CActorArm))      //#DEV26: Revisit where default pinning goes!
+            _oObj.Set("Pinned", 1);			//###DESIGN:!!! What to pin?  Do it here??
 	}
 
-	public virtual void OnDestroy() {}
+    protected virtual void PinToExtremity_ConfigureJoint(JointDrive oJointDriveSlerp) {
+        oJointDriveSlerp.positionSpring = 100.0f;       // Setup quite a stiff slerp rotation drive for the default bone.  Limbs override this!
+    }
+
+    void PinToExtremity_CreateJoint() {
+        if (_oBoneExtremity == null)
+            CUtility.ThrowExceptionF("###EXCEPTION: CActor '{0}' called CreateJointOnExtremity() but no bone extremity is defined!", _sName);
+
+        ConfigurableJoint oJoint_Extremity;
+        //if (GetType().IsSubclassOf(typeof(CActorLimb))) {        //#DEV26: Virtual function?
+
+        //    HingeJoint oJointHinge = _oBoneExtremity.gameObject.AddComponent<HingeJoint>();
+        //    oJointHinge.anchor = new Vector3(0.012137f, 0.082438f, 0.02f);        //#DEV26: ###IMPROVE: Read from marker in hand?
+        //                                                                          //_oJoint_Extremity.anchor = new Vector3(0.012137f, 0.082438f, 0.015285f);        //#DEV26:
+        //    oJointHinge.autoConfigureConnectedAnchor = false;
+        //    oJointHinge.connectedAnchor = Vector3.zero;
+        //    oJointHinge.axis = new Vector3(0, 0, 1);
+        //    oJoint_Extremity = oJointHinge;
+
+        //} else {
+
+            _oJoint_ExtremityToPin = _oBoneExtremity.gameObject.AddComponent<ConfigurableJoint>();
+            _oJoint_ExtremityToPin.xMotion = _oJoint_ExtremityToPin.yMotion = _oJoint_ExtremityToPin.zMotion = ConfigurableJointMotion.Limited;
+            _oJoint_ExtremityToPin.angularXMotion = _oJoint_ExtremityToPin.angularYMotion = _oJoint_ExtremityToPin.angularZMotion = ConfigurableJointMotion.Limited;
+            JointDrive oJointDriveSlerp = new JointDrive();
+            oJointDriveSlerp.positionDamper = 1.0f;                          //###TODO!!!!! ###TUNE?
+            oJointDriveSlerp.maximumForce = float.MaxValue;               //###IMPROVE: Some reasonable force to prevent explosions??
+
+            //=== Call subclass to properly configure the joint for its limb requirements ===
+            PinToExtremity_ConfigureJoint(oJointDriveSlerp);
+
+            //=== Only configure Slerp if actor sets its spring to non-zero ===
+            if (oJointDriveSlerp.positionSpring != 0) {
+                _oJoint_ExtremityToPin.rotationDriveMode = RotationDriveMode.Slerp;        // Slerp is really the only useful option for bone driving.  (Many other features of D6 joint!!!)
+                _oJoint_ExtremityToPin.slerpDrive = oJointDriveSlerp;
+            }
+        //}
+        
+        //###DESIGN:!!! Config rigidbody mass and drag?
+        //#DEV26: GetComponent<Renderer>().enabled = false;					// Hidden by default.  CGame shows/hides us with call to OnBroadcast_HideOrShowHelperObjects
+        //SetActorPosToBonePos();         //###CHECK #DEV26:
+    }
+
+
+    public virtual void OnDestroy() {}
 	
 	public abstract void OnStart_DefineLimb();
 
+    public virtual void OnActorPinned(bool bPinned) { }
+
 
 	//---------------------------------------------------------------------------	LOAD / SAVE
+	public void Load(BinaryReader oBR) {
+        transform.localPosition = CUtility.LoadBinary_Vector3(oBR);
+        transform.localRotation = CUtility.LoadBinary_QuaternionAsEuler(oBR);
+		foreach (CBone oBone in _aBones)
+			oBone.Load(oBR);
+	}
+
+	public void Save(BinaryWriter oBW) {
+        CUtility.SaveBinary_Vector3(oBW, transform.localPosition);
+        CUtility.SaveBinary_QuaternionAsEuler(oBW, transform.localRotation);
+		foreach (CBone oBone in _aBones)
+			oBone.Save(oBW);
+	}
 
 	public void Serialize_OBS(FileStream oStream) {
 		CUtility.Serialize(oStream, transform, false);
 		//_oObj.Serialize_OBS(oStream);
 	}
-
+	
 	//---------------------------------------------------------------------------	UTILITY
 
 	public void OnBroadcast_HideOrShowHelperObjects(bool bShow) {		// Send by a 'BroadcastMessageToAllBodies" to hide/show the whole subtree of helper objects.
@@ -217,79 +255,134 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
     }
 
     //---------------------------------------------------------------------------	COBJECT EVENTS
+		 
 
-    public void OnPropSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
+    public void OnSet_Pinned(float nValueOld, float nValueNew) {	// Reflection call to service all the 'Pinned' properties of our derived classes.
 		if (_oBoneExtremity == null)			//###CHECK
 			return;
 
-		if (_oConfJoint_Extremity == null) { 
-			Debug.LogErrorFormat("###ERROR: CActor.Pinned() called with no extremity joint set!");
-			return;	//CUtility.ThrowException("###EXCEPTION: CActor.Pinned() called with no extremity joint set!");
-		}
-
 		bool bPinned = nValueNew == 1;
-        //if (CGame.INSTANCE.BoneDebugMode && GetType() != typeof(CActorChest))           // Disable pinning in bone debug mode on extremities so we can test bone orientation
-        //    bPinned = false;
+
+        if (bPinned == (_oJoint_ExtremityToPin != null))
+            return;                         // Return without doing anything if we're already in the right pinning mode.
+
 		if (bPinned) {		// How pinning init works: 1) Remember current location/rotation, 2) set to where extremity is now, 3) activate joint, 4) move back to old pos/rot = extremity's spring will gradually move & rotate toward current position of pin!  (just what we want!)
 			//###IMPROVE: When user pins make pin location where limb extremity is (ie. no movement)
-			Vector3 vecPosOld = transform.position;
+		    if (_oJoint_ExtremityToPin == null)
+                PinToExtremity_CreateJoint();
+            GetComponent<Rigidbody>().isKinematic = true;           // Make sure our pin is Kinematic!
+            Vector3 vecPosOld = transform.position;
 			Quaternion quatRotOld = transform.rotation;
 			Transform oAnchorT = _oBoneExtremity.transform;			// Joint extremity is used as anchor unless a subnode called 'Anchor' exists (e.g. place outside hand or toes that is used to pull forces)
-			Transform oAnchorChildT = oAnchorT.Find("Anchor");
+			Transform oAnchorChildT = oAnchorT.Find("Anchor");      //#DEV26:!!! Use??
 			if (oAnchorChildT != null)
 				oAnchorT = oAnchorChildT;
 			transform.position = oAnchorT.position;			//? Doesn't matter as it gets calculated every frame anyway but just to be cleaner in 3D scene...
-			transform.rotation = oAnchorT.rotation;			
-			_oConfJoint_Extremity.connectedBody = _oBoneExtremity._oRigidBody;
-			SoftJointLimit oJointLimit = new SoftJointLimit();                  //###WEAK: Do everytime?? ###TUNE?
-            oJointLimit.limit = 0.001f;				//###INFO: If this is zero there is NO spring functionality!!
-			SoftJointLimitSpring oJointLimitSpring = new SoftJointLimitSpring();    //###WEAK: Do everytime??		//####MOD: To Unity5
-            oJointLimitSpring.spring = _nDrivePinToBone;
-			_oConfJoint_Extremity.linearLimit = oJointLimit;
-			_oConfJoint_Extremity.linearLimitSpring = oJointLimitSpring;
-			transform.position = vecPosOld;
+			transform.rotation = oAnchorT.rotation;
+            _oJoint_ExtremityToPin.connectedBody = GetComponent<Rigidbody>();
+            transform.position = vecPosOld;
 			transform.rotation = quatRotOld;
 		} else {
-			_oConfJoint_Extremity.connectedBody = null;			// Destroy the joint and the actor's limb will float in space as drive by various limb joints.
-		}
-		if (_oHotSpot != null)									// We can move/rotate/scale by gizmo only if we're pinned
-			_oHotSpot._bEnableEditing = bPinned;
+            if (_oJoint_ExtremityToPin) {
+                GameObject.Destroy(_oJoint_ExtremityToPin);      //#DEV26: What to do??
+                _oJoint_ExtremityToPin = null;
+            }
+        }
+        OnActorPinned(bPinned);                                 // Notify actor that is has been pinned / unpinned.
+   //     if (_oHotSpot != null)									// We can move/rotate/scale by gizmo only if we're pinned       //###OBS:??
+			//_oHotSpot._bEnableEditing = bPinned;
 	}
+    protected void Util_SetJointExtremityToPinStrengths(float nPosSpring, float nPosSpringDamper, float nRotSpring, float nRotSpringDamper) {
+        //=== Set the pin pulling power ===
+        SoftJointLimitSpring oLimitSpring = _oJoint_ExtremityToPin.linearLimitSpring;
+        oLimitSpring.spring = 10*nPosSpring;        //###DEV27Z: ###TEMP
+        oLimitSpring.damper = nPosSpringDamper;
+        _oJoint_ExtremityToPin.linearLimitSpring = oLimitSpring;
 
-	public void AddBaseActorProperties() {
+        //=== Set the pin torque power ===
+        oLimitSpring = _oJoint_ExtremityToPin.angularXLimitSpring;
+        oLimitSpring.spring = 0.0000001f;//nRotSpring;
+        oLimitSpring.damper = nRotSpringDamper;
+        _oJoint_ExtremityToPin.angularXLimitSpring  = oLimitSpring;
+        _oJoint_ExtremityToPin.angularYZLimitSpring = oLimitSpring;
+    }
+
+    protected void Util_SetJointExtremityToPinStrengths_ByMode(bool bDirectDriveStrength) {
+        if (bDirectDriveStrength) { 
+            //=== Greatly strenghten the pulling power of the pin during manual moves ===
+            Util_SetJointExtremityToPinStrengths(   CGame._oObj.Get("Pin_Pos_Spring_Direct"),
+                                                    CGame._oObj.Get("Pin_Pos_Damper"),
+                                                    CGame._oObj.Get("Pin_Rot_Spring_Direct_Mult") * CGame._oObj.Get("Joint_Slerp_Spring"),
+                                                    CGame._oObj.Get("Pin_Rot_Damper"));
+        } else { 
+            //=== Greatly strenghten the pulling power of the pin during manual moves ===
+            Util_SetJointExtremityToPinStrengths(   CGame._oObj.Get("Pin_Pos_Spring"),
+                                                    CGame._oObj.Get("Pin_Pos_Damper"),
+                                                    CGame._oObj.Get("Pin_Rot_Spring_Mult") * CGame._oObj.Get("Joint_Slerp_Spring"),
+                                                    CGame._oObj.Get("Pin_Rot_Damper"));
+        }
+    }
+
+
+
+	public virtual void AddBaseActorProperties() {
 		//###IMPROVE19: Prop add label and prop name a pain
-		_oObj.PropAdd(0, EActorNode.Pinned,				"Pinned",			"Pinned",	0,	0,		1,		"", CProp.AsCheckbox);
-		_oObj.PropAdd(0, EActorNode.PosX,				"PosX",				"PosX",		0,	-2,		2,		"", CProp.Hide);
-		_oObj.PropAdd(0, EActorNode.PosY,				"PosY",				"PosY",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN!!!  Bounds???
-		_oObj.PropAdd(0, EActorNode.PosZ,				"PosZ",				"PosZ",		0,	-2,		2,		"", CProp.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
-		_oObj.PropAdd(0, EActorNode.RotX,				"RotX",				"RotX",		0,	-9999,	9999,	"", CProp.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
-		_oObj.PropAdd(0, EActorNode.RotY,				"RotY",				"RotY",		0,	-9999,	9999,	"", CProp.Hide);		//###DESIGN: Limits of quaternions
-		_oObj.PropAdd(0, EActorNode.RotZ,				"RotZ",				"RotZ",		0,	-9999,	9999,	"", CProp.Hide);
-	}
+		_oObj.Add("Pinned", this, 0, 0, 1);
+        _oObj.Add3("Pos", this);
+        _oObj.Add3("Rot", this);
+
+        //_oObj.Add(null, "PosX",				0,	-2,		2,		"", CObj.Hide);
+        //_oObj.Add(null, "PosY",				0,	-2,		2,		"", CObj.Hide);		//###DESIGN!!!  Bounds???
+        //_oObj.Add(null, "PosZ",				0,	-2,		2,		"", CObj.Hide);		//###DESIGN: Have a 'power edit mode' that unhides these properties (shown while pressing control for example??)
+        //_oObj.Add(null, "RotX",				0,	-9999,	9999,	"", CObj.Hide);		//###BUG ###DESIGN!!!: Meaningless to export Quaternion to user... Euler instead??
+        //_oObj.Add(null, "RotY",				0,	-9999,	9999,	"", CObj.Hide);		//###DESIGN: Limits of quaternions
+        //_oObj.Add(null, "RotZ",				0,	-9999,	9999,	"", CObj.Hide);
+    }
 
     void TeleportLinkedPhysxBone() {                // Optionally teleport the attached PhysX bone of the node being moved / rotated.  (This enables pose loads to immediately snap the PhysX body at the right position without jarring PhysX spring problems dragging body parts all around the scene!
-        if (CGame.INSTANCE._bBodiesAreKinematic) {
-            if (_oConfJoint_Extremity != null && _oConfJoint_Extremity.connectedBody != null) {
-                //_oConfJoint_Extremity.connectedBody.isKinematic = true;           // Done body-wide before / after pose loading
-                _oConfJoint_Extremity.connectedBody.transform.position = transform.position;
-                _oConfJoint_Extremity.connectedBody.transform.rotation = transform.rotation;
+        if (CGame._bBodiesAreKinematic) {
+            if (_oJoint_ExtremityToPin != null && _oJoint_ExtremityToPin.connectedBody != null) {
+                //_oJoint_Extremity.connectedBody.isKinematic = true;           // Done body-wide before / after pose loading
+                _oJoint_ExtremityToPin.connectedBody.transform.position = transform.position;
+                _oJoint_ExtremityToPin.connectedBody.transform.rotation = transform.rotation;
             }
         }
     }
 
-	public float OnPropGet_PosX() { return transform.localPosition.x; }
-	public float OnPropGet_PosY() { return transform.localPosition.y; }
-	public float OnPropGet_PosZ() { return transform.localPosition.z; }
-	public float OnPropGet_RotX() { return transform.localRotation.eulerAngles.x; }
-	public float OnPropGet_RotY() { return transform.localRotation.eulerAngles.y; }
-	public float OnPropGet_RotZ() { return transform.localRotation.eulerAngles.z; }
+    public Vector3 OnGet_Pos() { return transform.localPosition; }
+    public Vector3 OnGet_Rot() { return transform.localRotation.eulerAngles; }
+    public void OnSet_Pos(Vector3 vecValue) { transform.localPosition = vecValue; }
+    public void OnSet_Rot(Vector3 vecValue) { transform.localRotation = Quaternion.Euler(vecValue); }
 
-	public void OnPropSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.x = nValueNew; transform.localPosition = vecPos; }
-	public void OnPropSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.y = nValueNew; transform.localPosition = vecPos; }
-	public void OnPropSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.z = nValueNew; transform.localPosition = vecPos; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
-    public void OnPropSet_RotX(float nValueOld, float nValueNew) { _eulRotChanged.x = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
-	public void OnPropSet_RotY(float nValueOld, float nValueNew) { _eulRotChanged.y = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
-	public void OnPropSet_RotZ(float nValueOld, float nValueNew) { _eulRotChanged.z = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
+
+    //#DEV26: ###DESIGN: Change to triple-value properties for both position / euler rotation??  (Or both pos / rot in one with flag for disabled elements?)
+    //public float OnGet_PosX() { return transform.localPosition.x; }
+    //public float OnGet_PosY() { return transform.localPosition.y; }
+    //public float OnGet_PosZ() { return transform.localPosition.z; }
+    //public float OnGet_RotX() { return transform.localRotation.eulerAngles.x; }
+    //public float OnGet_RotY() { return transform.localRotation.eulerAngles.y; }
+    //public float OnGet_RotZ() { return transform.localRotation.eulerAngles.z; }
+
+    //public void OnSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.x = nValueNew; transform.localPosition = vecPos; }
+    //public void OnSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.y = nValueNew; transform.localPosition = vecPos; }
+    //public void OnSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.localPosition; vecPos.z = nValueNew; transform.localPosition = vecPos; TeleportLinkedPhysxBone(); }     //###WEAK: Only call OptionallyTeleportLinkedPhysxBone() on one for performance reason but ugly!
+    //   public void OnSet_RotX(float nValueOld, float nValueNew) { _eulRotChanged.x = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); /*TeleportLinkedPhysxBone();*/ }   //###OPT:!!!! Do three times?  Only commit on one of them?
+    //public void OnSet_RotY(float nValueOld, float nValueNew) { _eulRotChanged.y = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); /*TeleportLinkedPhysxBone();*/ }
+    //public void OnSet_RotZ(float nValueOld, float nValueNew) { _eulRotChanged.z = nValueNew; transform.localRotation = Quaternion.Euler(_eulRotChanged); TeleportLinkedPhysxBone(); }
+
+
+    //---------------------------------------------------------------------------	GUI DISPLAY
+    public void GUI_Show() {
+		if (_oActorGuiPin)
+			return;
+		_oActorGuiPin = CActorGuiPin.Create(this);
+		_oActorGuiPin.GUI_Show();
+	}
+
+	public void GUI_Hide() {
+		if (_oActorGuiPin)
+			_oActorGuiPin.GUI_Hide();
+	}
 
 
 	//---------------------------------------------------------------------------	MISC EVENTS
@@ -306,42 +399,41 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 			// then... find way to interact with widgets! (through wand or pointer beam?  see samples!)
 			//###DESIGN:!!! Use VR simple pointer code for raycast example with pointer!
 		}
-		CUtility.WndPopup_Create(_oCanvas_HACK, EWndPopupType.PropertyEditor, new CObject[] { _oObj }, gameObject.name);	//###CHECK: Invoke through hotspot??
-		//_oHotSpot.WndPopup_Create(_oCanvas_HACK, new CObject[] { _oObj });
+		_oCanvas_HACK.CreatePanel(gameObject.name, _oObj);  //###CHECK: Invoke through hotspot??
+		Debug.LogError("OnVrAction!");
 	}
 
 	//---------------------------------------------------------------------------	HOTSPOT EVENTS
-
-
 	public void OnHotspotEvent(EHotSpotEvent eHotSpotEvent, object o) {
 		//_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.	###CHECK: Hotspot triggers throw this off??
-		if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
-			_oHotSpot.WndPopup_Create(_oBody.FindClosestCanvas(), new CObject[] { _oObj });
+		//#DEV26:BROKEN!
+		//if (eHotSpotEvent == EHotSpotEvent.ContextMenu)
+		//	_oBodyBase.FindClosestCanvas().CreatePanel("Actor", _oObj);
 	}
 
 	public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {
-		_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.
+		//#DEV26:BROKEN!! _oBodyBase.SelectBody();			// Manipulating a body's hotspot automatically selects this body.
 
 		switch (eEditMode) {
 			case EEditMode.Move:
-				Vector3 vecPosG = oGizmo.transform.position;		//###NOTE: Upon hotspot movement we have to set not only our transform properties but CProp as well.
+				Vector3 vecPosG = oGizmo.transform.position;		//###NOTE: Upon hotspot movement we have to set not only our transform properties but CObj as well.
 				Vector3 vecPosL;
 				if (transform.name == "Base")				// If the base actor is moving we set the global position otherwise we move the child actor relatve to the base actor  ###IMPROVE: Test by type isntead of string!
 					vecPosL = vecPosG;
 				else
 					vecPosL = transform.parent.worldToLocalMatrix.MultiplyPoint(vecPosG);		// Convert the global hotspot position to be relative to the actor's parent (Usually 'Base' or 'Torso')
-				_oObj.PropSet(0, EActorNode.PosX, vecPosL.x);		//###NOTE: Setting EActorNode for all actors (all have same enum index for same pin properties)
-				_oObj.PropSet(0, EActorNode.PosY, vecPosL.y);
-				_oObj.PropSet(0, EActorNode.PosZ, vecPosL.z);
+				_oObj.Set("PosX", vecPosL.x);		//###NOTE: Setting EActorNode for all actors (all have same enum index for same pin properties)
+				_oObj.Set("PosY", vecPosL.y);
+				_oObj.Set("PosZ", vecPosL.z);
 				transform.localPosition = vecPosL;
 				break;
 			case EEditMode.Rotate:
 				Quaternion quatRotG = oGizmo.transform.rotation;			//###DESIGN???: Problem with rotation?
-				transform.rotation = quatRotG;		//###WEAK!!  ###OPT!  Some work duplication with PropSet below setting our transform!
+				transform.rotation = quatRotG;		//###WEAK!!  ###OPT!  Some work duplication with Set below setting our transform!
 				Vector3 eulRotL = transform.localRotation.eulerAngles;
-				_oObj.PropSet(0, EActorNode.RotX, eulRotL.x);
-				_oObj.PropSet(0, EActorNode.RotY, eulRotL.y);
-				_oObj.PropSet(0, EActorNode.RotZ, eulRotL.z);
+				_oObj.Set("RotX", eulRotL.x);
+				_oObj.Set("RotY", eulRotL.y);
+				_oObj.Set("RotZ", eulRotL.z);
 				break;
 		}
 	}
@@ -350,6 +442,28 @@ public abstract class CActor : MonoBehaviour, IHotSpotMgr {		// Base class to an
 		//if (GetComponent<MeshRenderer>() != null)	
 		//	GetComponent<MeshRenderer>().enabled = true;		//###DESIGN: Temp to circumvent VRTK hiding our pins!
 	}
+
+	public void BakeCurrentBoneRotationIntoJointRotation() {
+		foreach (CBone oBone in _aBones)
+			if (oBone._oJointD6 != null)
+				oBone.BakeCurrentBoneRotationIntoJointRotation();
+		Debug.LogWarningFormat("BakeCurrentBoneRotationIntoJointRotation bake all joints on actor '{0}'", _sName);
+	}
+
+
+
+    //---------------------------------------------------------------------------	VR WAND MOVEMENT
+    public virtual Transform VrWandMove_Begin(CVrWand oVrWand, bool bStartAction1, bool bStartAction2) {
+        _oObj.Set("Pinned", 0);
+        _oObj.Set("Pinned", 1);          //#DEV26: ###KEEP??
+        return transform;
+    }
+    public virtual void VrWandMove_End(CVrWand oVrWand) { }
+    public virtual void VrWandMove_Update(CVrWand oVrWand) { }
+    public virtual void VrWandMove_UpdatePositionAndRotation(Transform oNodeT) {
+        transform.position = oNodeT.position;
+        transform.rotation = oNodeT.rotation;
+    }
 }
 
 public enum EBodySide {
@@ -406,44 +520,61 @@ public enum EBodySide {
 
 
 
-	//public void OnPropSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.x = nValueNew; transform.position = vecPos; }
-	//public void OnPropSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.y = nValueNew; transform.position = vecPos; }
-	//public void OnPropSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.z = nValueNew; transform.position = vecPos; }
-	//public void OnPropSet_RotX(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.x = nValueNew; transform.rotation = quatRot; }
-	//public void OnPropSet_RotY(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.y = nValueNew; transform.rotation = quatRot; }
-	//public void OnPropSet_RotZ(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.z = nValueNew; transform.rotation = quatRot; }
-	//public void OnPropSet_RotW(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.w = nValueNew; transform.rotation = quatRot; }
+//public void OnSet_PosX(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.x = nValueNew; transform.position = vecPos; }
+//public void OnSet_PosY(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.y = nValueNew; transform.position = vecPos; }
+//public void OnSet_PosZ(float nValueOld, float nValueNew) { Vector3 vecPos = transform.position; vecPos.z = nValueNew; transform.position = vecPos; }
+//public void OnSet_RotX(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.x = nValueNew; transform.rotation = quatRot; }
+//public void OnSet_RotY(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.y = nValueNew; transform.rotation = quatRot; }
+//public void OnSet_RotZ(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.z = nValueNew; transform.rotation = quatRot; }
+//public void OnSet_RotW(float nValueOld, float nValueNew) { Quaternion quatRot = transform.rotation; quatRot.w = nValueNew; transform.rotation = quatRot; }
 
 
 
-	////---------------------------------------------------------------------------	HOTSPOT EVENTS
+////---------------------------------------------------------------------------	HOTSPOT EVENTS
 
-	//public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {
-	//	_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.
+//public virtual void OnHotspotChanged(CGizmo oGizmo, EEditMode eEditMode, EHotSpotOp eHotSpotOp) {
+//	_oBody.SelectBody();			// Manipulating a body's hotspot automatically selects this body.
 
-	//	switch (eEditMode) {
-	//		case EEditMode.Move:	
-	//			Vector3 vecPos = oGizmo.transform.position;		//###NOTE: Upon hotspot movement we have to set not only our transform properties but CProp as well.
-	//			_oObj.PropSet(0, EActorNode.PosX, vecPos.x);		//###WEAK: Setting EActorNode for all actors (all have same index for same pin properties)
-	//			_oObj.PropSet(0, EActorNode.PosY, vecPos.y);		
-	//			_oObj.PropSet(0, EActorNode.PosZ, vecPos.z);
-	//			transform.position = vecPos;
-	//			break;
-	//		case EEditMode.Rotate:
-	//			Quaternion quatRot = oGizmo.transform.rotation;
-	//			_oObj.PropSet(0, EActorNode.RotX, quatRot.x);
-	//			_oObj.PropSet(0, EActorNode.RotY, quatRot.y);
-	//			_oObj.PropSet(0, EActorNode.RotZ, quatRot.z);
-	//			_oObj.PropSet(0, EActorNode.RotW, quatRot.w);
-	//			transform.rotation = quatRot;		//###DESIGN!!!! Huge work duplication with PropSet below setting our transform!
-	//			break;
-	//	}
-	//}
+//	switch (eEditMode) {
+//		case EEditMode.Move:	
+//			Vector3 vecPos = oGizmo.transform.position;		//###NOTE: Upon hotspot movement we have to set not only our transform properties but CObj as well.
+//			_oObj.Set(0, EActorNode.PosX, vecPos.x);		//###WEAK: Setting EActorNode for all actors (all have same index for same pin properties)
+//			_oObj.Set(0, EActorNode.PosY, vecPos.y);		
+//			_oObj.Set(0, EActorNode.PosZ, vecPos.z);
+//			transform.position = vecPos;
+//			break;
+//		case EEditMode.Rotate:
+//			Quaternion quatRot = oGizmo.transform.rotation;
+//			_oObj.Set(0, EActorNode.RotX, quatRot.x);
+//			_oObj.Set(0, EActorNode.RotY, quatRot.y);
+//			_oObj.Set(0, EActorNode.RotZ, quatRot.z);
+//			_oObj.Set(0, EActorNode.RotW, quatRot.w);
+//			transform.rotation = quatRot;		//###DESIGN!!!! Huge work duplication with Set below setting our transform!
+//			break;
+//	}
+//}
 
 
 //Vector3 vecEulerG = oGizmo.transform.rotation.eulerAngles;
 //transform.rotation = Quaternion.Euler(vecEulerG);	//###CHECK!!!!!!: Proper way to convert global rotation to local?  ###CHECK: Need to do different for base??
 //Vector3 vecEulerL = transform.localRotation.eulerAngles;	//###BUG!!!!! Problem with CActor and rotation. Euler conversion can't take all angles!!
-//_oObj.PropFind(0, EActorNode.RotX)._nValueLocal = vecEulerL.x;		//###HACK!!!!!
-//_oObj.PropFind(0, EActorNode.RotY)._nValueLocal = vecEulerL.y;
-//_oObj.PropFind(0, EActorNode.RotZ)._nValueLocal = vecEulerL.z;
+//_oObj.Find(0, EActorNode.RotX)._nValue = vecEulerL.x;		//###HACK!!!!!
+//_oObj.Find(0, EActorNode.RotY)._nValue = vecEulerL.y;
+//_oObj.Find(0, EActorNode.RotZ)._nValue = vecEulerL.z;
+
+
+
+//=== Create the configurable joint component and set it with values appropriate for a pin ===
+//if (GetType() == typeof(CActorArm)) {      //###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
+//    _oJoint_Extremity = CUtility.FindOrCreateComponent<HingeJoint>(_oBoneExtremity.gameObject);
+//    _oJoint_Extremity.anchor = new Vector3(0.012137f, 0.082438f, 0.02f);        //#DEV26: ###IMPROVE: Read from marker in hand?
+//    //_oJoint_Extremity.anchor = new Vector3(0.012137f, 0.082438f, 0.015285f);        //#DEV26:
+//    _oJoint_Extremity.autoConfigureConnectedAnchor = false;
+//    _oJoint_Extremity.connectedAnchor = Vector3.zero;
+//    _oJoint_Extremity.axis = new Vector3(0, 0, 1);
+//    CUtility.FindOrCreateComponent<CBone>(gameObject);          //#DEV26: ###HACK:!!  Need to add a CBone so wand can move us!!
+//    //GetComponent<Rigidbody>().isKinematic = true;
+//} else if (GetType() != typeof(CActorGenitals)) {      //###HACK22:!! Keep this check?  Check differently? (e.g. if has an extremity?)
+//    _oJoint_Extremity = CUtility.FindOrCreateComponent<HingeJoint>(gameObject);
+//    //GetComponent<Rigidbody>().isKinematic = true;
+//}

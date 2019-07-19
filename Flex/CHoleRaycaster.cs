@@ -68,7 +68,7 @@ public class CVaginaRaycaster {
 		_oBody = oBody;
 
 		//=== Add all raycaster objects from properly-named bones in Mesh ===
-		Transform oBoneGenitalsT = _oBody._oBodyBase.FindBone("hip/pelvis/Genitals");
+		Transform oBoneGenitalsT = _oBody._oBodyBase.FindBoneByPath("hip/pelvis/Genitals");
 		int nBones = oBoneGenitalsT.childCount;
 		for (int nBone = 0; nBone < nBones; nBone++) {
 			Transform oBoneT = oBoneGenitalsT.GetChild(nBone);

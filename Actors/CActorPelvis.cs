@@ -51,28 +51,26 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 
 	public override void OnStart_DefineLimb() {
 
-		_aBones.Add(_oBoneHip		= CBone.Connect(this, null,			"hip",		100,  8));		//###NOTE: While 'hip' is the root bone, it still has a non-kinematic rigid body like any other bone with D6 joints going into and out of it. (upperChest is our *real* root bone so pelvis can move easily)
-		_aBones.Add(_oBoneExtremity = CBone.Connect(this, _oBoneHip,	"pelvis",	100, 8));
+		_aBones.Add(_oBoneHip		= CBone.Connect(this, null,			"hip",		8));		//###NOTE: While 'hip' is the root bone, it still has a non-kinematic rigid body like any other bone with D6 joints going into and out of it. (upperChest is our *real* root bone so pelvis can move easily)
+		_aBones.Add(_oBoneExtremity = CBone.Connect(this, _oBoneHip,	"pelvis",	8));
 
-		_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, new Vector3(0, 0, 0), C_SizeHotSpot_BodyNodes);
+		//_oHotSpot = CHotSpot.CreateHotspot(this, transform, "Pelvis", true, G.C_Layer_HotSpot, C_SizeHotSpot_BodyNodes);
 
-		_oObj = new CObject(this, "Pelvis", "Pelvis");
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Pelvis", typeof(EActorPelvis));
-		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		_oObj.FinishInitialization();
-		//_oObj.PropSet(0, EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in PropAdd() due to init-time problems)
-	}
+        _oObj = new CObj("Pelvis", this);
+        AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
+        //_oObj.Set(0, EActorPelvis.Pinned, 1);			// Manually set pinned to 1 on chest so body doesn't float in space when no pose is loaded (Weak that we can't set in Add() due to init-time problems)
+    }
 
 
 
-	//---------------------------------------------------------------------------	HOTSPOT ANIMATION PLAYBACK / RECORD
-	void Update() {
+    //---------------------------------------------------------------------------	HOTSPOT ANIMATION PLAYBACK / RECORD
+    void Update() {
 		if (_eAnimMode == EAnimMode.Play) {
 			if (Input.GetKeyDown(KeyCode.Escape)) {
 				_eAnimMode = EAnimMode.Stopped;
-				//CGame.INSTANCE._sGuiString_Dev_DEBUG = "";
+				//CGame._sGuiString_Dev_DEBUG = "";
 			} else {
-				float nAnimTime = (Time.time - _nAnimStartPlay) * CGame.INSTANCE._nAnimMult_Time * _nTimeRatioToMatchOtherBody;
+				float nAnimTime = (Time.time - _nAnimStartPlay) * CGame._nAnimMult_Time * _nTimeRatioToMatchOtherBody;
 				if (nAnimTime >= _nAnimClipLength) {
 					nAnimTime = 0;
 					_nAnimStartPlay = Time.time;
@@ -80,8 +78,8 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 				_vecPos = new Vector3();
 				_vecPos.y = _oCurveAnimY.Evaluate(nAnimTime);		// Obtain the independent Y,Z hotspot positions from the pre-recorded animation curve.
 				_vecPos.z = _oCurveAnimZ.Evaluate(nAnimTime);
-				transform.localPosition = _vecPosStart + _vecPos * CGame.INSTANCE._nAnimMult_Pos;
-				//CGame.INSTANCE._sGuiString_Dev_DEBUG = string.Format("Play {0:F1} / {1:F1}", nAnimTime, _nAnimClipLength);
+				transform.localPosition = _vecPosStart + _vecPos * CGame._nAnimMult_Pos;
+				//CGame._sGuiString_Dev_DEBUG = string.Format("Play {0:F1} / {1:F1}", nAnimTime, _nAnimClipLength);
 			}
 		}
 	}
@@ -103,8 +101,8 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					_nAnimStartRec = Time.time;							// Store the time of clip recording so we can determine clip length for 0-based curves.
 					_vecPosStart = _vecPosLast = vecPosHotspotL;
 					_nDistTravelled = 0;
-					CGame.INSTANCE._nAnimMult_Pos = 1;				//###CHECK
-					CGame.INSTANCE._nAnimMult_Time = 1;
+					CGame._nAnimMult_Pos = 1;				//###CHECK
+					CGame._nAnimMult_Time = 1;
 					_eAnimMode = EAnimMode.Record;
 					break;
 
@@ -115,7 +113,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					_oCurveAnimZ.AddKey(nAnimTime, vecPosFromStart.z);
 					_nDistTravelled += (vecPosHotspotL - _vecPosLast).magnitude;		// Add the distance travelled this last frame
 					_vecPosLast = vecPosHotspotL;									// Remember where we are now for next distance travelled adder
-					//CGame.INSTANCE._sGuiString_Dev_DEBUG = string.Format("Rec {0:F1}  Dist: {1:F2}", nAnimTime, _nDistTravelled);
+					//CGame._sGuiString_Dev_DEBUG = string.Format("Rec {0:F1}  Dist: {1:F2}", nAnimTime, _nDistTravelled);
 					break;
 
 				case EHotSpotOp.Last:		// End recording by adding one last data point to return to start position at an appropriately calculated time.
@@ -133,7 +131,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					//=== Find the other body (if it exists) and slow-down or speed up our clip if our clip time is nearby the cliptime of the other body
 					//###BROKEN11:
 					//CBody oBodyOther = null;
-					//foreach (CBody oBody in CGame.INSTANCE._aBodyBases) {
+					//foreach (CBody oBody in CGame._aBodyBases) {
 					//	if (oBody != _oBody) {
 					//		oBodyOther = oBody;
 					//		break;
@@ -146,7 +144,7 @@ public class CActorPelvis : CActor {		// The important 'pelvis driver' that is e
 					//	}
 					//}
 					_nTimeRatioToMatchOtherBody = 1;
-					//CGame.INSTANCE._sGuiString_Dev_DEBUG = "";
+					//CGame._sGuiString_Dev_DEBUG = "";
 					_eAnimMode = EAnimMode.Play;
 					break;
 

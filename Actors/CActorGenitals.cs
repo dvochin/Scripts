@@ -10,17 +10,15 @@ public class CActorGenitals : CActor {
 		//=== Init Bones and Joints ===
 
 		//=== Initialize position of our pin to the startup position / orientation of our basis bone in body ===		//###BROKEN:???
-		Transform oGenitalsT = CUtility.FindChild(_oBody._oBodyBase._oBoneRootT, "hip/pelvis/Genitals");		// Because we're first to be created we must fetch our reference bone directly
+		Transform oGenitalsT = CUtility.FindChild(_oBodyBase._oBoneRootT, "hip/pelvis/Genitals");		// Because we're first to be created we must fetch our reference bone directly
 		//###TODO22: Have extra bone for man rig to point to penis start
 		transform.position = oGenitalsT.position;
 		transform.rotation = oGenitalsT.rotation;
 
-		//=== Init CObject ===
-		_oObj = new CObject(this, "Genitals", "Genitals");
-		CPropGrpEnum oPropGrp = new CPropGrpEnum(_oObj, "Genitals", typeof(EActorGenitals));
+		//=== Init CObj ===
+		_oObj = new CObj("Genitals", this);
 		AddBaseActorProperties();						// The first properties of every CActor subclass are Pinned, pos & rot
-		//oPropGrp.PropAdd(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"");
-		_oObj.FinishInitialization();
+		//_oObj.Add(EActorLeg.Thigh_Rotate,	"Thigh-Rotate",		0,	-100,	100,	"");
 	}
 
 	public override void OnDestroy() {

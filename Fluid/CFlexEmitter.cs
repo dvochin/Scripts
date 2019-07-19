@@ -42,21 +42,26 @@ public class CFlexEmitter : uFlex.FlexProcessorFluid		// CFlexEmitter: Responsib
 						CFluidParticleGroup	_oFluidParGrp_LastOfPrevFrame;                      // The last of the last-emitted fluid particle group in the previous frame.  Needed so we can extract its one-frame-old real-world position and create follow-on particles that are exactly next to it (for seamless fluid effect)
 						Vector3				_vecPosEmitterStart;								// The positing in our local coordinate space of where we place the first particle in this frame.  While this starts at whatever point we need to start to fill first-frame with particles this position becomes the position of the last-emitted particle of the previous frame (so we append particles this frame that are right next to it)
 						Vector3				_vecPosEmitterEnd;									// The target position of where we stop emitting particles.  By definition (0,0,0) but we can move if need be
+                        public float        _nEmitVelocity_DirectControl;                       // If non-zero we emit at this velocity at every frame.  Used for manual control via an analog user input such as wand trigger
 						float				_nEmitVelocity_PreviousFrame;						// The emitter velocity at the previous frame.  Used to smoothly increase or decrease from that level to our current one (and not cause visible breaks in fluid stream when velocity changes)
 						public int			_nStatParticleMatchTooFar_TEMP;
 						public int			_nStatParticleMatchSucceeded_TEMP;
 						bool				_bConfigured;
 						int					_nFramesEmitted;
 
-	private void Start() {
-		_oFlexParamsFluid = CGame.INSTANCE._oFlexParamsFluid;
+    void Awake() {
+        enabled = false;        // Disabled until explicitely initialized in DoStart()
+    }
+	public void DoStart() {
+		_oFlexParamsFluid = CGame._oFlexParamsFluid;       //###IMPROVE: Better init flow that pulling from CGame?  (pass in as arg?)
 		if (_oFlexParamsFluid != null) { 
 			_oFlexParamsFluid.Emitter_Register(this);
 			OnEmitterParametersChanged();			//###CHECK23: Safe to init by ourselves??  Re-think creation and init flow here.
+            enabled = true;
 		}
-	}
+    }
 
-	private void OnDestroy() {
+    private void OnDestroy() {
 		if (_oFlexParamsFluid)
 			_oFlexParamsFluid.Emitter_Unregister(this);
 	}
@@ -75,26 +80,33 @@ public class CFlexEmitter : uFlex.FlexProcessorFluid		// CFlexEmitter: Responsib
 		_bConfigured = true;
 	}
 	
-    public override void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {
-		if (_bConfigured == false || _bEmitterOn == false)
-			return;
-		if (_oFlexParamsFluid.D_DisableEmitters)
+    public override void PreContainerUpdate(uFlex.FlexSolver solver, uFlex.FlexContainer cntr, uFlex.FlexParameters parameters) {       //###DEV26: Call from Fluid main?
+		if (_bConfigured == false || _bEmitterOn == false || _oFlexParamsFluid.D_EnableAllEmitters == false)
 			return;
 
-		//=== Set the emit velocity & rate from the pertinent configuration curve ===
-		float nTimeInEjaculationCycle = (Time.time - CGame.INSTANCE._nTimeStartOfCumming) % _oFlexParamsFluid._nEmitter_CumCycleTimeSpan;
-		float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / _oFlexParamsFluid._nEmitter_CumCycleTimeSpan;        //###DESIGN!!! Move curve here?  How to persist??
-		if (_oFlexParamsFluid.D_FluidEmitter_StopAfterOneCycle && nTimeInEjaculationCycle_Normalized >= 0.95f)
-			DisableEmitter();
-		float nEmitVelocity = _nEmitterVelocityMult * _oFlexParamsFluid._nEmitterVelocityBase;  // Calculate our effective velocity from our base velocity and our multiplyer
-		float nEmitVelocityNow = nEmitVelocity * Mathf.Max(_oFlexParamsFluid.CurveEjaculation.Evaluate(nTimeInEjaculationCycle_Normalized), 0);       //###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
+        //=== Set the emit velocity & rate from the pertinent configuration curve ===
+        float nEmitVelocityNow = 0;
+        if (_nEmitVelocity_DirectControl != 0) {
+            nEmitVelocityNow = _nEmitVelocity_DirectControl * _oFlexParamsFluid._nEmitterVelocityBase;
+        } else {
+		    float nTimeInEjaculationCycle = (Time.time - CGame._nTimeStartOfCumming) % _oFlexParamsFluid._nEmitter_CumCycleTimeSpan;
+		    float nTimeInEjaculationCycle_Normalized = nTimeInEjaculationCycle / _oFlexParamsFluid._nEmitter_CumCycleTimeSpan;        //###DESIGN!!! Move curve here?  How to persist??
+		    if (_oFlexParamsFluid.D_FluidEmitter_StopAfterOneCycle && nTimeInEjaculationCycle_Normalized >= 0.95f)
+			    Emitter_Disable();
+		    float nEmitVelocity = _nEmitterVelocityMult * _oFlexParamsFluid._nEmitterVelocityBase;  // Calculate our effective velocity from our base velocity and our multiplyer
+            nEmitVelocityNow = nEmitVelocity;
+            if (CGame.INSTANCE._bFluidEmitter_UseCurve)
+                nEmitVelocityNow *= Mathf.Max(_oFlexParamsFluid.CurveEjaculation.Evaluate(nTimeInEjaculationCycle_Normalized), 0);       //###NOTE: We assume both the ejaculation curve's X (time) value and Y values (strenght) go from 0 to 1
+        }
 
 		//=== ADJUST EMITTER TO PREVIOUS FRAME POSITION: Calculate the velocity vector applied to the particles emitted in this frame ===
-		Vector3 vecVelocityLastParticle = transform.forward * nEmitVelocityNow;
+		Vector3 vecVelocityLastParticle = new Vector3(0, 0, nEmitVelocityNow);
 		Vector3 vecDistanceTravelledThisFrame = vecVelocityLastParticle * Time.fixedDeltaTime;                  //###NOTE: Assumes Flex is called from our top-level FixedUpdate()
 
-		//=== Adjust the 'starting point' of our first particle in relation to last particle of previous frame ===
-		if (_oFluidParGrp_LastOfPrevFrame != null) {
+        //=== Adjust the 'starting point' of our first particle in relation to last particle of previous frame ===
+        if (CGame.INSTANCE._bFluidEmitter_WeldGroupsTogether == false)
+            _oFluidParGrp_LastOfPrevFrame = null;
+        if (_oFluidParGrp_LastOfPrevFrame != null) {
 			Vector3 vecPosLastParticleOfPreviousFrameG = _oFlexParamsFluid._oFlexParamsFluidParticleBank.m_particles[_oFluidParGrp_LastOfPrevFrame._oFluidParticle_LastCenterParticle._nParticleID].pos;			// See where our last-emitted 'center' particle is now (so we can emit right next to it)...
 			Vector3 vecPosLastParticleOfPreviousFrameL = transform.worldToLocalMatrix.MultiplyPoint(vecPosLastParticleOfPreviousFrameG);									//... and convert its global position back to our local space...
 			if (vecPosLastParticleOfPreviousFrameL.magnitude < _oFlexParamsFluid._nEmitter_DistForPreviousFrameParticles_HACK * _oFlexParamsFluid._nEmitterDistanceBetweenParticles) {		//... and check if it's not too far...			//###TUNE
@@ -112,8 +124,9 @@ public class CFlexEmitter : uFlex.FlexProcessorFluid		// CFlexEmitter: Responsib
 		//=== Determine how many 'slices' we need to emit and the vector between slices so we reach our end (close as possible to our x = 0, y = 0 emitter line)
 		Vector3 vecEmitterSpanThisFrame = (_vecPosEmitterEnd - _vecPosEmitterStart);
 		float nSlices_Float = vecEmitterSpanThisFrame.magnitude / _oFlexParamsFluid._nEmitterDistanceBetweenParticles;
-		ushort nSlices = (ushort)nSlices_Float;       //CGame.INSTANCE._nFluidEmitter_NumSlices;
-		if (nSlices > 0) { 
+        ushort nSlices = (ushort)nSlices_Float;       //CGame._nFluidEmitter_NumSlices;
+        //ushort nSlices = (CGame._nFluidEmitter_NumSlices_HACK == 0) ? (ushort)nSlices_Float : CGame._nFluidEmitter_NumSlices_HACK;
+        if (nSlices > 0) { 
 			Vector3 vecEmitterSpanThisFrame_UnitVector = vecEmitterSpanThisFrame.normalized;
 			Vector3 vecDistanceBetweenSlices = vecEmitterSpanThisFrame_UnitVector * _oFlexParamsFluid._nEmitterDistanceBetweenParticles;
 
@@ -121,21 +134,29 @@ public class CFlexEmitter : uFlex.FlexProcessorFluid		// CFlexEmitter: Responsib
 			float nEmitVelocity_IncrementPerParticle = (nEmitVelocityNow - _nEmitVelocity_PreviousFrame) / nNumParticlesInGroup;
 
 			CFluidParticleGroup oFluidParGrp = _oFlexParamsFluid.FluidParticleGroup_Add(this);       // The very first particle emitted in a frame is configured as a 'raycasting particle' (to dynamically create Fluid collider as it goes).  We also remember its ID so we can glue to it next frame
-			oFluidParGrp.EmitParticles(this, nSlices, _vecPosEmitterStart, vecDistanceBetweenSlices, nEmitVelocity_IncrementPerParticle, _nEmitVelocity_PreviousFrame);       // The very first particle emitted in a frame is configured as a 'raycasting particle' (to dynamically create Fluid collider as it goes).  We also remember its ID so we can glue to it next frame
+            bool bSuccess = oFluidParGrp.EmitParticles(this, nSlices, _vecPosEmitterStart, vecDistanceBetweenSlices, nEmitVelocity_IncrementPerParticle, _nEmitVelocity_PreviousFrame);       // The very first particle emitted in a frame is configured as a 'raycasting particle' (to dynamically create Fluid collider as it goes).  We also remember its ID so we can glue to it next frame
+            if (bSuccess == false) {
+                Emitter_Disable();
+                return;
+            }
 			_oFluidParGrp_LastOfPrevFrame = oFluidParGrp;				// Remember this particle group so we can seamlessly join the next frame's particles with this one.
 
 			_nEmitVelocity_PreviousFrame = nEmitVelocityNow;            // Remember our velocity for the next frame to smooth from
 
-			_nFramesEmitted++;
+            _nFramesEmitted++;
 
 			if (_oFlexParamsFluid.D_FluidEmitter_NumFramesEmitting != 0 && _nFramesEmitted >= _oFlexParamsFluid.D_FluidEmitter_NumFramesEmitting)
-				DisableEmitter();		//###TEMP: Debug disable of emitter after # of frames.  (Disabled with 0)
+				Emitter_Disable();		//###TEMP: Debug disable of emitter after # of frames.  (Disabled with 0)
 		}
 	}
 
-	public void DisableEmitter() {
-		_oFlexParamsFluid.D_DisableEmitters = true;
-		_oFluidParGrp_LastOfPrevFrame = null;
+    public void Emitter_Enable() {
+        Emitter_Disable();
+        _bEmitterOn = true;
+    }
+    public void Emitter_Disable() {
+        _bEmitterOn = false;
+        _oFluidParGrp_LastOfPrevFrame = null;
 		_nFramesEmitted = 0;
 		_nEmitVelocity_PreviousFrame = 0;
 	}

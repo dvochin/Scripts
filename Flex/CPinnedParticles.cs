@@ -58,8 +58,8 @@ public class CPinnedParticles : MonoBehaviour {
 
 
     public void UpdatePositionsOfPinnedParticles() {         // Called every frame from the context of owning Flex object (soft body or cloth) to update position of guiding particles.
-        _oMeshSoftBodyPinnedParticles.Baking_UpdateBakedMesh();     // Bake our skinned mesh (source of position for the pinne particles)
-        Vector3[] aVertSkinned = _oMeshSoftBodyPinnedParticles._oMeshBaked.vertices;
+        Mesh oMeshBaked = _oMeshSoftBodyPinnedParticles.Baking_GetBakedSkinnedMesh();     // Bake our skinned mesh (source of position for the pinne particles)
+        Vector3[] aVertSkinned = oMeshBaked.vertices;
 
         //=== Update the position of our (master) skinned driving particles so (slave) simulated particle can closely follow. This is what makes it possible for a softbody to appear 'pinned' to the surface of its owning skinned body (e.g. breasts to chest, penis to crotch area, etc) ===
         for (int nMapping = 0; nMapping < _nNumMappingsSkinToSim; nMapping++) {
